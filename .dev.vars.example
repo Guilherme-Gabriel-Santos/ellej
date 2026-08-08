@@ -1,0 +1,6 @@
+# Copie este arquivo para .dev.vars nos testes locais ou para
+# .env.production na primeira publicação. Nunca envie esses valores ao Git.
+AUTH_SECRET=COLE_UMA_CHAVE_ALEATORIA_DE_64_CARACTERES
+ADMIN_SETUP_KEY=COLE_A_CHAVE_DE_ATIVACAO
+RESEND_API_KEY=re_COLE_SUA_CHAVE
+ADMIN_FROM_EMAIL="Elle Jew <acesso@auth.ellejew.com.br>"

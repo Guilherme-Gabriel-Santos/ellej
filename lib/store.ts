@@ -70,7 +70,7 @@ const productSeeds = [
   },
 ];
 
-function getD1() {
+export function getD1() {
   if (!env.DB) {
     throw new Error("Banco de dados da loja indisponível.");
   }
@@ -94,6 +94,16 @@ export async function ensureStoreSchema() {
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)"),
     d1.prepare("CREATE TABLE IF NOT EXISTS subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     d1.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email)"),
+    d1.prepare("CREATE TABLE IF NOT EXISTS admin_users (id TEXT PRIMARY KEY, email TEXT NOT NULL, password_hash TEXT NOT NULL, password_salt TEXT NOT NULL, failed_attempts INTEGER NOT NULL DEFAULT 0, locked_until INTEGER, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    d1.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email)"),
+    d1.prepare("CREATE TABLE IF NOT EXISTS admin_login_challenges (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, consumed_at INTEGER, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_admin_challenges_user_expires ON admin_login_challenges(user_id, expires_at)"),
+    d1.prepare("CREATE TABLE IF NOT EXISTS admin_sessions (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at INTEGER NOT NULL, last_seen_at INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_admin_sessions_user_expires ON admin_sessions(user_id, expires_at)"),
+    d1.prepare("CREATE TABLE IF NOT EXISTS admin_audit_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, action TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT, details TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_admin_audit_created_at ON admin_audit_logs(created_at)"),
+    d1.prepare("CREATE TABLE IF NOT EXISTS media_assets (key TEXT PRIMARY KEY, content_type TEXT NOT NULL, size INTEGER NOT NULL, original_name TEXT NOT NULL, uploaded_by TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    d1.prepare("CREATE INDEX IF NOT EXISTS idx_media_assets_created_at ON media_assets(created_at)"),
   ]);
 
   await d1.batch(

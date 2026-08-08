@@ -110,3 +110,71 @@ export const subscribers = sqliteTable(
   },
   (table) => [uniqueIndex("idx_subscribers_email").on(table.email)],
 );
+
+export const adminUsers = sqliteTable(
+  "admin_users",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    passwordSalt: text("password_salt").notNull(),
+    failedAttempts: integer("failed_attempts").notNull().default(0),
+    lockedUntil: integer("locked_until"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [uniqueIndex("idx_admin_users_email").on(table.email)],
+);
+
+export const adminLoginChallenges = sqliteTable(
+  "admin_login_challenges",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    codeHash: text("code_hash").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    consumedAt: integer("consumed_at"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_admin_challenges_user_expires").on(table.userId, table.expiresAt)],
+);
+
+export const adminSessions = sqliteTable(
+  "admin_sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    userId: text("user_id").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    lastSeenAt: integer("last_seen_at").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_admin_sessions_user_expires").on(table.userId, table.expiresAt)],
+);
+
+export const adminAuditLogs = sqliteTable(
+  "admin_audit_logs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id").notNull(),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id"),
+    details: text("details"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_admin_audit_created_at").on(table.createdAt)],
+);
+
+export const mediaAssets = sqliteTable(
+  "media_assets",
+  {
+    key: text("key").primaryKey(),
+    contentType: text("content_type").notNull(),
+    size: integer("size").notNull(),
+    originalName: text("original_name").notNull(),
+    uploadedBy: text("uploaded_by").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_media_assets_created_at").on(table.createdAt)],
+);

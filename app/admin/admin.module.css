@@ -1,0 +1,1118 @@
+.authPage,
+.adminShell {
+  --navy: #34495e;
+  --navy-92: rgba(52, 73, 94, 0.92);
+  --navy-72: rgba(52, 73, 94, 0.72);
+  --navy-50: rgba(52, 73, 94, 0.5);
+  --navy-20: rgba(52, 73, 94, 0.2);
+  --navy-10: rgba(52, 73, 94, 0.1);
+  --navy-05: rgba(52, 73, 94, 0.05);
+  --white: #fff;
+  --black: #000;
+  min-height: 100vh;
+  color: var(--navy);
+  background: var(--white);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.authPage {
+  padding: 54px 20px;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(rgba(52, 73, 94, 0.96), rgba(52, 73, 94, 0.96)),
+    url("/brand/packaging.webp") center / cover;
+}
+
+.backStore {
+  position: fixed;
+  top: 25px;
+  left: 30px;
+  color: var(--white);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.authCard {
+  width: min(520px, 100%);
+  padding: clamp(35px, 5vw, 64px);
+  background: var(--white);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.22);
+}
+
+.authCard > img {
+  width: 120px;
+  height: 72px;
+  margin-bottom: 25px;
+  object-fit: contain;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--navy-72);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.authCard h1,
+.pageTitle h1,
+.wizardForm h1 {
+  margin: 0;
+  color: var(--navy);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(38px, 5vw, 58px);
+  font-weight: 400;
+  line-height: 1.02;
+}
+
+.authLead {
+  margin: 20px 0 30px;
+  color: var(--navy-72);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.configAlert {
+  margin: -10px 0 25px;
+  padding: 15px;
+  background: var(--navy-10);
+  border-left: 3px solid var(--navy);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.authForm,
+.settingsCard form {
+  display: grid;
+  gap: 18px;
+}
+
+.authForm label,
+.settingsCard label,
+.formGrid label,
+.toolbar label {
+  display: grid;
+  gap: 8px;
+  color: var(--navy);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.authForm label small,
+.switchLabel small {
+  color: var(--navy-50);
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.authForm input,
+.settingsCard input,
+.formGrid input,
+.formGrid select,
+.formGrid textarea,
+.toolbar input,
+.orderDetails select {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  color: var(--navy);
+  border: 1px solid var(--navy-20);
+  border-radius: 0;
+  outline: none;
+  background: var(--white);
+  font: 13px Arial, sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.authForm input:focus,
+.settingsCard input:focus,
+.formGrid input:focus,
+.formGrid select:focus,
+.formGrid textarea:focus,
+.toolbar input:focus,
+.orderDetails select:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 2px var(--navy-10);
+}
+
+.codeInput {
+  height: 70px;
+  font-size: 29px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3em !important;
+  text-align: center;
+}
+
+.primaryButton,
+.secondaryButton,
+.textButton,
+.headerAdd {
+  min-height: 49px;
+  padding: 0 22px;
+  border: 1px solid var(--navy);
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.primaryButton,
+.headerAdd {
+  background: var(--navy);
+  color: var(--white);
+}
+
+.primaryButton:disabled,
+.headerAdd:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
+
+.secondaryButton,
+.textButton {
+  color: var(--navy);
+  background: var(--white);
+}
+
+.textButton {
+  min-height: 35px;
+  border: 0;
+  border-bottom: 1px solid var(--navy-20);
+}
+
+.loader {
+  width: 42px;
+  height: 42px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.authPage > p {
+  margin-top: -40vh;
+  color: var(--white);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.adminShell {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  background: var(--navy-05);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 26px 22px;
+  display: flex;
+  flex-direction: column;
+  color: var(--white);
+  background: var(--navy);
+}
+
+.adminLogo {
+  width: 120px;
+  height: 62px;
+  display: block;
+}
+
+.adminLogo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sidebar nav {
+  margin-top: 58px;
+  display: grid;
+  gap: 6px;
+}
+
+.sidebar nav button {
+  min-height: 51px;
+  padding: 0 14px;
+  display: grid;
+  grid-template-columns: 25px 1fr;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.58);
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 11px;
+}
+
+.sidebar nav button span {
+  font-size: 7px;
+}
+
+.sidebar nav .activeNav {
+  color: var(--white);
+  border-left-color: var(--white);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebarBottom {
+  margin-top: auto;
+  padding-top: 18px;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sidebarBottom a,
+.sidebarBottom button {
+  color: rgba(255, 255, 255, 0.7);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 9px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.adminMain {
+  min-width: 0;
+}
+
+.adminHeader {
+  height: 82px;
+  padding: 0 clamp(20px, 4vw, 55px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 25px;
+  border-bottom: 1px solid var(--navy-10);
+  background: var(--white);
+}
+
+.adminHeader > div {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+}
+
+.adminHeader > div span {
+  color: var(--navy-50);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.adminHeader > div strong {
+  font-size: 10px;
+}
+
+.headerAdd {
+  min-height: 42px;
+}
+
+.mobileMenu {
+  display: none;
+}
+
+.pageContent {
+  width: min(1320px, 100%);
+  margin: 0 auto;
+  padding: clamp(34px, 5vw, 72px) clamp(20px, 4vw, 55px) 80px;
+}
+
+.pageTitle {
+  margin-bottom: 42px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 25px;
+}
+
+.pageTitle h1 {
+  font-size: clamp(45px, 5vw, 68px);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--navy-10);
+  background: var(--white);
+}
+
+.statGrid article {
+  min-height: 180px;
+  padding: 25px;
+  display: grid;
+  align-content: start;
+  border-right: 1px solid var(--navy-10);
+}
+
+.statGrid article:last-child {
+  border: 0;
+}
+
+.statGrid article > span {
+  min-height: 28px;
+  color: var(--navy-50);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.statGrid article > strong {
+  margin: 12px 0;
+  font-family: Georgia, serif;
+  font-size: 39px;
+  font-weight: 400;
+}
+
+.statGrid button,
+.statGrid small {
+  align-self: end;
+  color: var(--navy-50);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 8px;
+}
+
+.statGrid .revenueCard {
+  color: var(--white);
+  background: var(--navy);
+}
+
+.revenueCard > span,
+.revenueCard small {
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+
+.revenueCard > strong {
+  font-size: clamp(24px, 2.4vw, 38px) !important;
+}
+
+.dashboardGrid {
+  margin-top: 25px;
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 25px;
+}
+
+.panelCard,
+.settingsCard {
+  padding: 28px;
+  background: var(--white);
+  border: 1px solid var(--navy-10);
+}
+
+.panelHeading {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.panelHeading h2,
+.settingsCard h2 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 27px;
+  font-weight: 400;
+}
+
+.panelHeading > button {
+  padding: 0 0 5px;
+  color: var(--navy);
+  border: 0;
+  border-bottom: 1px solid var(--navy-20);
+  background: transparent;
+  cursor: pointer;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.compactList,
+.compactOrders {
+  display: grid;
+}
+
+.compactList > button,
+.compactOrders > button {
+  min-width: 0;
+  padding: 12px 0;
+  display: grid;
+  align-items: center;
+  color: var(--navy);
+  border: 0;
+  border-top: 1px solid var(--navy-10);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.compactList > button {
+  grid-template-columns: 52px 1fr auto;
+  gap: 13px;
+}
+
+.compactList img {
+  width: 52px;
+  height: 55px;
+  object-fit: cover;
+}
+
+.compactList span,
+.compactOrders span,
+.tableProduct span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.compactList strong,
+.compactOrders strong,
+.tableProduct strong {
+  overflow: hidden;
+  font-family: Georgia, serif;
+  font-size: 14px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compactList small,
+.compactOrders small,
+.tableProduct small {
+  color: var(--navy-50);
+  font-size: 7px;
+}
+
+.compactList b {
+  font-size: 9px;
+}
+
+.compactOrders > button {
+  grid-template-columns: 1fr auto 120px;
+  gap: 15px;
+}
+
+.compactOrders b {
+  font-size: 10px;
+}
+
+.compactOrders em {
+  padding: 7px;
+  background: var(--navy-10);
+  font-size: 7px;
+  font-style: normal;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.empty {
+  padding: 30px 0;
+  color: var(--navy-50);
+  font-size: 11px;
+  text-align: center;
+}
+
+.toolbar {
+  margin-bottom: 15px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--white);
+  border: 1px solid var(--navy-10);
+}
+
+.toolbar label {
+  width: min(420px, 100%);
+}
+
+.toolbar input {
+  min-height: 43px;
+}
+
+.toolbar > span {
+  color: var(--navy-50);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.productTable,
+.orderList {
+  background: var(--white);
+  border: 1px solid var(--navy-10);
+}
+
+.tableHeader,
+.productTable > article {
+  display: grid;
+  grid-template-columns: minmax(260px, 2fr) minmax(110px, 0.7fr) 90px 100px 160px;
+  gap: 18px;
+  align-items: center;
+}
+
+.tableHeader {
+  min-height: 44px;
+  padding: 0 20px;
+  color: var(--navy-50);
+  border-bottom: 1px solid var(--navy-10);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.productTable > article {
+  min-height: 91px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--navy-10);
+}
+
+.productTable > article:last-of-type {
+  border-bottom: 0;
+}
+
+.tableProduct {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  align-items: center;
+  gap: 13px;
+}
+
+.tableProduct img {
+  width: 58px;
+  height: 64px;
+  object-fit: cover;
+  background: var(--navy-05);
+}
+
+.productTable article > div:not(.tableProduct, .rowActions) {
+  display: grid;
+  gap: 5px;
+}
+
+.productTable article > div > strong {
+  font-size: 11px;
+}
+
+.productTable article > div > small {
+  color: var(--navy-50);
+  font-size: 7px;
+}
+
+.statusPill {
+  padding: 7px 8px;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 7px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.inactivePill {
+  background: var(--navy-10);
+  color: var(--navy);
+}
+
+.rowActions {
+  display: flex;
+  gap: 7px;
+}
+
+.rowActions button {
+  padding: 8px 9px;
+  color: var(--navy);
+  border: 1px solid var(--navy-20);
+  background: var(--white);
+  cursor: pointer;
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.orderList > article {
+  border-bottom: 1px solid var(--navy-10);
+}
+
+.orderList > article:last-of-type {
+  border-bottom: 0;
+}
+
+.orderSummary {
+  width: 100%;
+  min-height: 82px;
+  padding: 15px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr 0.8fr 140px 25px;
+  align-items: center;
+  gap: 15px;
+  color: var(--navy);
+  border: 0;
+  background: var(--white);
+  cursor: pointer;
+  text-align: left;
+}
+
+.orderSummary > span {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.orderSummary small {
+  color: var(--navy-50);
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.orderSummary strong {
+  overflow: hidden;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orderSummary em {
+  padding: 8px;
+  background: var(--navy-10);
+  font-size: 7px;
+  font-style: normal;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.orderSummary b {
+  font-family: Georgia, serif;
+  font-size: 23px;
+  font-weight: 400;
+  text-align: right;
+}
+
+.expandedOrder .orderSummary {
+  background: var(--navy-05);
+}
+
+.orderDetails {
+  padding: 28px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+  background: var(--navy-05);
+  border-top: 1px solid var(--navy-10);
+}
+
+.orderDetails h3 {
+  margin: 0 0 15px;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.orderDetails p {
+  margin: 0 0 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--navy-72);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.orderDetails select {
+  min-height: 42px;
+  margin-bottom: 10px;
+}
+
+.orderDetails small {
+  color: var(--navy-50);
+  font-size: 8px;
+}
+
+.settingsCard {
+  width: min(620px, 100%);
+  padding: 38px;
+}
+
+.settingsCard > p {
+  margin: 14px 0 30px;
+  color: var(--navy-72);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.settingsCard .primaryButton {
+  justify-self: start;
+  margin-top: 10px;
+}
+
+.wizardOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.wizard {
+  width: min(940px, 100%);
+  min-height: 100vh;
+  margin-left: auto;
+  display: grid;
+  grid-template-rows: 72px auto 1fr 86px;
+  background: var(--white);
+  box-shadow: -20px 0 70px rgba(0, 0, 0, 0.22);
+}
+
+.wizard > header {
+  padding: 0 28px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  color: var(--white);
+  background: var(--navy);
+}
+
+.wizard > header button {
+  justify-self: start;
+  color: var(--white);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.wizard > header img {
+  width: 95px;
+  height: 58px;
+  object-fit: contain;
+}
+
+.wizard > header span {
+  justify-self: end;
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.wizardSteps {
+  min-height: 78px;
+  padding: 14px clamp(25px, 5vw, 60px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 1px solid var(--navy-10);
+}
+
+.wizardSteps > div {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--navy-50);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.wizardSteps > div:not(:last-child)::after {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 30%;
+  height: 1px;
+  content: "";
+  background: var(--navy-20);
+}
+
+.wizardSteps i {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--navy-20);
+  border-radius: 50%;
+  font-style: normal;
+}
+
+.wizardSteps .currentStep {
+  color: var(--navy);
+}
+
+.wizardSteps .currentStep i {
+  color: var(--white);
+  border-color: var(--navy);
+  background: var(--navy);
+}
+
+.wizardBody {
+  padding: clamp(38px, 6vw, 72px) clamp(25px, 8vw, 90px);
+}
+
+.wizardForm > h1 {
+  max-width: 650px;
+  font-size: clamp(38px, 5vw, 58px);
+}
+
+.wizardForm > p:not(.eyebrow) {
+  margin: 18px 0 35px;
+  color: var(--navy-72);
+  font-size: 12px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.fullField {
+  grid-column: span 2;
+}
+
+.formGrid textarea {
+  min-height: 150px;
+  padding-top: 14px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.mediaGrid {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.75fr) minmax(0, 1.25fr);
+  gap: 30px;
+}
+
+.uploadBox {
+  min-height: 365px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 9px;
+  overflow: hidden;
+  color: var(--navy);
+  border: 1px dashed var(--navy-50);
+  background: var(--navy-05);
+  cursor: pointer;
+  text-align: center;
+}
+
+.uploadBox > b {
+  font-family: Georgia, serif;
+  font-size: 45px;
+  font-weight: 400;
+}
+
+.uploadBox > strong {
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.uploadBox > small {
+  color: var(--navy-50);
+  font-size: 8px;
+}
+
+.uploadBox > img {
+  width: 100%;
+  height: 365px;
+  object-fit: cover;
+}
+
+.uploadBox input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.switchLabel {
+  min-height: 70px;
+  padding: 12px 15px;
+  display: flex !important;
+  align-items: center;
+  gap: 12px !important;
+  border: 1px solid var(--navy-20);
+  cursor: pointer;
+}
+
+.switchLabel input {
+  width: 20px;
+  min-height: 20px;
+  accent-color: var(--navy);
+}
+
+.switchLabel span {
+  display: grid;
+  gap: 4px;
+}
+
+.productReview {
+  margin-top: 30px;
+  padding: 15px;
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  align-items: center;
+  gap: 15px;
+  background: var(--navy-05);
+}
+
+.productReview img {
+  width: 70px;
+  height: 78px;
+  object-fit: cover;
+}
+
+.productReview span {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.productReview span strong {
+  font-family: Georgia, serif;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.productReview span small {
+  color: var(--navy-50);
+  font-size: 8px;
+}
+
+.productReview b {
+  font-family: Georgia, serif;
+  font-size: 21px;
+  font-weight: 400;
+}
+
+.wizard > footer {
+  padding: 17px clamp(25px, 5vw, 60px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  border-top: 1px solid var(--navy-10);
+  background: var(--white);
+}
+
+.notice {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 300;
+  width: min(400px, calc(100% - 48px));
+  padding: 16px 20px;
+  color: var(--white);
+  background: var(--navy);
+  border: 1px solid var(--white);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.noticeError {
+  color: var(--navy);
+  background: var(--white);
+  border-color: var(--navy);
+}
+
+@media (max-width: 1050px) {
+  .adminShell { grid-template-columns: 210px minmax(0, 1fr); }
+  .statGrid { grid-template-columns: repeat(2, 1fr); }
+  .statGrid article:nth-child(2) { border-right: 0; }
+  .statGrid article:nth-child(-n + 2) { border-bottom: 1px solid var(--navy-10); }
+  .dashboardGrid { grid-template-columns: 1fr; }
+  .tableHeader { display: none; }
+  .productTable > article { grid-template-columns: minmax(230px, 1.5fr) repeat(3, 0.6fr); }
+  .productTable > article .rowActions { grid-column: 1 / -1; padding-left: 71px; }
+  .orderSummary { grid-template-columns: 1fr 1.2fr 1fr 120px 25px; }
+  .orderSummary > span:nth-child(3) { display: none; }
+  .orderDetails { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 760px) {
+  .adminShell { display: block; }
+  .sidebar { position: static; width: 100%; height: auto; padding: 10px 15px; flex-direction: row; align-items: center; overflow-x: auto; }
+  .adminLogo { width: 82px; height: 48px; flex: 0 0 auto; }
+  .sidebar nav { margin: 0 0 0 15px; display: flex; }
+  .sidebar nav button { min-width: 90px; min-height: 40px; padding: 0 8px; display: block; text-align: center; }
+  .sidebar nav button span { display: none; }
+  .sidebarBottom { display: none; }
+  .adminHeader { height: 65px; padding: 0 15px; }
+  .adminHeader > div { margin-right: auto; text-align: left; }
+  .adminHeader > div span { display: none; }
+  .headerAdd { min-height: 39px; padding: 0 12px; font-size: 7px; }
+  .pageContent { padding-top: 38px; }
+  .pageTitle { align-items: start; flex-direction: column; }
+  .pageTitle .primaryButton { width: 100%; }
+  .statGrid { grid-template-columns: 1fr 1fr; }
+  .statGrid article { min-height: 150px; padding: 18px; }
+  .statGrid article > strong { font-size: 31px; }
+  .toolbar { align-items: stretch; flex-direction: column; }
+  .productTable { background: transparent; border: 0; }
+  .productTable > article { margin-bottom: 12px; padding: 15px; grid-template-columns: 1fr 1fr; background: var(--white); border: 1px solid var(--navy-10); }
+  .tableProduct { grid-column: 1 / -1; }
+  .productTable > article .rowActions { grid-column: 1 / -1; padding-left: 0; }
+  .rowActions button { flex: 1; min-height: 37px; }
+  .orderList { background: transparent; border: 0; }
+  .orderList > article { margin-bottom: 12px; border: 1px solid var(--navy-10); }
+  .orderSummary { grid-template-columns: 1fr 0.8fr 25px; }
+  .orderSummary > span:nth-child(2), .orderSummary > span:nth-child(3), .orderSummary > em { display: none; }
+  .orderDetails { grid-template-columns: 1fr; }
+  .wizard { grid-template-rows: 62px auto 1fr 78px; }
+  .wizardSteps { padding: 10px 18px; }
+  .wizardSteps > div { justify-content: center; }
+  .wizardSteps span { display: none; }
+  .wizardSteps > div:not(:last-child)::after { right: -14%; width: 28%; }
+  .wizardBody { padding: 38px 20px; }
+  .formGrid, .mediaGrid { grid-template-columns: 1fr; }
+  .fullField { grid-column: span 1; }
+  .uploadBox, .uploadBox > img { min-height: 300px; height: 300px; }
+  .productReview { grid-template-columns: 55px 1fr; }
+  .productReview img { width: 55px; height: 62px; }
+  .productReview b { grid-column: 2; }
+  .wizard > footer { padding: 14px 18px; }
+  .wizard > footer button { padding: 0 14px; }
+}
+
+@media (max-width: 470px) {
+  .authPage { padding: 50px 12px 20px; place-items: start center; }
+  .backStore { top: 17px; left: 17px; }
+  .authCard { padding: 30px 22px; }
+  .authCard h1 { font-size: 42px; }
+  .sidebar nav button { min-width: 78px; font-size: 8px; }
+  .statGrid { grid-template-columns: 1fr; }
+  .statGrid article { border-right: 0; border-bottom: 1px solid var(--navy-10); }
+  .statGrid article:nth-child(3) { border-bottom: 1px solid var(--navy-10); }
+  .compactOrders > button { grid-template-columns: 1fr auto; }
+  .compactOrders em { grid-column: 1 / -1; justify-self: start; }
+}

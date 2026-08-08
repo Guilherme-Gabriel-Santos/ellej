@@ -383,8 +383,8 @@ export function Storefront() {
       <footer className="footer">
         <div className="footer-brand"><img src="/brand/logo.webp" alt="Elle Jew" /><p>Eternizando elegância por meio de joias.</p></div>
         <div><h3>Comprar</h3><a href="#colecao">Colares</a><a href="#colecao">Conjuntos</a><a href="#colecao">Brincos</a><a href="#colecao">Lançamentos</a></div>
-        <div><h3>Atendimento</h3><a href="https://wa.me/5516992939739" target="_blank" rel="noreferrer">WhatsApp</a><a href="mailto:contato@ellejew.com.br">E-mail</a><a href="#">Trocas e devoluções</a><a href="#">Cuidados com sua joia</a></div>
-        <div><h3>Elle Jew</h3><a href="#sobre">Nossa essência</a><a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer">Instagram</a><a href="#">Privacidade</a><a href="#">Termos</a></div>
+        <div><h3>Atendimento</h3><a href="https://wa.me/5516992939739" target="_blank" rel="noreferrer">WhatsApp</a><a href="mailto:contato@ellejew.com.br">E-mail</a><a href="mailto:contato@ellejew.com.br?subject=Trocas%20e%20devolucoes">Trocas e devoluções</a><a href="mailto:contato@ellejew.com.br?subject=Cuidados%20com%20minha%20joia">Cuidados com sua joia</a></div>
+        <div><h3>Elle Jew</h3><a href="#sobre">Nossa essência</a><a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer">Instagram</a><a href="mailto:contato@ellejew.com.br?subject=Privacidade">Privacidade</a><a href="mailto:contato@ellejew.com.br?subject=Termos%20da%20loja">Termos</a></div>
         <div className="footer-bottom"><span>© 2026 Elle Jew. Todos os direitos reservados.</span><span>Prata 925 • Feito para durar</span></div>
       </footer>
 
