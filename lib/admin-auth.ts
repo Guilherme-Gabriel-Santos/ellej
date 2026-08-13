@@ -1,9 +1,13 @@
 import { env } from "cloudflare:workers";
 import { ensureStoreSchema, getD1 } from "./store";
+export { assertSameOrigin } from "./security";
 
 const encoder = new TextEncoder();
 const sessionCookieName = "ellejew_admin";
-const passwordIterations = 310_000;
+// Cloudflare Workers limits a single PBKDF2 operation to 100,000 iterations.
+// The admin password is additionally protected by a 12-character minimum,
+// a random 128-bit salt and the e-mail verification step.
+const passwordIterations = 100_000;
 const sessionLifetimeMs = 12 * 60 * 60 * 1000;
 const challengeLifetimeMs = 10 * 60 * 1000;
 
@@ -108,11 +112,6 @@ export function clearSessionCookie(request: Request) {
   return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
 }
 
-export function assertSameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) throw new Error("Origem da solicitação inválida.");
-}
-
 export async function getAdminSetupState() {
   await ensureStoreSchema();
   const row = await getD1().prepare("SELECT COUNT(*) AS total FROM admin_users").first<{ total: number }>();
@@ -175,16 +174,12 @@ export async function beginAdminLogin(emailInput: string, password: string, allo
   if (!user) throw new Error("E-mail ou senha incorretos.");
 
   const now = Date.now();
-  if (user.locked_until && Number(user.locked_until) > now) {
-    throw new Error("Muitas tentativas. Aguarde 15 minutos e tente novamente.");
-  }
   const candidate = await hashPassword(password, user.password_salt);
   if (!secureEqual(candidate.hash, user.password_hash)) {
-    const attempts = Number(user.failed_attempts ?? 0) + 1;
-    const lockedUntil = attempts >= 5 ? now + 15 * 60 * 1000 : null;
+    const attempts = Math.min(Number(user.failed_attempts ?? 0) + 1, 1_000_000);
     await d1
       .prepare("UPDATE admin_users SET failed_attempts = ?, locked_until = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-      .bind(lockedUntil ? 0 : attempts, lockedUntil, user.id)
+      .bind(attempts, null, user.id)
       .run();
     throw new Error("E-mail ou senha incorretos.");
   }

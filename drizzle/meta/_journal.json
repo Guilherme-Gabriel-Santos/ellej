@@ -15,6 +15,62 @@
       "when": 1786221723896,
       "tag": "0001_condemned_phil_sheldon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786460497069,
+      "tag": "0002_low_micromax",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1786461990385,
+      "tag": "0003_bright_trauma",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1786467156474,
+      "tag": "0004_lean_madelyne_pryor",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1786467931668,
+      "tag": "0005_condemned_eternity",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1786471404574,
+      "tag": "0006_unique_tomorrow_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1786484683487,
+      "tag": "0007_flaky_the_santerians",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1786563600000,
+      "tag": "0008_asaas_payments",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1786567200000,
+      "tag": "0009_storefront_curadoria",
+      "breakpoints": true
     }
   ]
 }

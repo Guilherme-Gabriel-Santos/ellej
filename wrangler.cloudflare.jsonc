@@ -6,6 +6,11 @@
   "compatibility_date": "2026-05-15",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "ASAAS_ENVIRONMENT": "sandbox",
+    "SHIPPING_TEST_PRICE_CENTS": "100"
+  },
   "assets": {
     "directory": "dist/client",
     "binding": "ASSETS"
@@ -14,7 +19,7 @@
     {
       "binding": "DB",
       "database_name": "elle-jew-db",
-      "database_id": "00000000-0000-4000-8000-000000000000",
+      "database_id": "e3592ccb-6d50-4ee6-ac1f-c2f899056aa4",
       "migrations_dir": "drizzle"
     }
   ],

@@ -1,4 +1,4 @@
-.authPage,
+﻿.authPage,
 .adminShell {
   --navy: #34495e;
   --navy-92: rgba(52, 73, 94, 0.92);
@@ -40,7 +40,7 @@
   top: 25px;
   left: 30px;
   color: var(--white);
-  font-size: 11px;
+  font-size: 14.3px;
   letter-spacing: 0.08em;
   text-decoration: none;
   text-transform: uppercase;
@@ -63,7 +63,7 @@
 .eyebrow {
   margin: 0 0 10px;
   color: var(--navy-72);
-  font-size: 9px;
+  font-size: 11.7px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -75,7 +75,7 @@
   margin: 0;
   color: var(--navy);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(38px, 5vw, 58px);
+  font-size: clamp(49.4px, 5vw, 75.4px);
   font-weight: 400;
   line-height: 1.02;
 }
@@ -83,7 +83,7 @@
 .authLead {
   margin: 20px 0 30px;
   color: var(--navy-72);
-  font-size: 13px;
+  font-size: 16.9px;
   line-height: 1.65;
 }
 
@@ -92,7 +92,7 @@
   padding: 15px;
   background: var(--navy-10);
   border-left: 3px solid var(--navy);
-  font-size: 11px;
+  font-size: 14.3px;
   line-height: 1.55;
 }
 
@@ -109,7 +109,7 @@
   display: grid;
   gap: 8px;
   color: var(--navy);
-  font-size: 9px;
+  font-size: 11.7px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -118,7 +118,7 @@
 .authForm label small,
 .switchLabel small {
   color: var(--navy-50);
-  font-size: 8px;
+  font-size: 10.4px;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
@@ -139,7 +139,7 @@
   border-radius: 0;
   outline: none;
   background: var(--white);
-  font: 13px Arial, sans-serif;
+  font: 16.9px Arial, sans-serif;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -157,7 +157,7 @@
 
 .codeInput {
   height: 70px;
-  font-size: 29px !important;
+  font-size: 37.7px !important;
   font-weight: 700 !important;
   letter-spacing: 0.3em !important;
   text-align: center;
@@ -172,7 +172,7 @@
   border: 1px solid var(--navy);
   border-radius: 0;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11.7px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -214,7 +214,7 @@
 .authPage > p {
   margin-top: -40vh;
   color: var(--white);
-  font-size: 10px;
+  font-size: 13px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -268,11 +268,11 @@
   background: transparent;
   cursor: pointer;
   text-align: left;
-  font-size: 11px;
+  font-size: 14.3px;
 }
 
 .sidebar nav button span {
-  font-size: 7px;
+  font-size: 9.1px;
 }
 
 .sidebar nav .activeNav {
@@ -295,7 +295,7 @@
   border: 0;
   background: transparent;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11.7px;
   text-decoration: none;
   text-transform: uppercase;
 }
@@ -323,13 +323,13 @@
 
 .adminHeader > div span {
   color: var(--navy-50);
-  font-size: 7px;
+  font-size: 9.1px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .adminHeader > div strong {
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .headerAdd {
@@ -355,7 +355,7 @@
 }
 
 .pageTitle h1 {
-  font-size: clamp(45px, 5vw, 68px);
+  font-size: clamp(58.5px, 5vw, 88.4px);
 }
 
 .statGrid {
@@ -380,7 +380,7 @@
 .statGrid article > span {
   min-height: 28px;
   color: var(--navy-50);
-  font-size: 8px;
+  font-size: 10.4px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -389,7 +389,7 @@
 .statGrid article > strong {
   margin: 12px 0;
   font-family: Georgia, serif;
-  font-size: 39px;
+  font-size: 50.7px;
   font-weight: 400;
 }
 
@@ -401,7 +401,7 @@
   background: transparent;
   cursor: pointer;
   text-align: left;
-  font-size: 8px;
+  font-size: 10.4px;
 }
 
 .statGrid .revenueCard {
@@ -415,7 +415,7 @@
 }
 
 .revenueCard > strong {
-  font-size: clamp(24px, 2.4vw, 38px) !important;
+  font-size: clamp(31.2px, 2.4vw, 49.4px) !important;
 }
 
 .dashboardGrid {
@@ -443,7 +443,7 @@
 .settingsCard h2 {
   margin: 0;
   font-family: Georgia, serif;
-  font-size: 27px;
+  font-size: 35.1px;
   font-weight: 400;
 }
 
@@ -454,7 +454,7 @@
   border-bottom: 1px solid var(--navy-20);
   background: transparent;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10.4px;
   text-transform: uppercase;
 }
 
@@ -501,7 +501,7 @@
 .tableProduct strong {
   overflow: hidden;
   font-family: Georgia, serif;
-  font-size: 14px;
+  font-size: 18.2px;
   font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -511,11 +511,11 @@
 .compactOrders small,
 .tableProduct small {
   color: var(--navy-50);
-  font-size: 7px;
+  font-size: 9.1px;
 }
 
 .compactList b {
-  font-size: 9px;
+  font-size: 11.7px;
 }
 
 .compactOrders > button {
@@ -524,13 +524,13 @@
 }
 
 .compactOrders b {
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .compactOrders em {
   padding: 7px;
   background: var(--navy-10);
-  font-size: 7px;
+  font-size: 9.1px;
   font-style: normal;
   text-align: center;
   text-transform: uppercase;
@@ -539,7 +539,7 @@
 .empty {
   padding: 30px 0;
   color: var(--navy-50);
-  font-size: 11px;
+  font-size: 14.3px;
   text-align: center;
 }
 
@@ -564,7 +564,7 @@
 
 .toolbar > span {
   color: var(--navy-50);
-  font-size: 9px;
+  font-size: 11.7px;
   text-transform: uppercase;
 }
 
@@ -587,7 +587,7 @@
   padding: 0 20px;
   color: var(--navy-50);
   border-bottom: 1px solid var(--navy-10);
-  font-size: 7px;
+  font-size: 9.1px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -624,19 +624,19 @@
 }
 
 .productTable article > div > strong {
-  font-size: 11px;
+  font-size: 14.3px;
 }
 
 .productTable article > div > small {
   color: var(--navy-50);
-  font-size: 7px;
+  font-size: 9.1px;
 }
 
 .statusPill {
   padding: 7px 8px;
   background: var(--navy);
   color: var(--white);
-  font-size: 7px;
+  font-size: 9.1px;
   text-align: center;
   text-transform: uppercase;
 }
@@ -657,7 +657,7 @@
   border: 1px solid var(--navy-20);
   background: var(--white);
   cursor: pointer;
-  font-size: 7px;
+  font-size: 9.1px;
   text-transform: uppercase;
 }
 
@@ -692,13 +692,13 @@
 
 .orderSummary small {
   color: var(--navy-50);
-  font-size: 7px;
+  font-size: 9.1px;
   text-transform: uppercase;
 }
 
 .orderSummary strong {
   overflow: hidden;
-  font-size: 10px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -706,7 +706,7 @@
 .orderSummary em {
   padding: 8px;
   background: var(--navy-10);
-  font-size: 7px;
+  font-size: 9.1px;
   font-style: normal;
   text-align: center;
   text-transform: uppercase;
@@ -714,7 +714,7 @@
 
 .orderSummary b {
   font-family: Georgia, serif;
-  font-size: 23px;
+  font-size: 29.9px;
   font-weight: 400;
   text-align: right;
 }
@@ -734,7 +734,7 @@
 
 .orderDetails h3 {
   margin: 0 0 15px;
-  font-size: 8px;
+  font-size: 10.4px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -745,7 +745,7 @@
   justify-content: space-between;
   gap: 10px;
   color: var(--navy-72);
-  font-size: 9px;
+  font-size: 11.7px;
   line-height: 1.45;
 }
 
@@ -756,7 +756,7 @@
 
 .orderDetails small {
   color: var(--navy-50);
-  font-size: 8px;
+  font-size: 10.4px;
 }
 
 .settingsCard {
@@ -767,13 +767,399 @@
 .settingsCard > p {
   margin: 14px 0 30px;
   color: var(--navy-72);
-  font-size: 12px;
+  font-size: 15.6px;
   line-height: 1.6;
 }
 
 .settingsCard .primaryButton {
   justify-self: start;
   margin-top: 10px;
+}
+
+.categoryLayout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.65fr) minmax(0, 1.35fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.categoryFormCard,
+.categoryListCard {
+  padding: 30px;
+  background: var(--white);
+  border: 1px solid var(--navy-10);
+}
+
+.categoryFormCard {
+  position: sticky;
+  top: 105px;
+}
+
+.categoryFormCard h2 {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 37.7px;
+  font-weight: 400;
+}
+
+.categoryFormCard > p:not(.eyebrow),
+.categoryHelp {
+  color: var(--navy-72);
+  font-size: 14.3px;
+  line-height: 1.6;
+}
+
+.categoryFormCard > p:not(.eyebrow) {
+  margin: 14px 0 28px;
+}
+
+.categoryFormCard form,
+.categoryFormCard label {
+  display: grid;
+  gap: 10px;
+}
+
+.categoryFormCard label {
+  font-size: 11.7px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.categoryFormCard input,
+.categoryFormCard select {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  color: var(--navy);
+  border: 1px solid var(--navy-20);
+  background: var(--white);
+  font: 16.9px Arial, sans-serif;
+  text-transform: none;
+}
+
+.categoryPicker {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--navy-20);
+  background: var(--cream);
+}
+
+.categoryPicker > strong {
+  color: var(--navy);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.categoryPicker > small {
+  margin-top: -8px;
+  color: var(--navy-50);
+  font-size: 12px;
+}
+
+.categoryPicker fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px;
+  border: 1px solid var(--navy-10);
+  background: var(--white);
+}
+
+.categoryPicker legend {
+  padding: 0 6px;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.categoryPicker label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.categoryPicker input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--navy);
+}
+
+.categoryFormCard form > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.categoryHelp {
+  margin: -5px 0 20px;
+}
+
+.categoryList {
+  display: grid;
+  border-top: 1px solid var(--navy-10);
+}
+
+.categoryList article {
+  min-height: 82px;
+  padding: 13px 0;
+  display: grid;
+  grid-template-columns: 70px minmax(140px, 1fr) 85px auto;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid var(--navy-10);
+}
+
+.categoryOrder,
+.categoryActions {
+  display: flex;
+  gap: 6px;
+}
+
+.categoryOrder button,
+.categoryActions button {
+  min-width: 30px;
+  min-height: 30px;
+  color: var(--navy);
+  border: 1px solid var(--navy-20);
+  background: var(--white);
+  cursor: pointer;
+  font-size: 11.7px;
+}
+
+.categoryOrder button:disabled,
+.categoryActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.categoryList article > span {
+  display: grid;
+  gap: 5px;
+}
+
+.categoryList article > span strong {
+  font-family: Georgia, serif;
+  font-size: 23.4px;
+  font-weight: 400;
+}
+
+.categoryList article > span small {
+  color: var(--navy-50);
+  font-size: 10.4px;
+  text-transform: uppercase;
+}
+
+.categoryList article > em {
+  font-style: normal;
+}
+
+.categoryActions button {
+  padding: 0 9px;
+  text-transform: uppercase;
+}
+
+.categoryGroup {
+  margin-bottom: 16px;
+  border: 1px solid var(--navy-10);
+  background: var(--white);
+}
+
+.categoryList .categoryGroup article {
+  padding-right: 14px;
+  padding-left: 14px;
+}
+
+.categoryList .rootCategoryRow {
+  background: var(--cream);
+  border-bottom-color: var(--navy-20);
+}
+
+.categoryList .rootCategoryRow > span strong {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.categoryList .subcategoryRow {
+  margin-left: 34px;
+  border-left: 3px solid var(--gold);
+}
+
+.categoryList .subcategoryRow > span strong {
+  font-size: 19px;
+}
+
+.bannerLayout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.bannerFormCard,
+.bannerListCard {
+  padding: 28px;
+  border: 1px solid var(--navy-10);
+  background: var(--white);
+}
+
+.bannerFormCard h2 {
+  margin: 7px 0 10px;
+  font: 400 30px/1.1 Georgia, serif;
+}
+
+.bannerFormCard > p:not(.eyebrow) {
+  margin: 0 0 22px;
+  color: var(--navy-60);
+  line-height: 1.55;
+}
+
+.bannerFormCard form,
+.bannerFormCard form > label {
+  display: grid;
+  gap: 9px;
+}
+
+.bannerFormCard form {
+  gap: 16px;
+}
+
+.bannerFormCard form > label,
+.bannerFields label {
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.bannerFormCard input,
+.bannerFormCard textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--navy-20);
+  background: var(--white);
+  color: var(--navy);
+  font: 16px Arial, sans-serif;
+  text-transform: none;
+}
+
+.bannerFormCard textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.bannerFormCard form > div {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bannerFields {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+}
+
+.bannerFields label {
+  display: grid;
+  gap: 8px;
+}
+
+.bannerUpload,
+.categoryImageUpload {
+  min-height: 185px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px dashed var(--navy-30);
+  background: var(--cream);
+  cursor: pointer;
+}
+
+.bannerUpload img,
+.categoryImageUpload img {
+  width: 100%;
+  height: 210px;
+  object-fit: cover;
+}
+
+.bannerUpload span,
+.categoryImageUpload span {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  color: var(--navy);
+}
+
+.bannerUpload span b,
+.categoryImageUpload span b {
+  font-size: 36px;
+}
+
+.bannerUpload input,
+.categoryImageUpload input {
+  display: none;
+}
+
+.bannerList {
+  display: grid;
+  gap: 12px;
+}
+
+.bannerList article {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 130px minmax(130px, 1fr) auto 70px;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--navy-10);
+}
+
+.bannerList article > img {
+  width: 130px;
+  height: 82px;
+  object-fit: cover;
+}
+
+.bannerList article > span {
+  display: grid;
+  gap: 5px;
+}
+
+.bannerList article > span strong {
+  font: 400 18px/1.2 Georgia, serif;
+}
+
+.bannerList article > span small {
+  color: var(--navy-50);
+  line-height: 1.35;
+}
+
+.bannerList .categoryActions {
+  grid-column: 2 / -1;
+  justify-content: flex-end;
+}
+
+.bannerOrder {
+  display: flex;
+  gap: 5px;
+}
+
+.bannerOrder button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--navy-20);
+  background: var(--white);
+  cursor: pointer;
+}
+
+.bannerOrder button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .wizardOverlay {
@@ -809,7 +1195,7 @@
   border: 0;
   background: transparent;
   cursor: pointer;
-  font-size: 8px;
+  font-size: 10.4px;
   text-transform: uppercase;
 }
 
@@ -821,7 +1207,7 @@
 
 .wizard > header span {
   justify-self: end;
-  font-size: 8px;
+  font-size: 10.4px;
   text-transform: uppercase;
 }
 
@@ -839,7 +1225,7 @@
   align-items: center;
   gap: 10px;
   color: var(--navy-50);
-  font-size: 8px;
+  font-size: 10.4px;
   text-transform: uppercase;
 }
 
@@ -879,13 +1265,13 @@
 
 .wizardForm > h1 {
   max-width: 650px;
-  font-size: clamp(38px, 5vw, 58px);
+  font-size: clamp(49.4px, 5vw, 75.4px);
 }
 
 .wizardForm > p:not(.eyebrow) {
   margin: 18px 0 35px;
   color: var(--navy-72);
-  font-size: 12px;
+  font-size: 15.6px;
 }
 
 .formGrid {
@@ -927,18 +1313,18 @@
 
 .uploadBox > b {
   font-family: Georgia, serif;
-  font-size: 45px;
+  font-size: 58.5px;
   font-weight: 400;
 }
 
 .uploadBox > strong {
-  font-size: 10px;
+  font-size: 13px;
   text-transform: uppercase;
 }
 
 .uploadBox > small {
   color: var(--navy-50);
-  font-size: 8px;
+  font-size: 10.4px;
 }
 
 .uploadBox > img {
@@ -999,18 +1385,18 @@
 
 .productReview span strong {
   font-family: Georgia, serif;
-  font-size: 18px;
+  font-size: 23.4px;
   font-weight: 400;
 }
 
 .productReview span small {
   color: var(--navy-50);
-  font-size: 8px;
+  font-size: 10.4px;
 }
 
 .productReview b {
   font-family: Georgia, serif;
-  font-size: 21px;
+  font-size: 27.3px;
   font-weight: 400;
 }
 
@@ -1035,7 +1421,7 @@
   background: var(--navy);
   border: 1px solid var(--white);
   box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
-  font-size: 11px;
+  font-size: 14.3px;
   line-height: 1.5;
 }
 
@@ -1057,6 +1443,9 @@
   .orderSummary { grid-template-columns: 1fr 1.2fr 1fr 120px 25px; }
   .orderSummary > span:nth-child(3) { display: none; }
   .orderDetails { grid-template-columns: repeat(2, 1fr); }
+  .categoryLayout { grid-template-columns: 1fr; }
+  .categoryFormCard { position: static; }
+  .bannerLayout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -1070,13 +1459,13 @@
   .adminHeader { height: 65px; padding: 0 15px; }
   .adminHeader > div { margin-right: auto; text-align: left; }
   .adminHeader > div span { display: none; }
-  .headerAdd { min-height: 39px; padding: 0 12px; font-size: 7px; }
+  .headerAdd { min-height: 50.7px; padding: 0 15.6px; font-size: 9.1px; }
   .pageContent { padding-top: 38px; }
   .pageTitle { align-items: start; flex-direction: column; }
   .pageTitle .primaryButton { width: 100%; }
   .statGrid { grid-template-columns: 1fr 1fr; }
   .statGrid article { min-height: 150px; padding: 18px; }
-  .statGrid article > strong { font-size: 31px; }
+  .statGrid article > strong { font-size: 40.3px; }
   .toolbar { align-items: stretch; flex-direction: column; }
   .productTable { background: transparent; border: 0; }
   .productTable > article { margin-bottom: 12px; padding: 15px; grid-template-columns: 1fr 1fr; background: var(--white); border: 1px solid var(--navy-10); }
@@ -1088,6 +1477,16 @@
   .orderSummary { grid-template-columns: 1fr 0.8fr 25px; }
   .orderSummary > span:nth-child(2), .orderSummary > span:nth-child(3), .orderSummary > em { display: none; }
   .orderDetails { grid-template-columns: 1fr; }
+  .categoryFormCard, .categoryListCard { padding: 20px; }
+  .bannerFormCard, .bannerListCard { padding: 20px; }
+  .bannerList article { grid-template-columns: 100px 1fr auto; }
+  .bannerList article > img { width: 100px; height: 72px; }
+  .bannerList article > em { display: none; }
+  .bannerOrder { grid-column: 3; grid-row: 1; }
+  .bannerFields { grid-template-columns: 1fr; }
+  .categoryList article { grid-template-columns: 60px 1fr auto; }
+  .categoryList article > em { justify-self: end; }
+  .categoryActions { grid-column: 2 / -1; }
   .wizard { grid-template-rows: 62px auto 1fr 78px; }
   .wizardSteps { padding: 10px 18px; }
   .wizardSteps > div { justify-content: center; }
@@ -1108,8 +1507,8 @@
   .authPage { padding: 50px 12px 20px; place-items: start center; }
   .backStore { top: 17px; left: 17px; }
   .authCard { padding: 30px 22px; }
-  .authCard h1 { font-size: 42px; }
-  .sidebar nav button { min-width: 78px; font-size: 8px; }
+  .authCard h1 { font-size: 54.6px; }
+  .sidebar nav button { min-width: 101.4px; font-size: 10.4px; }
   .statGrid { grid-template-columns: 1fr; }
   .statGrid article { border-right: 0; border-bottom: 1px solid var(--navy-10); }
   .statGrid article:nth-child(3) { border-bottom: 1px solid var(--navy-10); }

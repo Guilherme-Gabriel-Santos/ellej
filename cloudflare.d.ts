@@ -47,5 +47,10 @@ declare module "cloudflare:workers" {
     ADMIN_ALLOW_DEV_CODE?: string;
     RESEND_API_KEY?: string;
     ADMIN_FROM_EMAIL?: string;
+    ASAAS_API_KEY?: string;
+    ASAAS_WEBHOOK_TOKEN?: string;
+    ASAAS_ENVIRONMENT?: "sandbox" | "production";
+    SUPERFRETE_API_TOKEN?: string;
+    SHIPPING_TEST_PRICE_CENTS?: string;
   };
 }
