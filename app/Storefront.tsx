@@ -29,7 +29,7 @@ type Product = {
 type ProductVariant = { id: string; size: string; color: string; material: string; sku: string; priceCents: number; stock: number; active: boolean };
 type CartItem = Product & { quantity: number; variantId: string; variantLabel: string };
 type Category = { id: string; name: string; slug: string; parentId: string | null; image: string | null };
-type Banner = { id: string; title: string; subtitle: string; image: string; linkUrl: string | null; linkLabel: string | null };
+type Banner = { id: string; title: string; subtitle: string; image: string; linkUrl: string | null; linkLabel: string | null; focalX: number; focalY: number };
 type StoreData = { products: Product[]; categories: Category[]; banners: Banner[]; favoriteIds: string[]; cart: CartItem[]; allCategoryImage: string | null };
 type Drawer = "cart" | "favorites" | null;
 type Order = { id: string; totalCents: number; status: string; paymentMethod: string; checkoutUrl?: string };
@@ -457,7 +457,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
           </div>
         </div>
         <div className="hero-visual" aria-roledescription="carrossel" aria-label="Fotos da coleção" onMouseEnter={() => setCarouselPaused(true)} onMouseLeave={() => setCarouselPaused(false)} onFocus={() => setCarouselPaused(true)} onBlur={() => setCarouselPaused(false)}>
-          {loading ? <div className="hero-slide-loading" aria-hidden="true" /> : (store.banners.length ? store.banners : [{ id: "fallback", image: "/brand/hero.webp", title: "", subtitle: "", linkUrl: null, linkLabel: null }]).map((banner, index, photos) => <img key={banner.id} className={`hero-slide ${index === bannerIndex % photos.length ? "active" : ""}`} src={banner.image} alt={index === bannerIndex % photos.length ? "Modelo usando joias Elle Jew" : ""} aria-hidden={index !== bannerIndex % photos.length} />)}
+          {loading ? <div className="hero-slide-loading" aria-hidden="true" /> : (store.banners.length ? store.banners : [{ id: "fallback", image: "/brand/hero.webp", title: "", subtitle: "", linkUrl: null, linkLabel: null, focalX: 50, focalY: 24 }]).map((banner, index, photos) => <img key={banner.id} className={`hero-slide ${index === bannerIndex % photos.length ? "active" : ""}`} src={banner.image} style={{ objectPosition: `${banner.focalX}% ${banner.focalY}%` }} alt={index === bannerIndex % photos.length ? "Modelo usando joias Elle Jew" : ""} aria-hidden={index !== bannerIndex % photos.length} />)}
           {!loading && <div className="hero-card">
             <span>Destaques da Semana</span>
             <strong>Rivieras e Pontos de Luz</strong>

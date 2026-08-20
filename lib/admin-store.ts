@@ -85,6 +85,8 @@ function normalizeBanner(row: Row) {
     image: String(row.image),
     linkUrl: row.link_url ? String(row.link_url) : "",
     linkLabel: row.link_label ? String(row.link_label) : "",
+    focalX: Number(row.focal_x ?? 50),
+    focalY: Number(row.focal_y ?? 24),
     active: Boolean(Number(row.active)),
     sortOrder: Number(row.sort_order),
   };
@@ -96,7 +98,7 @@ export async function readAdminDashboard() {
     d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, visibility, track_stock, price_visible, free_shipping, badge, price_cents, compare_at_cents, stock, active, featured, created_at FROM products ORDER BY active DESC, featured DESC, created_at DESC, name").all(),
     d1.prepare("SELECT c.id, c.name, c.slug, c.parent_id, c.image, c.active, c.sort_order, (SELECT COUNT(DISTINCT pc.product_id) FROM product_categories pc INNER JOIN categories assigned ON assigned.id = pc.category_id WHERE assigned.id = c.id OR assigned.parent_id = c.id) AS product_count FROM categories c ORDER BY c.sort_order, c.name").all(),
     d1.prepare("SELECT product_id, category_id FROM product_categories ORDER BY created_at, category_id").all(),
-    d1.prepare("SELECT id, title, subtitle, image, link_url, link_label, active, sort_order FROM homepage_banners ORDER BY sort_order, created_at, id").all(),
+    d1.prepare("SELECT id, title, subtitle, image, link_url, link_label, focal_x, focal_y, active, sort_order FROM homepage_banners ORDER BY sort_order, created_at, id").all(),
     d1.prepare("SELECT id, customer_name, email, phone, cpf, cep, address, address_number, neighborhood, complement, city, state, shipping_method, payment_method, subtotal_cents, shipping_cents, discount_cents, total_cents, status, superfrete_service_id, superfrete_service_name, superfrete_delivery_days, superfrete_quote_price_cents, superfrete_order_id, superfrete_protocol, superfrete_price_cents, superfrete_status, superfrete_tracking_code, superfrete_label_url, superfrete_updated_at, created_at FROM orders ORDER BY created_at DESC LIMIT 100").all(),
     d1.prepare("SELECT id, order_id, product_id, variant_id, variant_label, product_name, unit_price_cents, quantity FROM order_items WHERE order_id IN (SELECT id FROM orders ORDER BY created_at DESC LIMIT 100) ORDER BY id").all(),
     d1.prepare("SELECT COUNT(*) AS total FROM subscribers").first<{ total: number }>(),
@@ -468,7 +470,10 @@ function validateBanner(payload: Record<string, unknown>) {
     throw new Error("Use um link seguro iniciado por https://, / ou #.");
   }
   const linkLabel = textValue(payload.linkLabel, "o texto do botão", 50, false);
-  return { title, subtitle, image, linkUrl: linkUrl || null, linkLabel: linkUrl ? (linkLabel || "Saiba mais") : null };
+  const focalX = Math.max(0, Math.min(100, Math.round(Number(payload.focalX ?? 50))));
+  const focalY = Math.max(0, Math.min(100, Math.round(Number(payload.focalY ?? 24))));
+  if (!Number.isFinite(focalX) || !Number.isFinite(focalY)) throw new Error("Posição de foco inválida.");
+  return { title, subtitle, image, linkUrl: linkUrl || null, linkLabel: linkUrl ? (linkLabel || "Saiba mais") : null, focalX, focalY };
 }
 
 export async function createBanner(session: AdminSession, payload: Record<string, unknown>) {
@@ -477,16 +482,16 @@ export async function createBanner(session: AdminSession, payload: Record<string
   const banner = validateBanner(payload);
   const id = `banner_${crypto.randomUUID()}`;
   const position = await getD1().prepare("SELECT COALESCE(MAX(sort_order), 0) + 1 AS next FROM homepage_banners").first<{ next: number }>();
-  await getD1().prepare("INSERT INTO homepage_banners (id, title, subtitle, image, link_url, link_label, active, sort_order) VALUES (?, ?, ?, ?, ?, ?, 1, ?)")
-    .bind(id, banner.title, banner.subtitle, banner.image, banner.linkUrl, banner.linkLabel, Number(position?.next ?? 1)).run();
+  await getD1().prepare("INSERT INTO homepage_banners (id, title, subtitle, image, link_url, link_label, focal_x, focal_y, active, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)")
+    .bind(id, banner.title, banner.subtitle, banner.image, banner.linkUrl, banner.linkLabel, banner.focalX, banner.focalY, Number(position?.next ?? 1)).run();
   await writeAudit(session.userId, "banner.created", "banner", id, { title: banner.title });
 }
 
 export async function updateBanner(session: AdminSession, payload: Record<string, unknown>) {
   const id = textValue(payload.id, "o banner", 80);
   const banner = validateBanner(payload);
-  const result = await getD1().prepare("UPDATE homepage_banners SET title = ?, subtitle = ?, image = ?, link_url = ?, link_label = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-    .bind(banner.title, banner.subtitle, banner.image, banner.linkUrl, banner.linkLabel, id).run();
+  const result = await getD1().prepare("UPDATE homepage_banners SET title = ?, subtitle = ?, image = ?, link_url = ?, link_label = ?, focal_x = ?, focal_y = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+    .bind(banner.title, banner.subtitle, banner.image, banner.linkUrl, banner.linkLabel, banner.focalX, banner.focalY, id).run();
   if (!result.meta.changes) throw new Error("Banner não encontrado.");
   await writeAudit(session.userId, "banner.updated", "banner", id, { title: banner.title });
 }

@@ -48,6 +48,8 @@ type Banner = {
   image: string;
   linkUrl: string;
   linkLabel: string;
+  focalX: number;
+  focalY: number;
   active: boolean;
   sortOrder: number;
 };
@@ -166,7 +168,7 @@ const emptyProduct: ProductDraft = {
   featured: false,
 };
 
-const emptyBanner = { id: "", title: "Foto da capa", subtitle: "", image: "", linkUrl: "", linkLabel: "" };
+const emptyBanner = { id: "", title: "Foto da capa", subtitle: "", image: "", linkUrl: "", linkLabel: "", focalX: 50, focalY: 24 };
 
 const statusLabels: Record<string, string> = {
   aguardando_pagamento: "Aguardando pagamento",
@@ -946,17 +948,28 @@ export function AdminPanel() {
               <section className={styles.bannerFormCard}>
                 <p className={styles.eyebrow}>{bannerDraft.id ? "Trocar foto" : "Nova foto"}</p>
                 <h2>{bannerDraft.id ? "Escolha a substituta" : "Adicione ao carrossel"}</h2>
-                <p>Estas fotos aparecem somente no lado direito da capa. Elas passam automaticamente, e a cliente também pode usar as setas.</p>
+                <p>Estas fotos aparecem na capa e passam automaticamente. Depois de adicionar, você pode ajustar o foco para celular sem cortar a joia.</p>
                 <form onSubmit={saveBanner}>
-                  <label className={styles.bannerUpload}>{bannerDraft.image ? <img src={bannerDraft.image} alt="Prévia da foto da capa" /> : <span><b>+</b> {bannerDraft.id ? "Escolher foto" : "Escolher várias fotos"}</span>}<input type="file" multiple={!bannerDraft.id} accept="image/jpeg,image/png,image/webp" onChange={(event) => { if (event.target.files?.length) void uploadBannerFiles(event.target.files); event.currentTarget.value = ""; }} /></label>
+                  {bannerDraft.image ? <div className={styles.bannerFocusEditor}>
+                    <button type="button" className={styles.bannerFocusPreview} aria-label="Toque na joia para definir o foco da foto" onPointerDown={(event) => { const bounds = event.currentTarget.getBoundingClientRect(); const focalX = Math.round(Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)) * 100); const focalY = Math.round(Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)) * 100); setBannerDraft((current) => ({ ...current, focalX, focalY })); }}>
+                      <img src={bannerDraft.image} style={{ objectPosition: `${bannerDraft.focalX}% ${bannerDraft.focalY}%` }} alt="Prévia do enquadramento no celular" />
+                      <span className={styles.bannerFocusMarker} style={{ left: `${bannerDraft.focalX}%`, top: `${bannerDraft.focalY}%` }} aria-hidden="true" />
+                    </button>
+                    <p className={styles.bannerFocusHint}><strong>Toque no brinco</strong> para colocá-lo no foco da capa do celular.</p>
+                    <div className={styles.bannerFocusSliders}>
+                      <label>Esquerda ou direita<input type="range" min="0" max="100" value={bannerDraft.focalX} onChange={(event) => setBannerDraft((current) => ({ ...current, focalX: Number(event.target.value) }))} /></label>
+                      <label>Cima ou baixo<input type="range" min="0" max="100" value={bannerDraft.focalY} onChange={(event) => setBannerDraft((current) => ({ ...current, focalY: Number(event.target.value) }))} /></label>
+                    </div>
+                    <div className={styles.bannerFocusActions}><label className={styles.bannerReplaceButton}>Trocar o arquivo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { if (event.target.files?.length) void uploadBannerFiles(event.target.files); event.currentTarget.value = ""; }} /></label><button type="button" className={styles.textButton} onClick={() => setBannerDraft((current) => ({ ...current, focalX: 50, focalY: 24 }))}>Centralizar</button></div>
+                  </div> : <label className={styles.bannerUpload}><span><b>+</b> {bannerDraft.id ? "Escolher foto" : "Escolher várias fotos"}</span><input type="file" multiple={!bannerDraft.id} accept="image/jpeg,image/png,image/webp" onChange={(event) => { if (event.target.files?.length) void uploadBannerFiles(event.target.files); event.currentTarget.value = ""; }} /></label>}
                   {!bannerDraft.id && <p className={styles.categoryHelp}>{bannerUploadProgress ? `Enviando ${bannerUploadProgress.current} de ${bannerUploadProgress.total}…` : "Selecione todas as fotos de uma vez. Cada arquivo será adicionado automaticamente ao carrossel."}</p>}
-                  <div><button className={styles.primaryButton} disabled={busy === "saveBanner" || busy === "uploadBanner" || !bannerDraft.image}>{busy === "uploadBanner" ? bannerUploadProgress ? `Enviando ${bannerUploadProgress.current}/${bannerUploadProgress.total}…` : "Enviando foto…" : busy === "saveBanner" ? "Salvando…" : bannerDraft.id ? "Salvar nova foto" : "+ Adicionar foto"}</button>{bannerDraft.id && <button type="button" className={styles.textButton} onClick={() => setBannerDraft(emptyBanner)}>Cancelar</button>}</div>
+                  <div><button className={styles.primaryButton} disabled={busy === "saveBanner" || busy === "uploadBanner" || !bannerDraft.image}>{busy === "uploadBanner" ? bannerUploadProgress ? `Enviando ${bannerUploadProgress.current}/${bannerUploadProgress.total}…` : "Enviando foto…" : busy === "saveBanner" ? "Salvando…" : bannerDraft.id ? "Salvar enquadramento" : "+ Adicionar foto"}</button>{bannerDraft.id && <button type="button" className={styles.textButton} onClick={() => setBannerDraft(emptyBanner)}>Cancelar</button>}</div>
                 </form>
               </section>
               <section className={styles.bannerListCard}>
                 <div className={styles.panelHeading}><div><p className={styles.eyebrow}>Ordem de exibição</p><h2>{dashboard.banners.length} {dashboard.banners.length === 1 ? "foto" : "fotos"}</h2></div></div>
                 <p className={styles.categoryHelp}>Arraste uma foto e solte sobre outra para mudar a ordem. As setas continuam disponíveis como alternativa.</p>
-                <div className={styles.bannerList}>{dashboard.banners.map((banner, index) => <article key={banner.id} draggable onDragStart={() => setDraggedBannerId(banner.id)} onDragEnd={() => setDraggedBannerId(null)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedBannerId) void reorderBannersByDrop(draggedBannerId, banner.id); }} className={draggedBannerId === banner.id ? styles.draggingBanner : ""}><span className={styles.bannerDragHandle} title="Arraste para reordenar" aria-label="Arraste para reordenar">⠿</span><img src={banner.image} alt="" /><span><strong>Foto {index + 1}</strong><small>{banner.active ? "Aparece no carrossel" : "Oculta da capa"}</small></span><em className={`${styles.statusPill} ${!banner.active ? styles.inactivePill : ""}`}>{banner.active ? "Visível" : "Oculta"}</em><div className={styles.bannerOrder}><button disabled={index === 0 || busy === "reorderBanners"} onClick={() => moveBanner(index, -1)}>↑</button><button disabled={index === dashboard.banners.length - 1 || busy === "reorderBanners"} onClick={() => moveBanner(index, 1)}>↓</button></div><div className={styles.categoryActions}><button onClick={() => setBannerDraft({ id: banner.id, title: banner.title || "Foto da capa", subtitle: "", image: banner.image, linkUrl: "", linkLabel: "" })}>Trocar foto</button><button disabled={busy === `banner-${banner.id}`} onClick={() => toggleBanner(banner)}>{banner.active ? "Ocultar" : "Mostrar"}</button><button disabled={busy === `banner-${banner.id}`} onClick={() => removeBanner(banner)}>Excluir</button></div></article>)}</div>
+                <div className={styles.bannerList}>{dashboard.banners.map((banner, index) => <article key={banner.id} draggable onDragStart={() => setDraggedBannerId(banner.id)} onDragEnd={() => setDraggedBannerId(null)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedBannerId) void reorderBannersByDrop(draggedBannerId, banner.id); }} className={draggedBannerId === banner.id ? styles.draggingBanner : ""}><span className={styles.bannerDragHandle} title="Arraste para reordenar" aria-label="Arraste para reordenar">⠿</span><img src={banner.image} style={{ objectPosition: `${banner.focalX}% ${banner.focalY}%` }} alt="" /><span><strong>Foto {index + 1}</strong><small>{banner.active ? "Aparece no carrossel" : "Oculta da capa"}</small></span><em className={`${styles.statusPill} ${!banner.active ? styles.inactivePill : ""}`}>{banner.active ? "Visível" : "Oculta"}</em><div className={styles.bannerOrder}><button disabled={index === 0 || busy === "reorderBanners"} onClick={() => moveBanner(index, -1)}>↑</button><button disabled={index === dashboard.banners.length - 1 || busy === "reorderBanners"} onClick={() => moveBanner(index, 1)}>↓</button></div><div className={styles.categoryActions}><button onClick={() => setBannerDraft({ id: banner.id, title: banner.title || "Foto da capa", subtitle: "", image: banner.image, linkUrl: "", linkLabel: "", focalX: banner.focalX, focalY: banner.focalY })}>Ajustar foco</button><button disabled={busy === `banner-${banner.id}`} onClick={() => toggleBanner(banner)}>{banner.active ? "Ocultar" : "Mostrar"}</button><button disabled={busy === `banner-${banner.id}`} onClick={() => removeBanner(banner)}>Excluir</button></div></article>)}</div>
                 {!dashboard.banners.length && <p className={styles.empty}>Adicione a primeira foto da capa.</p>}
               </section>
             </div>

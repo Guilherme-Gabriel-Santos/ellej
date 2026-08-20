@@ -1149,6 +1149,106 @@
   display: none;
 }
 
+.bannerFocusEditor {
+  display: grid;
+  gap: 14px;
+}
+
+.bannerFocusPreview {
+  position: relative;
+  width: min(100%, 330px);
+  aspect-ratio: 390 / 580;
+  margin: 0 auto;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--gold);
+  border-radius: 18px;
+  background: var(--navy);
+  cursor: crosshair;
+  box-shadow: 0 16px 36px rgba(20, 28, 36, 0.16);
+  touch-action: none;
+}
+
+.bannerFocusPreview img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.bannerFocusMarker {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--white);
+  border-radius: 50%;
+  background: rgba(207, 167, 80, 0.38);
+  box-shadow: 0 0 0 2px var(--gold), 0 3px 10px rgba(0, 0, 0, 0.32);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.bannerFocusHint {
+  margin: 0 !important;
+  color: var(--navy-60);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.bannerFocusHint strong {
+  color: var(--navy);
+}
+
+.bannerFocusSliders {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px !important;
+}
+
+.bannerFocusSliders label {
+  display: grid;
+  gap: 7px;
+  color: var(--navy);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.bannerFocusSliders input[type="range"] {
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  accent-color: var(--gold);
+}
+
+.bannerFocusActions {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+}
+
+.bannerReplaceButton {
+  min-height: 42px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy);
+  border: 1px solid var(--navy-20);
+  background: var(--white);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bannerReplaceButton input {
+  display: none;
+}
+
 .bannerList {
   display: grid;
   gap: 12px;
