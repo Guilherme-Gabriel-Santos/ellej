@@ -558,16 +558,16 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
         <div className="editorial-copy">
           <p className="eyebrow">Qualidade & Acabamento</p>
           <h2>O brilho do ouro branco com<br /><em>a durabilidade da Prata 925.</em></h2>
-          <p>Trabalhamos com prata de lei 925 legítima e zircônias lapidadas a mão. Peças hipoalergênicas, resistentes e com acabamento polido para brilhar por anos.</p>
+          <p>Trabalhamos com Joias prata 925 com Ródio e Pedras lapidadas cuidadosamente para um brilho intenso. Joias hipoalergênicas, resistentes com acabamento premium de alta joalheria.</p>
           <a className="button button-light" href="#colecao">Conhecer Lançamentos</a>
-          <div className="editorial-quote">“A elegância que eterniza momentos.”</div>
+          <div className="editorial-quote">“O Luxo pode estar nos momentos mais comuns”</div>
         </div>
         <div className="editorial-image editorial-side"><img src="/brand/editorial-ellej-rings.png" alt="Modelo usando anéis e brincos Elle Jew" /></div>
       </section>
 
       <section className="social section" id="sobre">
         <div className="social-heading">
-          <div><p className="eyebrow dark">No Instagram</p><h2>Descubra o brilho que transforma cada momento</h2></div>
+          <div><p className="eyebrow dark">No Instagram</p><h2>O brilho que transforma cada momento</h2></div>
           <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer">@ellejew_ ↗</a>
         </div>
         <div className="social-grid">
