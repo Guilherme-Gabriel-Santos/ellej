@@ -30,6 +30,14 @@ function slugify(value: string) {
 }
 
 function normalizeProduct(row: Row) {
+  let media: Array<{ type: "image" | "video"; url: string }> = [];
+  try { media = JSON.parse(String(row.media ?? "[]")); } catch { media = []; }
+  if (!media.length && row.image) media = [{ type: "image", url: String(row.image) }];
+  if (row.video && !media.some((item) => item.url === String(row.video))) media.push({ type: "video", url: String(row.video) });
+  let catalogData: Record<string, unknown> = {};
+  let variants: Array<Record<string, unknown>> = [];
+  try { catalogData = JSON.parse(String(row.catalog_data ?? "{}")); } catch { catalogData = {}; }
+  try { variants = JSON.parse(String(row.variants ?? "[]")); } catch { variants = []; }
   return {
     id: String(row.id),
     slug: String(row.slug),
@@ -38,6 +46,14 @@ function normalizeProduct(row: Row) {
     description: String(row.description),
     material: String(row.material),
     image: String(row.image),
+    video: row.video ? String(row.video) : "",
+    media,
+    catalogData,
+    variants,
+    visibility: String(row.visibility ?? "visible"),
+    trackStock: Boolean(Number(row.track_stock ?? 1)),
+    priceVisible: Boolean(Number(row.price_visible ?? 1)),
+    freeShipping: Boolean(Number(row.free_shipping ?? 0)),
     badge: row.badge ? String(row.badge) : "",
     priceCents: Number(row.price_cents),
     compareAtCents: row.compare_at_cents === null ? null : Number(row.compare_at_cents),
@@ -76,14 +92,15 @@ function normalizeBanner(row: Row) {
 
 export async function readAdminDashboard() {
   const d1 = getD1();
-  const [productsResult, categoriesResult, productCategoriesResult, bannersResult, ordersResult, itemsResult, subscribersResult] = await Promise.all([
-    d1.prepare("SELECT id, slug, name, category, description, material, image, badge, price_cents, compare_at_cents, stock, active, featured, created_at FROM products ORDER BY active DESC, featured DESC, created_at DESC, name").all(),
+  const [productsResult, categoriesResult, productCategoriesResult, bannersResult, ordersResult, itemsResult, subscribersResult, allCategoryImageResult] = await Promise.all([
+    d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, visibility, track_stock, price_visible, free_shipping, badge, price_cents, compare_at_cents, stock, active, featured, created_at FROM products ORDER BY active DESC, featured DESC, created_at DESC, name").all(),
     d1.prepare("SELECT c.id, c.name, c.slug, c.parent_id, c.image, c.active, c.sort_order, (SELECT COUNT(DISTINCT pc.product_id) FROM product_categories pc INNER JOIN categories assigned ON assigned.id = pc.category_id WHERE assigned.id = c.id OR assigned.parent_id = c.id) AS product_count FROM categories c ORDER BY c.sort_order, c.name").all(),
     d1.prepare("SELECT product_id, category_id FROM product_categories ORDER BY created_at, category_id").all(),
     d1.prepare("SELECT id, title, subtitle, image, link_url, link_label, active, sort_order FROM homepage_banners ORDER BY sort_order, created_at, id").all(),
     d1.prepare("SELECT id, customer_name, email, phone, cpf, cep, address, address_number, neighborhood, complement, city, state, shipping_method, payment_method, subtotal_cents, shipping_cents, discount_cents, total_cents, status, superfrete_service_id, superfrete_service_name, superfrete_delivery_days, superfrete_quote_price_cents, superfrete_order_id, superfrete_protocol, superfrete_price_cents, superfrete_status, superfrete_tracking_code, superfrete_label_url, superfrete_updated_at, created_at FROM orders ORDER BY created_at DESC LIMIT 100").all(),
-    d1.prepare("SELECT id, order_id, product_id, product_name, unit_price_cents, quantity FROM order_items WHERE order_id IN (SELECT id FROM orders ORDER BY created_at DESC LIMIT 100) ORDER BY id").all(),
+    d1.prepare("SELECT id, order_id, product_id, variant_id, variant_label, product_name, unit_price_cents, quantity FROM order_items WHERE order_id IN (SELECT id FROM orders ORDER BY created_at DESC LIMIT 100) ORDER BY id").all(),
     d1.prepare("SELECT COUNT(*) AS total FROM subscribers").first<{ total: number }>(),
+    d1.prepare("SELECT value FROM site_settings WHERE key = 'all_category_image'").first<{ value: string }>(),
   ]);
 
   const itemsByOrder = new Map<string, Array<Record<string, unknown>>>();
@@ -93,6 +110,8 @@ export async function readAdminDashboard() {
     current.push({
       id: Number(row.id),
       productId: String(row.product_id),
+      variantId: row.variant_id ? String(row.variant_id) : "",
+      variantLabel: row.variant_label ? String(row.variant_label) : "",
       productName: String(row.product_name),
       unitPriceCents: Number(row.unit_price_cents),
       quantity: Number(row.quantity),
@@ -150,9 +169,10 @@ export async function readAdminDashboard() {
     categories: (categoriesResult.results as Row[]).map(normalizeCategory),
     banners: (bannersResult.results as Row[]).map(normalizeBanner),
     orders,
+    allCategoryImage: allCategoryImageResult?.value ? String(allCategoryImageResult.value) : "",
     stats: {
       activeProducts: products.filter((product) => product.active).length,
-      lowStock: products.filter((product) => product.active && product.stock <= 3).length,
+      lowStock: products.filter((product) => product.active && product.trackStock && product.stock <= 3).length,
       pendingOrders: orders.filter((order) => order.status === "aguardando_pagamento").length,
       paidRevenueCents: orders.filter((order) => paidStatuses.has(order.status)).reduce((sum, order) => sum + order.totalCents, 0),
       subscribers: Number(subscribersResult?.total ?? 0),
@@ -243,7 +263,46 @@ export async function deleteCategory(session: AdminSession, categoryId: string) 
   await writeAudit(session.userId, "category.deleted", "category", categoryId, { name: category.name });
 }
 
+const allCategoryImageKey = "all_category_image";
+
+export async function updateAllCategoryImage(session: AdminSession, imageInput: unknown) {
+  const image = textValue(imageInput, "a foto", 600, false);
+  if (image && !isAllowedMediaUrl(image)) throw new Error("Envie uma foto válida.");
+  const d1 = getD1();
+  if (image) {
+    await d1
+      .prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP")
+      .bind(allCategoryImageKey, image)
+      .run();
+  } else {
+    await d1.prepare("DELETE FROM site_settings WHERE key = ?").bind(allCategoryImageKey).run();
+  }
+  await writeAudit(session.userId, "settings.updated", "site_setting", allCategoryImageKey, { image });
+}
+
 type ProductPayload = Record<string, unknown>;
+
+type ProductMedia = { type: "image" | "video"; url: string };
+
+const maxMediaPerProduct = 5;
+
+function isAllowedMediaUrl(url: string) {
+  return url.startsWith("/api/media?key=") || url.startsWith("/brand/") || url.toLowerCase().startsWith("https://");
+}
+
+function normalizeMediaPayload(value: unknown) {
+  const media: ProductMedia[] = [];
+  if (!Array.isArray(value)) return media;
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const item = entry as Record<string, unknown>;
+    const url = textValue(item.url, "a mídia", 600, false);
+    if (!url || !isAllowedMediaUrl(url) || media.some((existing) => existing.url === url)) continue;
+    media.push({ type: item.type === "video" ? "video" : "image", url });
+    if (media.length === maxMediaPerProduct) break;
+  }
+  return media;
+}
 
 function validateProduct(payload: ProductPayload) {
   const name = textValue(payload.name, "o nome", 120);
@@ -255,10 +314,17 @@ function validateProduct(payload: ProductPayload) {
   if (categoryIds.length > 30) throw new Error("Escolha no máximo 30 categorias.");
   const description = textValue(payload.description, "a descrição", 3_000);
   const material = textValue(payload.material, "o material", 160);
-  const image = textValue(payload.image, "uma foto", 600);
-  if (!image.startsWith("/api/media?key=") && !image.startsWith("/brand/") && !/^https:\/\//i.test(image)) {
-    throw new Error("Envie uma foto válida do produto.");
-  }
+  const media = normalizeMediaPayload(payload.media);
+  const sentImage = textValue(payload.image, "uma foto", 600, false);
+  const validSentImage = sentImage && isAllowedMediaUrl(sentImage) && !media.some((item) => item.url === sentImage && item.type === "video")
+    ? sentImage
+    : "";
+  const image = media.some((item) => item.url === validSentImage && item.type === "image")
+    ? validSentImage
+    : media.find((item) => item.type === "image")?.url ?? validSentImage;
+  if (!image) throw new Error("Adicione pelo menos uma foto do produto.");
+  if (!media.some((item) => item.url === image)) media.unshift({ type: "image", url: image });
+  const video = media.find((item) => item.type === "video")?.url ?? "";
   const priceCents = integerValue(payload.priceCents, "O preço", 1, 100_000_000);
   const compareAtCents = payload.compareAtCents === null || payload.compareAtCents === "" || payload.compareAtCents === undefined
     ? null
@@ -266,6 +332,37 @@ function validateProduct(payload: ProductPayload) {
   if (compareAtCents !== null && compareAtCents <= priceCents) {
     throw new Error("O preço anterior precisa ser maior que o preço atual.");
   }
+  const catalogInput = payload.catalogData && typeof payload.catalogData === "object" ? payload.catalogData as Record<string, unknown> : {};
+  const catalogData = {
+    costCents: integerValue(catalogInput.costCents ?? 0, "O custo", 0, 100_000_000),
+    sku: textValue(catalogInput.sku, "o SKU", 80, false),
+    barcode: textValue(catalogInput.barcode, "o código de barras", 32, false),
+    weightGrams: integerValue(catalogInput.weightGrams ?? 300, "O peso", 1, 100_000),
+    lengthCm: integerValue(catalogInput.lengthCm ?? 18, "O comprimento", 1, 300),
+    widthCm: integerValue(catalogInput.widthCm ?? 18, "A largura", 1, 300),
+    heightCm: integerValue(catalogInput.heightCm ?? 6, "A altura", 1, 300),
+    mpn: textValue(catalogInput.mpn, "o MPN", 80, false),
+    ageGroup: ["adult", "kids"].includes(String(catalogInput.ageGroup)) ? String(catalogInput.ageGroup) : "adult",
+    gender: ["female", "male", "unisex"].includes(String(catalogInput.gender)) ? String(catalogInput.gender) : "female",
+    tags: textValue(catalogInput.tags, "as tags", 500, false),
+    brand: textValue(catalogInput.brand, "a marca", 80, false) || "Elle Jew",
+    seoTitle: textValue(catalogInput.seoTitle, "o título SEO", 70, false),
+    seoDescription: textValue(catalogInput.seoDescription, "a descrição SEO", 160, false),
+  };
+  const variants = Array.isArray(payload.variants) ? payload.variants.slice(0, 100).map((entry, index) => {
+    const item = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+    return {
+      id: textValue(item.id, "a variação", 80, false) || `var_${crypto.randomUUID()}`,
+      size: textValue(item.size, "o tamanho", 60, false),
+      color: textValue(item.color, "a cor", 60, false),
+      material: textValue(item.material, "o material da variação", 80, false),
+      sku: textValue(item.sku, "o SKU da variação", 80, false),
+      priceCents: integerValue(item.priceCents ?? priceCents, `O preço da variação ${index + 1}`, 1, 100_000_000),
+      stock: integerValue(item.stock ?? 0, `O estoque da variação ${index + 1}`, 0, 100_000),
+      active: item.active !== false,
+    };
+  }).filter((item) => item.size || item.color || item.material) : [];
+  const visibility = ["visible", "unlisted", "hidden"].includes(String(payload.visibility)) ? String(payload.visibility) : "visible";
   return {
     name,
     category,
@@ -273,11 +370,20 @@ function validateProduct(payload: ProductPayload) {
     description,
     material,
     image,
+    video,
+    media,
+    catalogData,
+    variants,
+    slug: slugify(textValue(payload.slug, "a URL", 80, false) || name),
     badge: textValue(payload.badge, "o selo", 50, false) || null,
     priceCents,
     compareAtCents,
-    stock: integerValue(payload.stock, "O estoque", 0, 100_000),
-    active: payload.active === false || payload.active === 0 ? 0 : 1,
+    stock: variants.length ? variants.reduce((sum, item) => sum + item.stock, 0) : integerValue(payload.stock, "O estoque", 0, 100_000),
+    trackStock: payload.trackStock !== false ? 1 : 0,
+    priceVisible: payload.priceVisible !== false ? 1 : 0,
+    freeShipping: payload.freeShipping === true ? 1 : 0,
+    visibility,
+    active: visibility === "hidden" || payload.active === false || payload.active === 0 ? 0 : 1,
     featured: payload.featured === true || payload.featured === 1 ? 1 : 0,
   };
 }
@@ -316,11 +422,11 @@ export async function createProduct(session: AdminSession, payload: ProductPaylo
   const product = validateProduct(payload);
   const categories = await resolveProductCategories(product.categoryIds, product.category);
   const id = `prd_${crypto.randomUUID()}`;
-  const slug = await availableSlug(product.name);
+  const slug = await availableSlug(product.slug);
   const d1 = getD1();
   await d1.batch([
-    d1.prepare("INSERT INTO products (id, slug, name, category, description, material, image, badge, price_cents, compare_at_cents, stock, active, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(id, slug, product.name, categories.primaryName, product.description, product.material, product.image, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured),
+    d1.prepare("INSERT INTO products (id, slug, name, category, description, material, image, video, media, catalog_data, variants, visibility, track_stock, price_visible, free_shipping, badge, price_cents, compare_at_cents, stock, active, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(id, slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured),
     ...categories.ids.map((categoryId) => d1.prepare("INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)").bind(id, categoryId)),
   ]);
   await writeAudit(session.userId, "product.created", "product", id, { name: product.name });
@@ -333,11 +439,11 @@ export async function updateProduct(session: AdminSession, payload: ProductPaylo
   if (!existing) throw new Error("Produto não encontrado.");
   const product = validateProduct(payload);
   const categories = await resolveProductCategories(product.categoryIds, product.category);
-  const slug = await availableSlug(product.name, id);
+  const slug = await availableSlug(product.slug, id);
   const d1 = getD1();
   await d1.batch([
-    d1.prepare("UPDATE products SET slug = ?, name = ?, category = ?, description = ?, material = ?, image = ?, badge = ?, price_cents = ?, compare_at_cents = ?, stock = ?, active = ?, featured = ? WHERE id = ?")
-      .bind(slug, product.name, categories.primaryName, product.description, product.material, product.image, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured, id),
+    d1.prepare("UPDATE products SET slug = ?, name = ?, category = ?, description = ?, material = ?, image = ?, video = ?, media = ?, catalog_data = ?, variants = ?, visibility = ?, track_stock = ?, price_visible = ?, free_shipping = ?, badge = ?, price_cents = ?, compare_at_cents = ?, stock = ?, active = ?, featured = ? WHERE id = ?")
+      .bind(slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured, id),
     d1.prepare("DELETE FROM product_categories WHERE product_id = ?").bind(id),
     ...categories.ids.map((categoryId) => d1.prepare("INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)").bind(id, categoryId)),
   ]);
@@ -345,7 +451,7 @@ export async function updateProduct(session: AdminSession, payload: ProductPaylo
 }
 
 export async function setProductActive(session: AdminSession, productId: string, active: boolean) {
-  const result = await getD1().prepare("UPDATE products SET active = ? WHERE id = ?").bind(active ? 1 : 0, productId).run();
+  const result = await getD1().prepare("UPDATE products SET active = ?, visibility = ? WHERE id = ?").bind(active ? 1 : 0, active ? "visible" : "hidden", productId).run();
   if (!result.success) throw new Error("Não foi possível atualizar o produto.");
   await writeAudit(session.userId, active ? "product.activated" : "product.archived", "product", productId);
 }

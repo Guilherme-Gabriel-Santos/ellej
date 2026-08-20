@@ -7,7 +7,13 @@ const allowedTypes = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
   ["image/webp", "webp"],
+  ["video/mp4", "mp4"],
+  ["video/webm", "webm"],
+  ["video/quicktime", "mov"],
 ]);
+
+// Átomos aceitos no início de MP4 e dos .MOV gravados pelo iPhone.
+const videoAtoms = ["ftyp", "moov", "mdat", "wide", "free", "skip"];
 
 async function hasValidSignature(file: File) {
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
@@ -19,6 +25,10 @@ async function hasValidSignature(file: File) {
   if (file.type === "image/webp") {
     return String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
   }
+  if (file.type === "video/mp4" || file.type === "video/quicktime") {
+    return videoAtoms.includes(String.fromCharCode(...bytes.slice(4, 8)));
+  }
+  if (file.type === "video/webm") return bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3;
   return false;
 }
 
@@ -37,11 +47,14 @@ export async function POST(request: Request) {
     if (!env.MEDIA) throw new Error("O armazenamento de imagens ainda não foi configurado.");
     const form = await request.formData();
     const file = form.get("file");
-    if (!(file instanceof File)) throw new Error("Escolha uma foto.");
+    const context = String(form.get("context") ?? "");
+    if (!(file instanceof File)) throw new Error("Escolha uma mídia.");
     const extension = allowedTypes.get(file.type);
-    if (!extension) throw new Error("Use uma foto JPG, PNG ou WebP.");
-    if (file.size <= 0 || file.size > 8 * 1024 * 1024) throw new Error("A foto precisa ter no máximo 8 MB.");
-    if (!(await hasValidSignature(file))) throw new Error("O conteúdo do arquivo não corresponde a uma imagem válida.");
+    if (!extension) throw new Error("Use uma foto JPG, PNG ou WebP, ou um vídeo MP4, WebM ou MOV.");
+    const isVideo = file.type.startsWith("video/");
+    const sizeLimitMb = isVideo || context === "banner" ? 80 : 8;
+    if (file.size <= 0 || file.size > sizeLimitMb * 1024 * 1024) throw new Error(`O ${isVideo ? "vídeo" : "arquivo"} precisa ter no máximo ${sizeLimitMb} MB.`);
+    if (!(await hasValidSignature(file))) throw new Error("O conteúdo do arquivo não corresponde a uma foto ou vídeo válido.");
 
     const key = `${crypto.randomUUID()}.${extension}`;
     await env.MEDIA.put(key, file.stream(), {

@@ -18,6 +18,14 @@ export const products = sqliteTable(
     description: text("description").notNull(),
     material: text("material").notNull(),
     image: text("image").notNull(),
+    video: text("video"),
+    media: text("media").notNull().default("[]"),
+    catalogData: text("catalog_data").notNull().default("{}"),
+    variants: text("variants").notNull().default("[]"),
+    visibility: text("visibility").notNull().default("visible"),
+    trackStock: integer("track_stock", { mode: "boolean" }).notNull().default(true),
+    priceVisible: integer("price_visible", { mode: "boolean" }).notNull().default(true),
+    freeShipping: integer("free_shipping", { mode: "boolean" }).notNull().default(false),
     badge: text("badge"),
     priceCents: integer("price_cents").notNull(),
     compareAtCents: integer("compare_at_cents"),
@@ -65,6 +73,12 @@ export const productCategories = sqliteTable(
   ],
 );
 
+export const siteSettings = sqliteTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const homepageBanners = sqliteTable(
   "homepage_banners",
   {
@@ -100,11 +114,12 @@ export const cartItems = sqliteTable(
   {
     visitorId: text("visitor_id").notNull(),
     productId: text("product_id").notNull(),
+    variantId: text("variant_id").notNull().default(""),
     quantity: integer("quantity").notNull().default(1),
     updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.visitorId, table.productId] }),
+    primaryKey({ columns: [table.visitorId, table.productId, table.variantId] }),
     index("idx_cart_items_visitor_id").on(table.visitorId),
   ],
 );
@@ -169,6 +184,8 @@ export const orderItems = sqliteTable(
     orderId: text("order_id").notNull(),
     productId: text("product_id").notNull(),
     productName: text("product_name").notNull(),
+    variantId: text("variant_id"),
+    variantLabel: text("variant_label"),
     unitPriceCents: integer("unit_price_cents").notNull(),
     quantity: integer("quantity").notNull(),
   },

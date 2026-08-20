@@ -23,6 +23,7 @@ import {
   setBannerActive,
   setCategoryActive,
   setProductActive,
+  updateAllCategoryImage,
   updateCategory,
   updateBanner,
   updateOrderStatus,
@@ -102,6 +103,7 @@ export async function POST(request: Request) {
     else if (action === "setCategoryActive") await setCategoryActive(session, String(payload.categoryId ?? ""), Boolean(payload.active));
     else if (action === "reorderCategories") await reorderCategories(session, payload.orderedIds);
     else if (action === "deleteCategory") await deleteCategory(session, String(payload.categoryId ?? ""));
+    else if (action === "updateAllCategoryImage") await updateAllCategoryImage(session, payload.image);
     else if (action === "createBanner") await createBanner(session, payload.banner as Record<string, unknown>);
     else if (action === "updateBanner") await updateBanner(session, payload.banner as Record<string, unknown>);
     else if (action === "setBannerActive") await setBannerActive(session, String(payload.bannerId ?? ""), Boolean(payload.active));

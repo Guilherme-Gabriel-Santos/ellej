@@ -11,6 +11,14 @@ type Product = {
   description: string;
   material: string;
   image: string;
+  video: string;
+  media: Array<{ type: "image" | "video"; url: string }>;
+  catalogData?: { sku?: string; weightGrams?: number; lengthCm?: number; widthCm?: number; heightCm?: number; brand?: string };
+  variants?: ProductVariant[];
+  visibility?: string;
+  trackStock?: boolean;
+  priceVisible?: boolean;
+  freeShipping?: boolean;
   badge: string | null;
   priceCents: number;
   compareAtCents: number | null;
@@ -18,20 +26,21 @@ type Product = {
   featured: boolean;
 };
 
-type CartItem = Product & { quantity: number };
+type ProductVariant = { id: string; size: string; color: string; material: string; sku: string; priceCents: number; stock: number; active: boolean };
+type CartItem = Product & { quantity: number; variantId: string; variantLabel: string };
 type Category = { id: string; name: string; slug: string; parentId: string | null; image: string | null };
 type Banner = { id: string; title: string; subtitle: string; image: string; linkUrl: string | null; linkLabel: string | null };
-type StoreData = { products: Product[]; categories: Category[]; banners: Banner[]; favoriteIds: string[]; cart: CartItem[] };
+type StoreData = { products: Product[]; categories: Category[]; banners: Banner[]; favoriteIds: string[]; cart: CartItem[]; allCategoryImage: string | null };
 type Drawer = "cart" | "favorites" | null;
 type Order = { id: string; totalCents: number; status: string; paymentMethod: string; checkoutUrl?: string };
 type ShippingOption = { id: string; name: string; priceCents: number; deliveryDays: number };
 
 const fallbackProducts: Product[] = [
-  { id: "choker-coracoes", slug: "choker-5-coracoes", name: "Choker 5 Corações", category: "Colares", categoryIds: [], description: "Choker delicada em Prata 925 com 5 pingentes de coração cravejados em zircônias cristal. Ideal para usar sozinha ou compor mix de colares.", material: "Prata 925 • Zircônias premium", image: "/brand/choker-coracoes.webp", badge: "Mais desejado", priceCents: 55000, compareAtCents: null, stock: 3, featured: true },
-  { id: "colar-ponto-luz", slug: "colar-ponto-luz", name: "Colar Ponto Luz", category: "Colares", categoryIds: [], description: "Colar clássico ponto de luz em Prata 925 com zircônia cristal de alta lapidação. Uma peça coringa e atemporal para o dia a dia.", material: "Prata 925 • Zircônia cristal", image: "/brand/colar-ponto-luz.webp", badge: "Best-seller", priceCents: 28500, compareAtCents: null, stock: 6, featured: true },
-  { id: "conjunto-kunzita", slug: "conjunto-kunzita", name: "Conjunto Kunzita", category: "Conjuntos", categoryIds: [], description: "Conjunto de colar e brincos em Prata 925 com pedra kunzita rosa lapidada. Traz um toque delicado de cor com máxima sofisticação.", material: "Prata 925 • Kunzita criada", image: "/brand/conjunto-kunzita.webp", badge: "Edição limitada", priceCents: 29800, compareAtCents: null, stock: 4, featured: true },
-  { id: "conjunto-ametista", slug: "conjunto-ametista", name: "Conjunto Ametista", category: "Conjuntos", categoryIds: [], description: "Conjunto em Prata 925 composto por colar e brincos com zircônias na cor ametista profunda. Design refinado e acabamento impecável.", material: "Prata 925 • Ametista criada", image: "/brand/conjunto-ametista.webp", badge: "Novo", priceCents: 29800, compareAtCents: null, stock: 5, featured: true },
-  { id: "ear-cuff-medio", slug: "ear-cuff-medio", name: "Ear Cuff Médio", category: "Brincos", categoryIds: [], description: "Brinco Ear Cuff em Prata 925 cravejado com uma fileira ascendente de zircônias brilhantes. Não necessita de segundo furo.", material: "Prata 925 • Zircônias premium", image: "/brand/ear-cuff.webp", badge: "Últimas peças", priceCents: 19900, compareAtCents: 23500, stock: 2, featured: true },
+  { id: "choker-coracoes", slug: "choker-5-coracoes", name: "Choker 5 Corações", category: "Colares", categoryIds: [], description: "Choker delicada em Prata 925 com 5 pingentes de coração cravejados em zircônias cristal. Ideal para usar sozinha ou compor mix de colares.", material: "Prata 925 • Zircônias premium", image: "/brand/choker-coracoes.webp", video: "", media: [], badge: "Mais desejado", priceCents: 55000, compareAtCents: null, stock: 3, featured: true },
+  { id: "colar-ponto-luz", slug: "colar-ponto-luz", name: "Colar Ponto Luz", category: "Colares", categoryIds: [], description: "Colar clássico ponto de luz em Prata 925 com zircônia cristal de alta lapidação. Uma peça coringa e atemporal para o dia a dia.", material: "Prata 925 • Zircônia cristal", image: "/brand/colar-ponto-luz.webp", video: "", media: [], badge: "Best-seller", priceCents: 28500, compareAtCents: null, stock: 6, featured: true },
+  { id: "conjunto-kunzita", slug: "conjunto-kunzita", name: "Conjunto Kunzita", category: "Conjuntos", categoryIds: [], description: "Conjunto de colar e brincos em Prata 925 com pedra kunzita rosa lapidada. Traz um toque delicado de cor com máxima sofisticação.", material: "Prata 925 • Kunzita criada", image: "/brand/conjunto-kunzita.webp", video: "", media: [], badge: "Edição limitada", priceCents: 29800, compareAtCents: null, stock: 4, featured: true },
+  { id: "conjunto-ametista", slug: "conjunto-ametista", name: "Conjunto Ametista", category: "Conjuntos", categoryIds: [], description: "Conjunto em Prata 925 composto por colar e brincos com zircônias na cor ametista profunda. Design refinado e acabamento impecável.", material: "Prata 925 • Ametista criada", image: "/brand/conjunto-ametista.webp", video: "", media: [], badge: "Novo", priceCents: 29800, compareAtCents: null, stock: 5, featured: true },
+  { id: "ear-cuff-medio", slug: "ear-cuff-medio", name: "Ear Cuff Médio", category: "Brincos", categoryIds: [], description: "Brinco Ear Cuff em Prata 925 cravejado com uma fileira ascendente de zircônias brilhantes. Não necessita de segundo furo.", material: "Prata 925 • Zircônias premium", image: "/brand/ear-cuff.webp", video: "", media: [], badge: "Últimas peças", priceCents: 19900, compareAtCents: 23500, stock: 2, featured: true },
 ];
 
 const initialCheckout = {
@@ -50,6 +59,17 @@ const initialCheckout = {
   paymentMethod: "pix",
   coupon: "",
 };
+
+type Media = { type: "image" | "video"; url: string };
+
+function galleryOf(product: Product): Media[] {
+  const media = (product.media ?? []).filter((item) => item && item.url);
+  if (media.length) return media;
+  const fallback: Media[] = [];
+  if (product.image) fallback.push({ type: "image", url: product.image });
+  if (product.video) fallback.push({ type: "video", url: product.video });
+  return fallback;
+}
 
 const money = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
@@ -81,12 +101,14 @@ function useCountdown() {
   return label;
 }
 
-export function Storefront() {
-  const [store, setStore] = useState<StoreData>({ products: fallbackProducts, categories: [], banners: [], favoriteIds: [], cart: [] });
+export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: string }) {
+  const [store, setStore] = useState<StoreData>({ products: fallbackProducts, categories: [], banners: [], favoriteIds: [], cart: [], allCategoryImage: null });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
+  const [activeMedia, setActiveMedia] = useState<{ productId: string; index: number } | null>(null);
   const [category, setCategory] = useState("Destaques");
   const [search, setSearch] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -106,15 +128,22 @@ export function Storefront() {
   const countdown = useCountdown();
 
   useEffect(() => {
-    fetch("/api/store", { cache: "no-store" })
+    const requestedProduct = initialProductSlug || new URLSearchParams(window.location.search).get("produto") || "";
+    fetch(requestedProduct ? `/api/store?product=${encodeURIComponent(requestedProduct)}` : "/api/store", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error);
         setStore(data);
+        const product = requestedProduct ? data.products.find((item: Product) => item.slug === requestedProduct) : null;
+        if (product) {
+          setSelectedProduct(product);
+          const variants = (product.variants ?? []).filter((item: ProductVariant) => item.active);
+          setSelectedVariantId(variants.length === 1 ? variants[0].id : "");
+        }
       })
       .catch(() => setToast("A vitrine está visível, mas não foi possível sincronizar seus dados agora."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [initialProductSlug]);
 
   useEffect(() => {
     if (store.banners.length < 2 || carouselPaused) return;
@@ -154,7 +183,7 @@ export function Storefront() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (selectedProduct) setSelectedProduct(null);
+      if (selectedProduct) closeProduct();
       else if (drawer) setDrawer(null);
       else if (checkoutOpen && checkoutStep < 3) setCheckoutOpen(false);
     };
@@ -167,9 +196,18 @@ export function Storefront() {
   const couponDiscount = checkout.coupon.trim().toUpperCase() === "ELLE10" ? Math.round(subtotal * 0.1) : 0;
   const pixDiscount = checkout.paymentMethod === "pix" ? Math.round((subtotal - couponDiscount) * 0.05) : 0;
   const selectedShipping = shippingOptions.find((option) => option.id === checkout.shippingMethod);
-  const shipping = subtotal >= 39900 ? 0 : selectedShipping?.priceCents ?? 0;
+  const freeShipping = store.cart.length > 0 && store.cart.every((item) => item.freeShipping);
+  const shipping = subtotal >= 39900 || freeShipping ? 0 : selectedShipping?.priceCents ?? 0;
   const total = subtotal - couponDiscount - pixDiscount + shipping;
   const favoriteProducts = store.products.filter((product) => store.favoriteIds.includes(product.id));
+  const gallery = selectedProduct ? galleryOf(selectedProduct) : [];
+  const mediaIndex = activeMedia && selectedProduct && activeMedia.productId === selectedProduct.id
+    ? Math.min(activeMedia.index, Math.max(gallery.length - 1, 0))
+    : 0;
+  const currentMedia = gallery[mediaIndex] ?? null;
+  const selectedVariant = selectedProduct?.variants?.find((item) => item.id === selectedVariantId && item.active) ?? null;
+  const selectedProductPrice = selectedVariant?.priceCents || selectedProduct?.priceCents || 0;
+  const selectedProductStock = selectedProduct?.trackStock === false ? 999_999 : selectedVariant?.stock ?? selectedProduct?.stock ?? 0;
   const rootCategories = store.categories.filter((item) => !item.parentId);
   const selectedRoot = rootCategories.find((item) => item.id === category);
   const selectedSubcategory = store.categories.find((item) => item.id === category && item.parentId);
@@ -206,6 +244,19 @@ export function Storefront() {
     setCategory(categoryId);
     setSearch("");
     window.setTimeout(() => document.getElementById("colecao")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
+
+  function openProduct(product: Product) {
+    setSelectedProduct(product);
+    const variants = (product.variants ?? []).filter((item) => item.active);
+    setSelectedVariantId(variants.length === 1 ? variants[0].id : "");
+    window.history.replaceState({}, "", `/produtos/${encodeURIComponent(product.slug)}`);
+  }
+
+  function closeProduct() {
+    setSelectedProduct(null);
+    setSelectedVariantId("");
+    window.history.replaceState({}, "", "/");
   }
 
   async function post(payload: Record<string, unknown>) {
@@ -245,14 +296,15 @@ export function Storefront() {
     }
   }
 
-  async function setCartQuantity(product: Product, quantity: number, open = false) {
+  async function setCartQuantity(product: Product | CartItem, quantity: number, open = false, variantId?: string) {
+    const chosenVariantId = variantId ?? ("variantId" in product ? product.variantId : "");
     setBusy(`cart-${product.id}`);
     try {
-      const data = await post({ action: "cart", productId: product.id, quantity });
+      const data = await post({ action: "cart", productId: product.id, variantId: chosenVariantId, quantity });
       setStore(data.store);
       if (quantity > 0) setToast(`${product.name} está na sua sacola.`);
       if (open) {
-        setSelectedProduct(null);
+        closeProduct();
         setDrawer("cart");
       }
     } catch (error) {
@@ -262,9 +314,14 @@ export function Storefront() {
     }
   }
 
-  function addToCart(product: Product, open = true) {
-    const current = store.cart.find((item) => item.id === product.id)?.quantity ?? 0;
-    return setCartQuantity(product, current + 1, open);
+  function addToCart(product: Product, open = true, variantId = "") {
+    const variants = (product.variants ?? []).filter((item) => item.active);
+    if (variants.length && !variantId) {
+      openProduct(product);
+      return;
+    }
+    const current = store.cart.find((item) => item.id === product.id && item.variantId === variantId)?.quantity ?? 0;
+    return setCartQuantity(product, current + 1, open, variantId);
   }
 
   function openCheckout() {
@@ -388,11 +445,11 @@ export function Storefront() {
       <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow">Prata 925 Legítima • Garantia Vitalícia</p>
-          <h1>Realce sua beleza<br /><em>em todos os momentos.</em></h1>
-          <p className="hero-lead">Joias delicadas em Prata 925 com zircônias de alta lapidação. Acabamento impecável, brilho duradouro e pronta entrega para todo o Brasil.</p>
+          <h1>A elegância que eterniza momentos</h1>
+          <p className="hero-lead">Joias em prata 925 com design de Alta Joalheria</p>
           <div className="hero-ctas">
             <a className="button button-primary" href="#colecao">Ver Coleção Completa</a>
-            <button className="button button-ghost" onClick={() => setSelectedProduct(store.products[0])}>Ver Mais Vendidos</button>
+            <button className="button button-ghost" onClick={() => store.products[0] && openProduct(store.products[0])}>Ver Mais Vendidos</button>
           </div>
           <div className="hero-proof">
             <div className="avatars" aria-hidden="true"><span>E</span><span>J</span><span>★</span></div>
@@ -400,12 +457,12 @@ export function Storefront() {
           </div>
         </div>
         <div className="hero-visual" aria-roledescription="carrossel" aria-label="Fotos da coleção" onMouseEnter={() => setCarouselPaused(true)} onMouseLeave={() => setCarouselPaused(false)} onFocus={() => setCarouselPaused(true)} onBlur={() => setCarouselPaused(false)}>
-          {(store.banners.length ? store.banners : [{ id: "fallback", image: "/brand/hero.webp", title: "", subtitle: "", linkUrl: null, linkLabel: null }]).map((banner, index, photos) => <img key={banner.id} className={`hero-slide ${index === bannerIndex % photos.length ? "active" : ""}`} src={banner.image} alt={index === bannerIndex % photos.length ? "Modelo usando joias Elle Jew" : ""} aria-hidden={index !== bannerIndex % photos.length} />)}
-          <div className="hero-card">
+          {loading ? <div className="hero-slide-loading" aria-hidden="true" /> : (store.banners.length ? store.banners : [{ id: "fallback", image: "/brand/hero.webp", title: "", subtitle: "", linkUrl: null, linkLabel: null }]).map((banner, index, photos) => <img key={banner.id} className={`hero-slide ${index === bannerIndex % photos.length ? "active" : ""}`} src={banner.image} alt={index === bannerIndex % photos.length ? "Modelo usando joias Elle Jew" : ""} aria-hidden={index !== bannerIndex % photos.length} />)}
+          {!loading && <div className="hero-card">
             <span>Destaques da Semana</span>
             <strong>Rivieras e Pontos de Luz</strong>
             <a href="#colecao">Ver destaques →</a>
-          </div>
+          </div>}
           <div className="hero-seal"><span>925</span>prata de lei</div>
           {store.banners.length > 1 && <><button className="hero-gallery-arrow previous" onClick={() => setBannerIndex((bannerIndex - 1 + store.banners.length) % store.banners.length)} aria-label="Foto anterior">‹</button><button className="hero-gallery-arrow next" onClick={() => setBannerIndex((bannerIndex + 1) % store.banners.length)} aria-label="Próxima foto">›</button><div className="hero-gallery-dots" aria-label="Escolher foto">{store.banners.map((banner, index) => <button key={banner.id} className={index === bannerIndex % store.banners.length ? "active" : ""} onClick={() => setBannerIndex(index)} aria-label={`Mostrar foto ${index + 1}`} />)}</div></>}
         </div>
@@ -420,12 +477,11 @@ export function Storefront() {
 
       <section className="category-showcase section" aria-labelledby="category-showcase-title">
         <div className="section-heading category-showcase-heading">
-          <div><p className="eyebrow dark">Encontre seu estilo</p><h2 id="category-showcase-title">Compre por categoria.</h2></div>
-          <p className="section-intro">Escolha uma coleção para ver somente as peças que combinam com o que você procura.</p>
+          <div><h2 id="category-showcase-title">Compre por categoria.</h2></div>
         </div>
         <div className="category-card-grid">
           <button className="category-card" onClick={() => chooseCategory("Todos")}>
-            <img src={store.products[0]?.image ?? "/brand/editorial-gold.webp"} alt="Seleção de joias Elle Jew" />
+            <img src={store.allCategoryImage || store.products[0]?.image || "/brand/editorial-gold.webp"} alt="Seleção de joias Elle Jew" />
             <span><small>Descubra toda a coleção</small><strong>Todas as joias</strong><em>Ver tudo</em></span>
           </button>
           {rootCategories.map((item) => (
@@ -473,19 +529,21 @@ export function Storefront() {
                 <div className="product-media">
                   {product.badge && <span className="product-badge">{product.badge}</span>}
                   <button className={`heart-button ${favorite ? "active" : ""}`} onClick={() => toggleFavorite(product)} disabled={busy === `favorite-${product.id}`} aria-label={favorite ? `Remover ${product.name} dos favoritos` : `Favoritar ${product.name}`}>{favorite ? "♥" : "♡"}</button>
-                  <button className="product-image-button" onClick={() => setSelectedProduct(product)} aria-label={`Ver detalhes de ${product.name}`}>
+                  <button className="product-image-button" onClick={() => openProduct(product)} aria-label={`Ver detalhes de ${product.name}`}>
                     <img src={product.image} alt={product.name} />
+                    {galleryOf(product).some((item) => item.type === "video") && <span className="product-video-flag" aria-hidden="true">▶ vídeo</span>}
                   </button>
-                  <button className="quick-add" onClick={() => addToCart(product)} disabled={busy === `cart-${product.id}` || product.stock < 1}>{busy === `cart-${product.id}` ? "Adicionando…" : "Adicionar à sacola"}</button>
+                  {product.priceVisible === false
+                    ? <a className="quick-add" href={`https://wa.me/5516992939739?text=${encodeURIComponent(`Oi, quero saber o preço de ${product.name}.`)}`} target="_blank" rel="noreferrer">Consultar preço</a>
+                    : <button className="quick-add" onClick={() => addToCart(product)} disabled={busy === `cart-${product.id}` || product.stock < 1}>{busy === `cart-${product.id}` ? "Adicionando…" : (product.variants ?? []).some((item) => item.active) ? "Escolher opções" : "Adicionar à sacola"}</button>}
                 </div>
                 <div className="product-info">
-                  <div><span>{product.category}</span><button onClick={() => setSelectedProduct(product)}>Detalhes +</button></div>
+                  <div><span>{product.category}</span><button onClick={() => openProduct(product)}>Detalhes +</button></div>
                   <h3>{product.name}</h3>
                   <p className="product-price">
-                    {product.compareAtCents && <del>{money(product.compareAtCents)}</del>}
-                    <strong>{money(product.priceCents)}</strong>
+                    {product.priceVisible === false ? <strong>Preço sob consulta</strong> : <>{product.compareAtCents && <del>{money(product.compareAtCents)}</del>}<strong>{money(product.priceCents)}</strong></>}
                   </p>
-                  <p className="installment">ou 6x de {money(Math.round(product.priceCents / 6))} sem juros</p>
+                  <p className="installment">{product.priceVisible === false ? "Fale com a Elle Jew pelo WhatsApp" : `ou 6x de ${money(Math.round(product.priceCents / 6))} sem juros`}</p>
                   {product.stock <= 4 && <p className="stock-warning"><span /> Restam apenas {product.stock} {product.stock === 1 ? "unidade" : "unidades"}</p>}
                 </div>
               </article>
@@ -563,10 +621,10 @@ export function Storefront() {
             <div className="drawer-header"><div><p className="eyebrow dark">{drawer === "cart" ? "Sua seleção" : "Sua curadoria"}</p><h2>{drawer === "cart" ? "Sacola" : "Favoritos"}</h2></div><button onClick={() => setDrawer(null)} aria-label="Fechar">×</button></div>
             {drawer === "cart" ? (
               <>
-                <div className="drawer-progress"><div><span style={{ width: `${Math.min(100, (subtotal / 39900) * 100)}%` }} /></div><p>{subtotal >= 39900 ? "Você desbloqueou frete grátis." : `Faltam ${money(39900 - subtotal)} para o frete grátis.`}</p></div>
+                <div className="drawer-progress"><div><span style={{ width: `${freeShipping ? 100 : Math.min(100, (subtotal / 39900) * 100)}%` }} /></div><p>{subtotal >= 39900 || freeShipping ? "Você desbloqueou frete grátis." : `Faltam ${money(39900 - subtotal)} para o frete grátis.`}</p></div>
                 <div className="drawer-list">
                   {store.cart.map((item) => (
-                    <article className="drawer-item" key={item.id}><img src={item.image} alt={item.name} /><div><span>{item.category}</span><h3>{item.name}</h3><strong>{money(item.priceCents)}</strong><div className="quantity"><button onClick={() => setCartQuantity(item, item.quantity - 1)} aria-label={`Diminuir quantidade de ${item.name}`}>−</button><span>{item.quantity}</span><button onClick={() => setCartQuantity(item, item.quantity + 1)} disabled={item.quantity >= item.stock} aria-label={`Aumentar quantidade de ${item.name}`}>+</button></div></div><button className="remove" onClick={() => setCartQuantity(item, 0)} aria-label={`Remover ${item.name}`}>×</button></article>
+                    <article className="drawer-item" key={`${item.id}-${item.variantId}`}><img src={item.image} alt={item.name} /><div><span>{item.category}</span><h3>{item.name}</h3>{item.variantLabel && <small className="cart-variant">{item.variantLabel}</small>}<strong>{money(item.priceCents)}</strong><div className="quantity"><button onClick={() => setCartQuantity(item, item.quantity - 1)} aria-label={`Diminuir quantidade de ${item.name}`}>−</button><span>{item.quantity}</span><button onClick={() => setCartQuantity(item, item.quantity + 1)} disabled={item.quantity >= item.stock} aria-label={`Aumentar quantidade de ${item.name}`}>+</button></div></div><button className="remove" onClick={() => setCartQuantity(item, 0)} aria-label={`Remover ${item.name}`}>×</button></article>
                   ))}
                   {!store.cart.length && <div className="empty-drawer"><span>◇</span><h3>Sua sacola está esperando.</h3><p>Comece pelas peças que estão no radar de todo mundo.</p><button onClick={() => setDrawer(null)}>Ver mais desejados</button></div>}
                 </div>
@@ -583,11 +641,46 @@ export function Storefront() {
       )}
 
       {selectedProduct && (
-        <div className="overlay product-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedProduct(null); }}>
+        <div className="overlay product-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeProduct(); }}>
           <section className="product-modal" role="dialog" aria-modal="true" aria-label={`Detalhes de ${selectedProduct.name}`}>
-            <button className="modal-close" onClick={() => setSelectedProduct(null)} aria-label="Fechar">×</button>
-            <div className="modal-image"><img src={selectedProduct.image} alt={selectedProduct.name} /><span>{selectedProduct.badge}</span></div>
-            <div className="modal-copy"><p className="eyebrow dark">{selectedProduct.category} • Elle Jew</p><h2>{selectedProduct.name}</h2><p className="modal-description">{selectedProduct.description}</p><p className="modal-material">◇ {selectedProduct.material}</p><div className="modal-price">{selectedProduct.compareAtCents && <del>{money(selectedProduct.compareAtCents)}</del>}<strong>{money(selectedProduct.priceCents)}</strong><span>ou 6x de {money(Math.round(selectedProduct.priceCents / 6))} sem juros</span></div>{selectedProduct.stock <= 4 && <p className="modal-stock"><span /> Restam apenas {selectedProduct.stock} peças desta edição</p>}<button className="button button-primary full" onClick={() => addToCart(selectedProduct)} disabled={busy === `cart-${selectedProduct.id}`}>{busy === `cart-${selectedProduct.id}` ? "Adicionando…" : "Adicionar à sacola"}</button><button className="modal-favorite" onClick={() => toggleFavorite(selectedProduct)}>{store.favoriteIds.includes(selectedProduct.id) ? "♥ Salvo nos favoritos" : "♡ Salvar nos favoritos"}</button><div className="modal-benefits"><span>Envio em 24h</span><span>Troca fácil</span><span>Compra segura</span></div></div>
+            <button className="modal-close" onClick={closeProduct} aria-label="Fechar">×</button>
+            <div className="modal-image">
+              {currentMedia?.type === "video"
+                ? <video key={currentMedia.url} src={currentMedia.url} controls autoPlay muted loop playsInline preload="metadata" />
+                : <img src={currentMedia?.url ?? selectedProduct.image} alt={selectedProduct.name} />}
+              <span>{selectedProduct.badge}</span>
+              {gallery.length > 1 && (
+                <div className="modal-thumbs">
+                  {gallery.map((item, index) => (
+                    <button
+                      key={item.url + index}
+                      type="button"
+                      className={index === mediaIndex ? "active" : ""}
+                      onClick={() => setActiveMedia({ productId: selectedProduct.id, index })}
+                      aria-label={(item.type === "video" ? "Ver vídeo " : "Ver foto ") + (index + 1) + " de " + selectedProduct.name}
+                    >
+                      {item.type === "video"
+                        ? <><video src={item.url} muted playsInline preload="metadata" /><i aria-hidden="true">▶</i></>
+                        : <img src={item.url} alt="" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-copy">
+              <p className="eyebrow dark">{selectedProduct.category} • Elle Jew</p>
+              <h2>{selectedProduct.name}</h2>
+              <p className="modal-description">{selectedProduct.description}</p>
+              <p className="modal-material">◇ {selectedProduct.material}</p>
+              {(selectedProduct.variants ?? []).some((item) => item.active) && <fieldset className="variant-picker"><legend>Escolha sua opção</legend>{(selectedProduct.variants ?? []).filter((item) => item.active).map((variant) => { const label = [variant.size, variant.color, variant.material].filter(Boolean).join(" • ") || "Opção"; return <label key={variant.id} className={selectedVariantId === variant.id ? "selected" : ""}><input aria-label={label} type="radio" name="product-variant" value={variant.id} checked={selectedVariantId === variant.id} disabled={selectedProduct.trackStock !== false && variant.stock < 1} onChange={() => setSelectedVariantId(variant.id)} /><span><strong>{label}</strong><small>{selectedProduct.trackStock !== false && variant.stock < 1 ? "Esgotado" : variant.priceCents ? money(variant.priceCents) : money(selectedProduct.priceCents)}</small></span></label>; })}</fieldset>}
+              {selectedProduct.priceVisible === false ? <div className="modal-price"><strong>Preço sob consulta</strong><span>Nossa equipe responde rapidamente pelo WhatsApp.</span></div> : <div className="modal-price">{selectedProduct.compareAtCents && <del>{money(selectedProduct.compareAtCents)}</del>}<strong>{money(selectedProductPrice)}</strong><span>ou 6x de {money(Math.round(selectedProductPrice / 6))} sem juros</span></div>}
+              {selectedProductStock <= 4 && selectedProductStock > 0 && <p className="modal-stock"><span /> Restam apenas {selectedProductStock} peças desta opção</p>}
+              {selectedProduct.priceVisible === false
+                ? <a className="button button-primary full" href={`https://wa.me/5516992939739?text=${encodeURIComponent(`Oi, quero saber o preço de ${selectedProduct.name}.`)}`} target="_blank" rel="noreferrer">Consultar pelo WhatsApp</a>
+                : <button className="button button-primary full" onClick={() => addToCart(selectedProduct, true, selectedVariantId)} disabled={busy === `cart-${selectedProduct.id}` || selectedProductStock < 1 || ((selectedProduct.variants ?? []).some((item) => item.active) && !selectedVariantId)}>{busy === `cart-${selectedProduct.id}` ? "Adicionando…" : (selectedProduct.variants ?? []).some((item) => item.active) && !selectedVariantId ? "Escolha uma opção" : selectedProductStock < 1 ? "Produto esgotado" : "Adicionar à sacola"}</button>}
+              <button className="modal-favorite" onClick={() => toggleFavorite(selectedProduct)}>{store.favoriteIds.includes(selectedProduct.id) ? "♥ Salvo nos favoritos" : "♡ Salvar nos favoritos"}</button>
+              <div className="modal-benefits"><span>Envio em 24h</span><span>Troca fácil</span><span>Compra segura</span></div>
+            </div>
           </section>
         </div>
       )}
@@ -619,7 +712,7 @@ export function Storefront() {
                   </form>
                 )}
               </div>
-              <aside className="checkout-summary"><h2>Seu pedido</h2><div className="checkout-items">{store.cart.map((item) => <div key={item.id}><div><img src={item.image} alt="" /><span>{item.quantity}</span></div><p><strong>{item.name}</strong><small>{item.material}</small></p><b>{money(item.priceCents * item.quantity)}</b></div>)}</div><div className="summary-lines"><p><span>Subtotal</span><strong>{money(subtotal)}</strong></p><p><span>Entrega</span><strong>{selectedShipping ? shipping ? money(shipping) : "Grátis" : "A calcular"}</strong></p>{couponDiscount > 0 && <p className="discount-line"><span>Desconto ELLE10</span><strong>− {money(couponDiscount)}</strong></p>}{pixDiscount > 0 && <p className="discount-line"><span>Desconto PIX</span><strong>− {money(pixDiscount)}</strong></p>}<div><span>Total</span><strong>{money(total)}</strong></div><small>em até 6x de {money(Math.round(total / 6))} sem juros</small></div><div className="summary-trust"><span>Compra protegida</span><span>Troca em 7 dias</span><span>Dados seguros</span></div></aside>
+              <aside className="checkout-summary"><h2>Seu pedido</h2><div className="checkout-items">{store.cart.map((item) => <div key={`${item.id}-${item.variantId}`}><div><img src={item.image} alt="" /><span>{item.quantity}</span></div><p><strong>{item.name}</strong><small>{item.variantLabel || item.material}</small></p><b>{money(item.priceCents * item.quantity)}</b></div>)}</div><div className="summary-lines"><p><span>Subtotal</span><strong>{money(subtotal)}</strong></p><p><span>Entrega</span><strong>{selectedShipping ? shipping ? money(shipping) : "Grátis" : "A calcular"}</strong></p>{couponDiscount > 0 && <p className="discount-line"><span>Desconto ELLE10</span><strong>− {money(couponDiscount)}</strong></p>}{pixDiscount > 0 && <p className="discount-line"><span>Desconto PIX</span><strong>− {money(pixDiscount)}</strong></p>}<div><span>Total</span><strong>{money(total)}</strong></div><small>em até 6x de {money(Math.round(total / 6))} sem juros</small></div><div className="summary-trust"><span>Compra protegida</span><span>Troca em 7 dias</span><span>Dados seguros</span></div></aside>
             </div>
           ) : (
               <section className="success-screen"><div className="success-mark">✓</div><p className="eyebrow dark">Pedido recebido</p><h1>Sua próxima assinatura<br />já tem número.</h1><p>Pedido <strong>{order?.id}</strong> recebido com sucesso. A situação do pagamento será atualizada automaticamente.</p><div className="success-order"><span>Total</span><strong>{money(order?.totalCents ?? total)}</strong><small>Pagamento protegido pelo Asaas</small></div><a className="button button-primary" href={`https://wa.me/5516992939739?text=${encodeURIComponent(`Oi! Acabei de fazer o pedido ${order?.id} no site da Elle Jew.`)}`} target="_blank" rel="noreferrer">Acompanhar pelo WhatsApp</a><button className="back-link" onClick={() => { setCheckoutOpen(false); setCheckout(initialCheckout); }}>Voltar para a loja</button></section>

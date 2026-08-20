@@ -1,8 +1,58 @@
 import { env } from "cloudflare:workers";
 import { isValidCpf, lookupCep } from "./brazil";
-import { calculateSuperFrete } from "./superfrete";
+import { calculateSuperFrete, shippingPackageFromItems } from "./superfrete";
 
 type D1ResultRow = Record<string, unknown>;
+
+type ProductVariant = {
+  id: string;
+  size: string;
+  color: string;
+  material: string;
+  sku: string;
+  priceCents: number;
+  stock: number;
+  active: boolean;
+};
+
+type CatalogData = {
+  costCents?: number;
+  sku?: string;
+  barcode?: string;
+  weightGrams?: number;
+  lengthCm?: number;
+  widthCm?: number;
+  heightCm?: number;
+  mpn?: string;
+  ageGroup?: string;
+  gender?: string;
+  tags?: string;
+  brand?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+};
+
+function parseObject(value: unknown): CatalogData {
+  try {
+    const parsed = JSON.parse(String(value ?? "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function parseVariants(value: unknown): ProductVariant[] {
+  try {
+    const parsed = JSON.parse(String(value ?? "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function variantLabel(variant: ProductVariant) {
+  return [variant.size, variant.color, variant.material].filter(Boolean).join(" • ") || variant.sku || "Variação";
+}
 
 const productSeeds = [
   {
@@ -79,27 +129,28 @@ export function getD1() {
   return env.DB;
 }
 
-export async function ensureStoreSchema() {
+async function ensureStoreSchemaInternal() {
   const d1 = getD1();
   await d1.batch([
     d1.prepare("CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL, parent_id TEXT, image TEXT, active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     d1.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_categories_active_sort ON categories(active, sort_order)"),
-    d1.prepare("CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, slug TEXT NOT NULL, name TEXT NOT NULL, category TEXT NOT NULL, description TEXT NOT NULL, material TEXT NOT NULL, image TEXT NOT NULL, badge TEXT, price_cents INTEGER NOT NULL, compare_at_cents INTEGER, stock INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, featured INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    d1.prepare("CREATE TABLE IF NOT EXISTS products (id TEXT PRIMARY KEY, slug TEXT NOT NULL, name TEXT NOT NULL, category TEXT NOT NULL, description TEXT NOT NULL, material TEXT NOT NULL, image TEXT NOT NULL, video TEXT, media TEXT NOT NULL DEFAULT '[]', catalog_data TEXT NOT NULL DEFAULT '{}', variants TEXT NOT NULL DEFAULT '[]', visibility TEXT NOT NULL DEFAULT 'visible', track_stock INTEGER NOT NULL DEFAULT 1, price_visible INTEGER NOT NULL DEFAULT 1, free_shipping INTEGER NOT NULL DEFAULT 0, badge TEXT, price_cents INTEGER NOT NULL, compare_at_cents INTEGER, stock INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, featured INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     d1.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_products_slug ON products(slug)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_products_category_active ON products(category, active)"),
     d1.prepare("CREATE TABLE IF NOT EXISTS product_categories (product_id TEXT NOT NULL, category_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(product_id, category_id))"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_product_categories_category_product ON product_categories(category_id, product_id)"),
+    d1.prepare("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     d1.prepare("CREATE TABLE IF NOT EXISTS homepage_banners (id TEXT PRIMARY KEY, title TEXT NOT NULL, subtitle TEXT NOT NULL DEFAULT '', image TEXT NOT NULL, link_url TEXT, link_label TEXT, active INTEGER NOT NULL DEFAULT 1, sort_order INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_homepage_banners_active_sort ON homepage_banners(active, sort_order)"),
     d1.prepare("CREATE TABLE IF NOT EXISTS favorites (visitor_id TEXT NOT NULL, product_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(visitor_id, product_id))"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_favorites_visitor_id ON favorites(visitor_id)"),
-    d1.prepare("CREATE TABLE IF NOT EXISTS cart_items (visitor_id TEXT NOT NULL, product_id TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(visitor_id, product_id))"),
+    d1.prepare("CREATE TABLE IF NOT EXISTS cart_items (visitor_id TEXT NOT NULL, product_id TEXT NOT NULL, variant_id TEXT NOT NULL DEFAULT '', quantity INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(visitor_id, product_id, variant_id))"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_cart_items_visitor_id ON cart_items(visitor_id)"),
     d1.prepare("CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, visitor_id TEXT NOT NULL, customer_name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, cpf TEXT NOT NULL, cep TEXT NOT NULL, address TEXT NOT NULL, address_number TEXT NOT NULL, neighborhood TEXT NOT NULL DEFAULT '', complement TEXT, city TEXT NOT NULL, state TEXT NOT NULL, city_ibge_code TEXT, shipping_method TEXT NOT NULL, payment_method TEXT NOT NULL, subtotal_cents INTEGER NOT NULL, shipping_cents INTEGER NOT NULL, discount_cents INTEGER NOT NULL DEFAULT 0, total_cents INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'aguardando_pagamento', stock_committed INTEGER NOT NULL DEFAULT 0, payment_provider TEXT, payment_preference_id TEXT, payment_id TEXT, payment_status TEXT, payment_checkout_url TEXT, payment_updated_at TEXT, superfrete_service_id TEXT, superfrete_service_name TEXT, superfrete_delivery_days INTEGER, superfrete_quote_price_cents INTEGER, superfrete_order_id TEXT, superfrete_protocol TEXT, superfrete_price_cents INTEGER, superfrete_status TEXT, superfrete_tracking_code TEXT, superfrete_label_url TEXT, superfrete_updated_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_orders_visitor_id_created_at ON orders(visitor_id, created_at)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_orders_email ON orders(email)"),
-    d1.prepare("CREATE TABLE IF NOT EXISTS order_items (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT NOT NULL, product_id TEXT NOT NULL, product_name TEXT NOT NULL, unit_price_cents INTEGER NOT NULL, quantity INTEGER NOT NULL)"),
+    d1.prepare("CREATE TABLE IF NOT EXISTS order_items (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT NOT NULL, product_id TEXT NOT NULL, variant_id TEXT, variant_label TEXT, product_name TEXT NOT NULL, unit_price_cents INTEGER NOT NULL, quantity INTEGER NOT NULL)"),
     d1.prepare("CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id)"),
     d1.prepare("CREATE TABLE IF NOT EXISTS subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     d1.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_subscribers_email ON subscribers(email)"),
@@ -132,9 +183,37 @@ export async function ensureStoreSchema() {
   ]);
 
   const productColumns = await d1.prepare("PRAGMA table_info(products)").all<{ name: string }>();
-  if (!productColumns.results.some((column) => column.name === "featured")) {
-    await d1.prepare("ALTER TABLE products ADD COLUMN featured INTEGER NOT NULL DEFAULT 0").run();
+  const existingProductColumns = new Set(productColumns.results.map((column) => column.name));
+  const missingProductColumns = [
+    ["featured", "ALTER TABLE products ADD COLUMN featured INTEGER NOT NULL DEFAULT 0"],
+    ["video", "ALTER TABLE products ADD COLUMN video TEXT"],
+    ["media", "ALTER TABLE products ADD COLUMN media TEXT NOT NULL DEFAULT '[]'"],
+    ["catalog_data", "ALTER TABLE products ADD COLUMN catalog_data TEXT NOT NULL DEFAULT '{}'"],
+    ["variants", "ALTER TABLE products ADD COLUMN variants TEXT NOT NULL DEFAULT '[]'"],
+    ["visibility", "ALTER TABLE products ADD COLUMN visibility TEXT NOT NULL DEFAULT 'visible'"],
+    ["track_stock", "ALTER TABLE products ADD COLUMN track_stock INTEGER NOT NULL DEFAULT 1"],
+    ["price_visible", "ALTER TABLE products ADD COLUMN price_visible INTEGER NOT NULL DEFAULT 1"],
+    ["free_shipping", "ALTER TABLE products ADD COLUMN free_shipping INTEGER NOT NULL DEFAULT 0"],
+  ] as const;
+  for (const [column, statement] of missingProductColumns) {
+    if (!existingProductColumns.has(column)) await d1.prepare(statement).run();
   }
+
+  const cartColumns = await d1.prepare("PRAGMA table_info(cart_items)").all<{ name: string }>();
+  if (!cartColumns.results.some((column) => column.name === "variant_id")) {
+    await d1.batch([
+      d1.prepare("CREATE TABLE cart_items_new (visitor_id TEXT NOT NULL, product_id TEXT NOT NULL, variant_id TEXT NOT NULL DEFAULT '', quantity INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(visitor_id, product_id, variant_id))"),
+      d1.prepare("INSERT INTO cart_items_new (visitor_id, product_id, variant_id, quantity, updated_at) SELECT visitor_id, product_id, '', quantity, updated_at FROM cart_items"),
+      d1.prepare("DROP TABLE cart_items"),
+      d1.prepare("ALTER TABLE cart_items_new RENAME TO cart_items"),
+      d1.prepare("CREATE INDEX idx_cart_items_visitor_id ON cart_items(visitor_id)"),
+    ]);
+  }
+
+  const orderItemColumns = await d1.prepare("PRAGMA table_info(order_items)").all<{ name: string }>();
+  const existingOrderItemColumns = new Set(orderItemColumns.results.map((column) => column.name));
+  if (!existingOrderItemColumns.has("variant_id")) await d1.prepare("ALTER TABLE order_items ADD COLUMN variant_id TEXT").run();
+  if (!existingOrderItemColumns.has("variant_label")) await d1.prepare("ALTER TABLE order_items ADD COLUMN variant_label TEXT").run();
 
   const orderColumns = await d1.prepare("PRAGMA table_info(orders)").all<{ name: string }>();
   const existingOrderColumns = new Set(orderColumns.results.map((column) => column.name));
@@ -194,7 +273,25 @@ export async function ensureStoreSchema() {
   await d1.prepare("PRAGMA optimize").run();
 }
 
+let storeSchemaPromise: Promise<void> | null = null;
+
+export function ensureStoreSchema() {
+  if (!storeSchemaPromise) {
+    storeSchemaPromise = ensureStoreSchemaInternal().catch((error) => {
+      storeSchemaPromise = null;
+      throw error;
+    });
+  }
+  return storeSchemaPromise;
+}
+
 function normalizeProduct(row: D1ResultRow) {
+  let media: Array<{ type: "image" | "video"; url: string }> = [];
+  try { media = JSON.parse(String(row.media ?? "[]")); } catch { media = []; }
+  if (!media.length && row.image) media = [{ type: "image", url: String(row.image) }];
+  if (row.video && !media.some((item) => item.url === String(row.video))) media.push({ type: "video", url: String(row.video) });
+  const variants = parseVariants(row.variants);
+  const trackStock = Boolean(Number(row.track_stock ?? 1));
   return {
     id: String(row.id),
     slug: String(row.slug),
@@ -203,23 +300,36 @@ function normalizeProduct(row: D1ResultRow) {
     description: String(row.description),
     material: String(row.material),
     image: String(row.image),
+    video: row.video ? String(row.video) : "",
+    media,
+    catalogData: parseObject(row.catalog_data),
+    variants,
+    visibility: String(row.visibility ?? "visible"),
+    trackStock,
+    priceVisible: Boolean(Number(row.price_visible ?? 1)),
+    freeShipping: Boolean(Number(row.free_shipping ?? 0)),
     badge: row.badge ? String(row.badge) : null,
     priceCents: Number(row.price_cents),
     compareAtCents: row.compare_at_cents === null ? null : Number(row.compare_at_cents),
-    stock: Number(row.stock),
+    stock: trackStock ? Number(row.stock) : 999_999,
     featured: Boolean(Number(row.featured)),
   };
 }
 
-export async function readStore(visitorId: string) {
+export async function readStore(visitorId: string, requestedSlug = "") {
   const d1 = getD1();
-  const [productsResult, categoriesResult, productCategoriesResult, bannersResult, favoriteResult, cartResult] = await Promise.all([
-    d1.prepare("SELECT id, slug, name, category, description, material, image, badge, price_cents, compare_at_cents, stock, featured FROM products WHERE active = 1 ORDER BY created_at, id").all(),
+  const normalizedSlug = requestedSlug.trim().slice(0, 160);
+  const productsStatement = normalizedSlug
+    ? d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, visibility, track_stock, price_visible, free_shipping, badge, price_cents, compare_at_cents, stock, featured FROM products WHERE active = 1 AND (visibility = 'visible' OR (visibility = 'unlisted' AND slug = ?)) ORDER BY created_at, id").bind(normalizedSlug)
+    : d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, visibility, track_stock, price_visible, free_shipping, badge, price_cents, compare_at_cents, stock, featured FROM products WHERE active = 1 AND visibility = 'visible' ORDER BY created_at, id");
+  const [productsResult, categoriesResult, productCategoriesResult, bannersResult, favoriteResult, cartResult, allCategoryImageResult] = await Promise.all([
+    productsStatement.all(),
     d1.prepare("SELECT c.id, c.name, c.slug, c.parent_id, c.image FROM categories c WHERE c.active = 1 AND (c.parent_id IS NULL OR EXISTS (SELECT 1 FROM categories parent WHERE parent.id = c.parent_id AND parent.active = 1)) ORDER BY c.sort_order, c.name").all(),
     d1.prepare("SELECT pc.product_id, pc.category_id FROM product_categories pc INNER JOIN categories c ON c.id = pc.category_id WHERE c.active = 1 AND (c.parent_id IS NULL OR EXISTS (SELECT 1 FROM categories parent WHERE parent.id = c.parent_id AND parent.active = 1)) ORDER BY c.sort_order, c.name").all(),
     d1.prepare("SELECT id, title, subtitle, image, link_url, link_label FROM homepage_banners WHERE active = 1 ORDER BY sort_order, created_at, id").all(),
     d1.prepare("SELECT product_id FROM favorites WHERE visitor_id = ? ORDER BY created_at DESC").bind(visitorId).all(),
-    d1.prepare("SELECT p.id, p.slug, p.name, p.category, p.description, p.material, p.image, p.badge, p.price_cents, p.compare_at_cents, p.stock, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1 ORDER BY c.updated_at DESC").bind(visitorId).all(),
+    d1.prepare("SELECT p.id, p.slug, p.name, p.category, p.description, p.material, p.image, p.video, p.media, p.catalog_data, p.variants, p.visibility, p.track_stock, p.price_visible, p.free_shipping, p.badge, p.price_cents, p.compare_at_cents, p.stock, p.featured, c.variant_id, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1 ORDER BY c.updated_at DESC").bind(visitorId).all(),
+    d1.prepare("SELECT value FROM site_settings WHERE key = 'all_category_image'").first<{ value: string }>(),
   ]);
 
   const categoryIdsByProduct = new Map<string, string[]>();
@@ -249,11 +359,21 @@ export async function readStore(visitorId: string) {
       linkLabel: row.link_label ? String(row.link_label) : null,
     })),
     favoriteIds: (favoriteResult.results as D1ResultRow[]).map((row) => String(row.product_id)),
-    cart: (cartResult.results as D1ResultRow[]).map((row) => ({
-      ...normalizeProduct(row),
-      categoryIds: categoryIdsByProduct.get(String(row.id)) ?? [],
-      quantity: Number(row.quantity),
-    })),
+    cart: (cartResult.results as D1ResultRow[]).map((row) => {
+      const product = normalizeProduct(row);
+      const variantId = String(row.variant_id ?? "");
+      const variant = product.variants.find((item) => item.id === variantId);
+      return {
+        ...product,
+        priceCents: variant?.priceCents || product.priceCents,
+        stock: product.trackStock ? (variant ? variant.stock : product.stock) : 999_999,
+        categoryIds: categoryIdsByProduct.get(String(row.id)) ?? [],
+        variantId,
+        variantLabel: variant ? variantLabel(variant) : "",
+        quantity: Number(row.quantity),
+      };
+    }),
+    allCategoryImage: allCategoryImageResult?.value ? String(allCategoryImageResult.value) : null,
   };
 }
 
@@ -268,15 +388,23 @@ export async function toggleFavorite(visitorId: string, productId: string) {
   return readStore(visitorId);
 }
 
-export async function updateCart(visitorId: string, productId: string, quantity: number) {
+export async function updateCart(visitorId: string, productId: string, quantity: number, variantId = "") {
   const d1 = getD1();
-  const product = await d1.prepare("SELECT stock FROM products WHERE id = ? AND active = 1").bind(productId).first<{ stock: number }>();
+  const product = await d1.prepare("SELECT stock, variants, track_stock, price_visible FROM products WHERE id = ? AND active = 1 AND visibility != 'hidden'").bind(productId).first<{ stock: number; variants: string; track_stock: number; price_visible: number }>();
   if (!product) throw new Error("Produto não encontrado.");
-  const safeQuantity = Math.max(0, Math.min(Math.trunc(quantity), Number(product.stock)));
+  if (!Number(product.price_visible)) throw new Error("Este produto está disponível somente sob consulta.");
+  const variants = parseVariants(product.variants);
+  const selectedVariant = variantId ? variants.find((item) => item.id === variantId && item.active) : null;
+  if (quantity > 0 && variants.some((item) => item.active) && !selectedVariant) throw new Error("Escolha uma opção do produto antes de adicionar.");
+  const availableStock = Number(product.track_stock) ? Number(selectedVariant?.stock ?? product.stock) : 99;
+  const requestedQuantity = Math.max(0, Math.min(Math.trunc(quantity), 99));
+  if (requestedQuantity > availableStock) throw new Error("Não temos essa quantidade disponível no momento.");
+  const safeQuantity = requestedQuantity;
+  const normalizedVariantId = selectedVariant?.id ?? variantId.trim().slice(0, 100);
   if (safeQuantity === 0) {
-    await d1.prepare("DELETE FROM cart_items WHERE visitor_id = ? AND product_id = ?").bind(visitorId, productId).run();
+    await d1.prepare("DELETE FROM cart_items WHERE visitor_id = ? AND product_id = ? AND variant_id = ?").bind(visitorId, productId, normalizedVariantId).run();
   } else {
-    await d1.prepare("INSERT INTO cart_items (visitor_id, product_id, quantity, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT(visitor_id, product_id) DO UPDATE SET quantity = excluded.quantity, updated_at = CURRENT_TIMESTAMP").bind(visitorId, productId, safeQuantity).run();
+    await d1.prepare("INSERT INTO cart_items (visitor_id, product_id, variant_id, quantity, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP) ON CONFLICT(visitor_id, product_id, variant_id) DO UPDATE SET quantity = excluded.quantity, updated_at = CURRENT_TIMESTAMP").bind(visitorId, productId, normalizedVariantId, safeQuantity).run();
   }
   return readStore(visitorId);
 }
@@ -285,6 +413,14 @@ export async function subscribe(email: string) {
   const normalized = email.trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(normalized)) throw new Error("Informe um e-mail válido.");
   await getD1().prepare("INSERT OR IGNORE INTO subscribers (email) VALUES (?)").bind(normalized).run();
+}
+
+export function packageForCart(items: Array<{ quantity: number; catalogData?: CatalogData }>) {
+  return shippingPackageFromItems(items);
+}
+
+export function cartHasFreeShipping(items: Array<{ freeShipping?: boolean }>) {
+  return items.length > 0 && items.every((item) => item.freeShipping);
 }
 
 type CheckoutPayload = {
@@ -347,22 +483,40 @@ export async function createOrder(visitorId: string, payload: CheckoutPayload) {
   }
 
   const d1 = getD1();
-  const cartResult = await d1.prepare("SELECT p.id, p.name, p.price_cents, p.stock, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1").bind(visitorId).all();
-  const items = cartResult.results as D1ResultRow[];
+  const cartResult = await d1.prepare("SELECT p.id, p.name, p.price_cents, p.stock, p.variants, p.track_stock, p.catalog_data, p.free_shipping, p.price_visible, c.variant_id, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1").bind(visitorId).all();
+  const items = (cartResult.results as D1ResultRow[]).map((row) => {
+    const variants = parseVariants(row.variants);
+    if (!Number(row.price_visible)) throw new Error(`${String(row.name)} agora está disponível somente sob consulta.`);
+    const variantId = String(row.variant_id ?? "");
+    const variant = variantId ? variants.find((item) => item.id === variantId && item.active) : null;
+    if (variants.some((item) => item.active) && !variant) throw new Error(`A opção escolhida para ${String(row.name)} não está mais disponível.`);
+    return {
+      id: String(row.id),
+      name: String(row.name),
+      priceCents: Number(variant?.priceCents || row.price_cents),
+      stock: Number(row.track_stock) ? Number(variant?.stock ?? row.stock) : 99,
+      quantity: Number(row.quantity),
+      variantId,
+      variantLabel: variant ? variantLabel(variant) : "",
+      catalogData: parseObject(row.catalog_data),
+      freeShipping: Boolean(Number(row.free_shipping ?? 0)),
+    };
+  });
   if (!items.length) throw new Error("Seu carrinho está vazio.");
   for (const item of items) {
-    if (Number(item.quantity) > Number(item.stock)) throw new Error(`Estoque insuficiente para ${String(item.name)}.`);
+    if (item.quantity > item.stock) throw new Error(`Estoque insuficiente para ${item.name}.`);
   }
 
-  const subtotalCents = items.reduce((sum, item) => sum + Number(item.price_cents) * Number(item.quantity), 0);
-  const shippingOptions = await calculateSuperFrete(cep, subtotalCents);
+  const subtotalCents = items.reduce((sum, item) => sum + item.priceCents * item.quantity, 0);
+  const shippingPackage = packageForCart(items);
+  const shippingOptions = await calculateSuperFrete(cep, subtotalCents, shippingPackage);
   const selectedShipping = shippingOptions.find((option) => option.id === payload.shippingMethod);
   if (!selectedShipping) throw new Error("A modalidade de entrega selecionada não está mais disponível.");
   const coupon = payload.coupon?.trim().toUpperCase();
   const couponDiscountCents = coupon === "ELLE10" ? Math.round(subtotalCents * 0.1) : 0;
   const pixDiscountCents = payload.paymentMethod === "pix" ? Math.round((subtotalCents - couponDiscountCents) * 0.05) : 0;
   const discountCents = couponDiscountCents + pixDiscountCents;
-  const shippingCents = subtotalCents >= 39900 ? 0 : selectedShipping.priceCents;
+  const shippingCents = subtotalCents >= 39900 || cartHasFreeShipping(items) ? 0 : selectedShipping.priceCents;
   const totalCents = subtotalCents - discountCents + shippingCents;
   const orderId = `ELJ-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
 
@@ -394,7 +548,7 @@ export async function createOrder(visitorId: string, payload: CheckoutPayload) {
       selectedShipping.priceCents,
     ),
     ...items.map((item) =>
-      d1.prepare("INSERT INTO order_items (order_id, product_id, product_name, unit_price_cents, quantity) VALUES (?, ?, ?, ?, ?)").bind(orderId, item.id, item.name, item.price_cents, item.quantity),
+      d1.prepare("INSERT INTO order_items (order_id, product_id, variant_id, variant_label, product_name, unit_price_cents, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(orderId, item.id, item.variantId || null, item.variantLabel || null, item.name, item.priceCents, item.quantity),
     ),
   ];
   await d1.batch(statements);

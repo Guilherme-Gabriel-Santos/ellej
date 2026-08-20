@@ -171,7 +171,7 @@ export function validateAsaasWebhook(request: Request) {
   return secureEqual(request.headers.get("asaas-access-token") ?? "", env.ASAAS_WEBHOOK_TOKEN);
 }
 
-function checkoutTotalCents(items: AsaasCheckoutEvent["checkout"] extends infer C ? C extends { items?: infer I } ? I : never : never) {
+function checkoutTotalCents(items: Array<{ quantity?: unknown; value?: unknown }> | undefined) {
   if (!Array.isArray(items) || items.length === 0) return null;
   let total = 0;
   for (const item of items) {

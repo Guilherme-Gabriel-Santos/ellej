@@ -20,16 +20,23 @@ interface D1Database {
   batch<T = Record<string, unknown>>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
 }
 
+interface R2Range {
+  offset?: number;
+  length?: number;
+  suffix?: number;
+}
+
 interface R2ObjectBody {
   body: ReadableStream;
   httpEtag: string;
   size: number;
+  range?: R2Range;
   httpMetadata?: { contentType?: string };
   writeHttpMetadata(headers: Headers): void;
 }
 
 interface R2Bucket {
-  get(key: string): Promise<R2ObjectBody | null>;
+  get(key: string, options?: { range?: R2Range | Headers }): Promise<R2ObjectBody | null>;
   put(
     key: string,
     value: ReadableStream | ArrayBuffer | ArrayBufferView | Blob | string,

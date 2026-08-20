@@ -1,6 +1,8 @@
 import {
   createOrder,
+  cartHasFreeShipping,
   ensureStoreSchema,
+  packageForCart,
   readStore,
   subscribe,
   toggleFavorite,
@@ -9,7 +11,7 @@ import {
 import { assertJsonRequest, assertSameOrigin, enforceRateLimit, RateLimitError } from "../../../lib/security";
 import { createAsaasCheckout } from "../../../lib/asaas";
 import { lookupCep } from "../../../lib/brazil";
-import { calculateSuperFrete, SUPERFRETE_PACKAGE } from "../../../lib/superfrete";
+import { calculateSuperFrete } from "../../../lib/superfrete";
 
 const visitorCookie = "ellejew_visitor";
 
@@ -45,7 +47,8 @@ export async function GET(request: Request) {
   const visitor = visitorFrom(request);
   try {
     await ensureStoreSchema();
-    return json(await readStore(visitor.id), visitor);
+    const productSlug = new URL(request.url).searchParams.get("product") ?? "";
+    return json(await readStore(visitor.id, productSlug), visitor);
   } catch (error) {
     return json({ error: messageFrom(error) }, visitor, 500);
   }
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
     }
     if (action === "cart") {
       await enforceRateLimit(request, "store.cart", 90, 60, visitor.id);
-      const store = await updateCart(visitor.id, String(payload.productId ?? ""), Number(payload.quantity ?? 0));
+      const store = await updateCart(visitor.id, String(payload.productId ?? ""), Number(payload.quantity ?? 0), String(payload.variantId ?? ""));
       return json({ store }, visitor);
     }
     if (action === "subscribe") {
@@ -84,8 +87,9 @@ export async function POST(request: Request) {
       const store = await readStore(visitor.id);
       const subtotalCents = store.cart.reduce((sum, item) => sum + item.priceCents * item.quantity, 0);
       if (!subtotalCents) throw new Error("Seu carrinho está vazio.");
-      const options = await calculateSuperFrete(String(payload.cep ?? ""), subtotalCents);
-      return json({ options, freeShippingThresholdCents: 39900, package: SUPERFRETE_PACKAGE }, visitor);
+      const shippingPackage = packageForCart(store.cart);
+      const options = await calculateSuperFrete(String(payload.cep ?? ""), subtotalCents, shippingPackage);
+      return json({ options, freeShippingThresholdCents: 39900, freeShipping: cartHasFreeShipping(store.cart), package: shippingPackage }, visitor);
     }
     if (action === "checkout") {
       await enforceRateLimit(request, "store.checkout.ip", 30, 60 * 60);

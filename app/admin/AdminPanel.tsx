@@ -13,6 +13,14 @@ type Product = {
   description: string;
   material: string;
   image: string;
+  video: string;
+  media: Array<{ type: "image" | "video"; url: string }>;
+  catalogData: CatalogData;
+  variants: ProductVariant[];
+  visibility: string;
+  trackStock: boolean;
+  priceVisible: boolean;
+  freeShipping: boolean;
   badge: string;
   priceCents: number;
   compareAtCents: number | null;
@@ -44,7 +52,7 @@ type Banner = {
   sortOrder: number;
 };
 
-type OrderItem = { id: number; productId: string; productName: string; unitPriceCents: number; quantity: number };
+type OrderItem = { id: number; productId: string; variantId: string; variantLabel: string; productName: string; unitPriceCents: number; quantity: number };
 type Order = {
   id: string;
   customerName: string;
@@ -85,6 +93,7 @@ type Dashboard = {
   categories: Category[];
   banners: Banner[];
   orders: Order[];
+  allCategoryImage: string;
   stats: {
     activeProducts: number;
     lowStock: number;
@@ -97,6 +106,10 @@ type Dashboard = {
 type AuthState = "loading" | "setup" | "login" | "code" | "authenticated";
 type Section = "inicio" | "produtos" | "categorias" | "banners" | "pedidos" | "configuracoes";
 
+type ProductMedia = { type: "image" | "video"; url: string };
+type ProductVariant = { id: string; size: string; color: string; material: string; sku: string; priceCents: number; stock: number; active: boolean };
+type CatalogData = { costCents: number; sku: string; barcode: string; weightGrams: number; lengthCm: number; widthCm: number; heightCm: number; mpn: string; ageGroup: string; gender: string; tags: string; brand: string; seoTitle: string; seoDescription: string };
+
 type ProductDraft = {
   id?: string;
   name: string;
@@ -106,12 +119,28 @@ type ProductDraft = {
   description: string;
   material: string;
   image: string;
+  video: string;
+  media: ProductMedia[];
+  slug: string;
+  catalogData: CatalogData;
+  variants: ProductVariant[];
+  visibility: string;
+  trackStock: boolean;
+  priceVisible: boolean;
+  freeShipping: boolean;
   price: string;
   compareAt: string;
   stock: string;
   active: boolean;
   featured: boolean;
 };
+
+const videoExtensions = [".mp4", ".webm", ".mov", ".m4v", ".qt"];
+
+function isVideoFile(file: File) {
+  const name = file.name.toLowerCase();
+  return file.type.startsWith("video/") || videoExtensions.some((extension) => name.endsWith(extension));
+}
 
 const emptyProduct: ProductDraft = {
   name: "",
@@ -121,6 +150,15 @@ const emptyProduct: ProductDraft = {
   description: "",
   material: "Prata 925",
   image: "",
+  video: "",
+  media: [],
+  slug: "",
+  catalogData: { costCents: 0, sku: "", barcode: "", weightGrams: 300, lengthCm: 18, widthCm: 18, heightCm: 6, mpn: "", ageGroup: "adult", gender: "female", tags: "", brand: "Elle Jew", seoTitle: "", seoDescription: "" },
+  variants: [],
+  visibility: "visible",
+  trackStock: true,
+  priceVisible: true,
+  freeShipping: false,
   price: "",
   compareAt: "",
   stock: "1",
@@ -168,6 +206,7 @@ export function AdminPanel() {
   const [categoryDraft, setCategoryDraft] = useState({ id: "", name: "", parentId: "", image: "" });
   const [bannerDraft, setBannerDraft] = useState(emptyBanner);
   const [bannerUploadProgress, setBannerUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [draggedBannerId, setDraggedBannerId] = useState<string | null>(null);
   const [orderSearch, setOrderSearch] = useState("");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [passwords, setPasswords] = useState({ current: "", next: "", repeat: "" });
@@ -295,6 +334,15 @@ export function AdminPanel() {
       description: product.description,
       material: product.material,
       image: product.image,
+      video: product.video,
+      media: product.media?.length ? product.media : product.image ? [{ type: "image" as const, url: product.image }] : [],
+      slug: product.slug,
+      catalogData: product.catalogData ?? emptyProduct.catalogData,
+      variants: product.variants ?? [],
+      visibility: product.visibility ?? (product.active ? "visible" : "hidden"),
+      trackStock: product.trackStock ?? true,
+      priceVisible: product.priceVisible ?? true,
+      freeShipping: product.freeShipping ?? false,
       price: (product.priceCents / 100).toFixed(2),
       compareAt: product.compareAtCents ? (product.compareAtCents / 100).toFixed(2) : "",
       stock: String(product.stock),
@@ -315,21 +363,52 @@ export function AdminPanel() {
     });
   }
 
-  async function uploadImage(file: File) {
-    setBusy("upload");
+  async function uploadMediaFiles(files: FileList | File[]) {
+    const selected = Array.from(files);
+    if (!selected.length) return;
+    if (selected.length + draft.media.length > 5) {
+      setNotice({ type: "error", text: "Cada produto pode ter no máximo 5 mídias." });
+      return;
+    }
+    setBusy("media");
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const response = await fetch("/api/admin/media", { method: "POST", credentials: "same-origin", body: form });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Não foi possível enviar a foto.");
-      setDraft((current) => ({ ...current, image: data.url }));
-      setNotice({ type: "ok", text: "Foto enviada com sucesso." });
+      const uploaded: Array<{ type: "image" | "video"; url: string }> = [];
+      for (const file of selected) {
+        const type = isVideoFile(file) ? "video" : "image";
+        const form = new FormData();
+        form.append("file", file);
+        const response = await fetch("/api/admin/media", { method: "POST", credentials: "same-origin", body: form });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? `Não foi possível enviar ${file.name}.`);
+        uploaded.push({ type, url: data.url });
+      }
+      setDraft((current) => {
+        const media = [...current.media, ...uploaded].slice(0, 5);
+        return { ...current, media, image: media.find((item) => item.type === "image")?.url ?? "", video: media.find((item) => item.type === "video")?.url ?? "" };
+      });
+      setNotice({ type: "ok", text: `${uploaded.length} mídia(s) adicionada(s).` });
     } catch (error) {
-      setNotice({ type: "error", text: error instanceof Error ? error.message : "Não foi possível enviar a foto." });
+      setNotice({ type: "error", text: error instanceof Error ? error.message : "Não foi possível enviar as mídias." });
     } finally {
       setBusy("");
     }
+  }
+
+  function removeDraftMedia(index: number) {
+    setDraft((current) => {
+      const media = current.media.filter((_, itemIndex) => itemIndex !== index);
+      return { ...current, media, image: media.find((item) => item.type === "image")?.url ?? "", video: media.find((item) => item.type === "video")?.url ?? "" };
+    });
+  }
+
+  function moveDraftMedia(index: number, direction: -1 | 1) {
+    setDraft((current) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= current.media.length) return current;
+      const media = [...current.media];
+      [media[index], media[nextIndex]] = [media[nextIndex], media[index]];
+      return { ...current, media, image: media[0]?.type === "image" ? media[0].url : (media.find((item) => item.type === "image")?.url ?? ""), video: media.find((item) => item.type === "video")?.url ?? "" };
+    });
   }
 
   async function saveProduct() {
@@ -412,6 +491,24 @@ export function AdminPanel() {
     }
   }
 
+  async function uploadAllCategoryImage(file: File) {
+    setBusy("uploadAllCategoryImage");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const uploadResponse = await fetch("/api/admin/media", { method: "POST", credentials: "same-origin", body: form });
+      const uploadData = await uploadResponse.json();
+      if (!uploadResponse.ok) throw new Error(uploadData.error ?? "Não foi possível enviar a foto.");
+      const data = await post({ action: "updateAllCategoryImage", image: uploadData.url });
+      setDashboard(data.dashboard);
+      setNotice({ type: "ok", text: "Foto do cartão \"Todas as joias\" atualizada." });
+    } catch (error) {
+      setNotice({ type: "error", text: error instanceof Error ? error.message : "Não foi possível enviar a foto." });
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function moveCategory(category: Category, direction: -1 | 1) {
     if (!dashboard) return;
     const siblings = dashboard.categories.filter((item) => item.parentId === category.parentId);
@@ -469,6 +566,7 @@ export function AdminPanel() {
         setBannerUploadProgress({ current: uploaded + 1, total: filesToUpload.length });
         const form = new FormData();
         form.append("file", file);
+        form.append("context", "banner");
         const response = await fetch("/api/admin/media", { method: "POST", credentials: "same-origin", body: form });
         const media = await response.json();
         if (!response.ok) throw new Error(media.error ?? "Não foi possível enviar a foto.");
@@ -538,6 +636,51 @@ export function AdminPanel() {
       setNotice({ type: "error", text: error instanceof Error ? error.message : "Não foi possível alterar a ordem." });
     } finally {
       setBusy("");
+    }
+  }
+
+  function updateCatalog<K extends keyof CatalogData>(key: K, value: CatalogData[K]) {
+    setDraft((current) => ({ ...current, catalogData: { ...current.catalogData, [key]: value } }));
+  }
+
+  function addVariant() {
+    setDraft((current) => ({ ...current, variants: [...current.variants, { id: `var_${crypto.randomUUID()}`, size: "", color: "", material: "", sku: "", priceCents: current.price ? cents(current.price) : 0, stock: 0, active: true }] }));
+  }
+
+  function updateVariant(index: number, changes: Partial<ProductVariant>) {
+    setDraft((current) => ({ ...current, variants: current.variants.map((variant, itemIndex) => itemIndex === index ? { ...variant, ...changes } : variant) }));
+  }
+
+  function removeVariant(index: number) {
+    setDraft((current) => ({ ...current, variants: current.variants.filter((_, itemIndex) => itemIndex !== index) }));
+  }
+
+  async function copyCatalogUrl(path: string) {
+    try {
+      await navigator.clipboard.writeText(new URL(path, window.location.origin).toString());
+      setNotice({ type: "ok", text: "Endereço do catálogo copiado." });
+    } catch {
+      setNotice({ type: "error", text: "Não foi possível copiar. Abra o catálogo e copie o endereço do navegador." });
+    }
+  }
+
+  async function reorderBannersByDrop(sourceId: string, targetId: string) {
+    if (!dashboard || sourceId === targetId || busy === "reorderBanners") return;
+    const ordered = [...dashboard.banners];
+    const sourceIndex = ordered.findIndex((banner) => banner.id === sourceId);
+    const targetIndex = ordered.findIndex((banner) => banner.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const [moved] = ordered.splice(sourceIndex, 1);
+    ordered.splice(targetIndex, 0, moved);
+    setBusy("reorderBanners");
+    try {
+      const data = await post({ action: "reorderBanners", orderedIds: ordered.map((banner) => banner.id) });
+      setDashboard(data.dashboard);
+    } catch (error) {
+      setNotice({ type: "error", text: error instanceof Error ? error.message : "Não foi possível alterar a ordem." });
+    } finally {
+      setBusy("");
+      setDraggedBannerId(null);
     }
   }
 
@@ -615,7 +758,7 @@ export function AdminPanel() {
 
   const filteredProducts = useMemo(() => {
     const query = productSearch.toLowerCase();
-    return dashboard?.products.filter((product) => `${product.name} ${product.category} ${product.material}`.toLowerCase().includes(query)) ?? [];
+    return dashboard?.products.filter((product) => `${product.name} ${product.category} ${product.material} ${product.catalogData.sku} ${product.catalogData.tags} ${product.variants.map((item) => item.sku).join(" ")}`.toLowerCase().includes(query)) ?? [];
   }, [dashboard, productSearch]);
 
   const filteredOrders = useMemo(() => {
@@ -687,7 +830,7 @@ export function AdminPanel() {
           <button className={section === "categorias" ? styles.activeNav : ""} onClick={() => setSection("categorias")}><span>03</span> Categorias</button>
           <button className={section === "banners" ? styles.activeNav : ""} onClick={() => setSection("banners")}><span>04</span> Fotos da capa</button>
           <button className={section === "pedidos" ? styles.activeNav : ""} onClick={() => setSection("pedidos")}><span>05</span> Pedidos</button>
-          <button className={section === "configuracoes" ? styles.activeNav : ""} onClick={() => setSection("configuracoes")}><span>06</span> Segurança</button>
+          <button className={section === "configuracoes" ? styles.activeNav : ""} onClick={() => setSection("configuracoes")}><span>06</span> Configurações</button>
         </nav>
         <div className={styles.sidebarBottom}>
           <Link href="/" target="_blank">Ver loja ↗</Link>
@@ -715,10 +858,10 @@ export function AdminPanel() {
               <section className={styles.panelCard}>
                 <div className={styles.panelHeading}><div><p className={styles.eyebrow}>Atenção agora</p><h2>Estoque reduzido</h2></div><button onClick={() => setSection("produtos")}>Ver todos</button></div>
                 <div className={styles.compactList}>
-                  {dashboard.products.filter((product) => product.active && product.stock <= 3).slice(0, 5).map((product) => (
+                  {dashboard.products.filter((product) => product.active && product.trackStock && product.stock <= 3).slice(0, 5).map((product) => (
                     <button key={product.id} onClick={() => editProduct(product)}><img src={product.image} alt="" /><span><strong>{product.name}</strong><small>{product.category}</small></span><b>{product.stock} un.</b></button>
                   ))}
-                  {!dashboard.products.some((product) => product.active && product.stock <= 3) && <p className={styles.empty}>Nenhum produto com estoque baixo.</p>}
+                  {!dashboard.products.some((product) => product.active && product.trackStock && product.stock <= 3) && <p className={styles.empty}>Nenhum produto com estoque baixo.</p>}
                 </div>
               </section>
               <section className={styles.panelCard}>
@@ -744,8 +887,8 @@ export function AdminPanel() {
                 <article key={product.id}>
                   <div className={styles.tableProduct}><img src={product.image} alt="" /><span><strong>{product.name}</strong><small>{product.category} • {product.material}</small></span></div>
                   <div><strong>{money(product.priceCents)}</strong>{product.compareAtCents && <small>de {money(product.compareAtCents)}</small>}</div>
-                  <div><strong>{product.stock}</strong><small>{product.stock <= 3 ? "Estoque baixo" : "Em estoque"}</small></div>
-                  <div><span className={`${styles.statusPill} ${!product.active ? styles.inactivePill : ""}`}>{product.active ? "Publicado" : "Arquivado"}</span></div>
+                  <div><strong>{product.trackStock ? product.stock : "∞"}</strong><small>{!product.trackStock ? "Estoque infinito" : product.stock <= 3 ? "Estoque baixo" : "Em estoque"}</small></div>
+                  <div><span className={`${styles.statusPill} ${product.visibility !== "visible" ? styles.inactivePill : ""}`}>{product.visibility === "visible" ? "Publicado" : product.visibility === "unlisted" ? "Só por link" : "Oculto"}</span></div>
                   <div className={styles.rowActions}><button onClick={() => editProduct(product)}>Editar</button><button disabled={busy === `product-${product.id}`} onClick={() => toggleProduct(product)}>{product.active ? "Arquivar" : "Publicar"}</button></div>
                 </article>
               ))}
@@ -773,6 +916,14 @@ export function AdminPanel() {
                 <div className={styles.panelHeading}><div><p className={styles.eyebrow}>Ordem da vitrine</p><h2>{dashboard.categories.length} categorias</h2></div></div>
                 <p className={styles.categoryHelp}>Use as setas para escolher a ordem. Ocultar uma categoria retira temporariamente todos os seus produtos da vitrine.</p>
                 <div className={styles.categoryList}>
+                  <section className={styles.categoryGroup}>
+                    <article className={styles.rootCategoryRow}>
+                      <div className={styles.categoryPinnedThumb}>{dashboard.allCategoryImage ? <img src={dashboard.allCategoryImage} alt="Prévia do cartão Todas as joias" /> : <span>+</span>}</div>
+                      <span><strong>Todas as joias</strong><small>Cartão fixo • primeiro da vitrine</small></span>
+                      <em className={styles.statusPill}>Sempre visível</em>
+                      <div className={styles.categoryActions}><label className={styles.pinnedImageTrigger}>{busy === "uploadAllCategoryImage" ? "Enviando…" : "Trocar foto"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy === "uploadAllCategoryImage"} onChange={(event) => event.target.files?.[0] && uploadAllCategoryImage(event.target.files[0])} /></label></div>
+                    </article>
+                  </section>
                   {dashboard.categories.filter((category) => !category.parentId).map((root) => <section className={styles.categoryGroup} key={root.id}>
                     {[root, ...dashboard.categories.filter((category) => category.parentId === root.id)].map((category) => { const siblings = dashboard.categories.filter((item) => item.parentId === category.parentId); const index = siblings.findIndex((item) => item.id === category.id); return <article key={category.id} className={category.parentId ? styles.subcategoryRow : styles.rootCategoryRow}>
                       <div className={styles.categoryOrder}><button aria-label={`Mover ${category.name} para cima`} disabled={index === 0 || busy === "reorderCategories"} onClick={() => moveCategory(category, -1)}>↑</button><button aria-label={`Mover ${category.name} para baixo`} disabled={index === siblings.length - 1 || busy === "reorderCategories"} onClick={() => moveCategory(category, 1)}>↓</button></div>
@@ -804,8 +955,8 @@ export function AdminPanel() {
               </section>
               <section className={styles.bannerListCard}>
                 <div className={styles.panelHeading}><div><p className={styles.eyebrow}>Ordem de exibição</p><h2>{dashboard.banners.length} {dashboard.banners.length === 1 ? "foto" : "fotos"}</h2></div></div>
-                <p className={styles.categoryHelp}>Use as setas para escolher a sequência. Uma foto oculta continua salva, mas não aparece na capa.</p>
-                <div className={styles.bannerList}>{dashboard.banners.map((banner, index) => <article key={banner.id}><img src={banner.image} alt="" /><span><strong>Foto {index + 1}</strong><small>{banner.active ? "Aparece no carrossel" : "Oculta da capa"}</small></span><em className={`${styles.statusPill} ${!banner.active ? styles.inactivePill : ""}`}>{banner.active ? "Visível" : "Oculta"}</em><div className={styles.bannerOrder}><button disabled={index === 0 || busy === "reorderBanners"} onClick={() => moveBanner(index, -1)}>↑</button><button disabled={index === dashboard.banners.length - 1 || busy === "reorderBanners"} onClick={() => moveBanner(index, 1)}>↓</button></div><div className={styles.categoryActions}><button onClick={() => setBannerDraft({ id: banner.id, title: banner.title || "Foto da capa", subtitle: "", image: banner.image, linkUrl: "", linkLabel: "" })}>Trocar foto</button><button disabled={busy === `banner-${banner.id}`} onClick={() => toggleBanner(banner)}>{banner.active ? "Ocultar" : "Mostrar"}</button><button disabled={busy === `banner-${banner.id}`} onClick={() => removeBanner(banner)}>Excluir</button></div></article>)}</div>
+                <p className={styles.categoryHelp}>Arraste uma foto e solte sobre outra para mudar a ordem. As setas continuam disponíveis como alternativa.</p>
+                <div className={styles.bannerList}>{dashboard.banners.map((banner, index) => <article key={banner.id} draggable onDragStart={() => setDraggedBannerId(banner.id)} onDragEnd={() => setDraggedBannerId(null)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); if (draggedBannerId) void reorderBannersByDrop(draggedBannerId, banner.id); }} className={draggedBannerId === banner.id ? styles.draggingBanner : ""}><span className={styles.bannerDragHandle} title="Arraste para reordenar" aria-label="Arraste para reordenar">⠿</span><img src={banner.image} alt="" /><span><strong>Foto {index + 1}</strong><small>{banner.active ? "Aparece no carrossel" : "Oculta da capa"}</small></span><em className={`${styles.statusPill} ${!banner.active ? styles.inactivePill : ""}`}>{banner.active ? "Visível" : "Oculta"}</em><div className={styles.bannerOrder}><button disabled={index === 0 || busy === "reorderBanners"} onClick={() => moveBanner(index, -1)}>↑</button><button disabled={index === dashboard.banners.length - 1 || busy === "reorderBanners"} onClick={() => moveBanner(index, 1)}>↓</button></div><div className={styles.categoryActions}><button onClick={() => setBannerDraft({ id: banner.id, title: banner.title || "Foto da capa", subtitle: "", image: banner.image, linkUrl: "", linkLabel: "" })}>Trocar foto</button><button disabled={busy === `banner-${banner.id}`} onClick={() => toggleBanner(banner)}>{banner.active ? "Ocultar" : "Mostrar"}</button><button disabled={busy === `banner-${banner.id}`} onClick={() => removeBanner(banner)}>Excluir</button></div></article>)}</div>
                 {!dashboard.banners.length && <p className={styles.empty}>Adicione a primeira foto da capa.</p>}
               </section>
             </div>
@@ -828,7 +979,7 @@ export function AdminPanel() {
                   </button>
                   {expandedOrder === order.id && (
                     <div className={styles.orderDetails}>
-                      <div><h3>Itens</h3>{order.items.map((item) => <p key={item.id}><span>{item.quantity}× {item.productName}</span><strong>{money(item.unitPriceCents * item.quantity)}</strong></p>)}</div>
+                      <div><h3>Itens</h3>{order.items.map((item) => <p key={item.id}><span>{item.quantity}× {item.productName}{item.variantLabel ? ` • ${item.variantLabel}` : ""}</span><strong>{money(item.unitPriceCents * item.quantity)}</strong></p>)}</div>
                       <div><h3>Entrega</h3><p>{order.address}, {order.addressNumber}{order.complement ? ` • ${order.complement}` : ""}</p>{order.neighborhood && <p>{order.neighborhood}</p>}<p>{order.cep} • {order.city}/{order.state}</p><p>{order.superfreteServiceName || "SuperFrete"}{order.superfreteDeliveryDays ? ` • ${order.superfreteDeliveryDays} ${order.superfreteDeliveryDays === 1 ? "dia útil" : "dias úteis"}` : ""}</p></div>
                       <div><h3>Cliente</h3><p>{order.email}</p><p>{order.phone}</p>{order.cpf && <p>CPF: {order.cpf}</p>}</div>
                       <div><h3>Situação do pedido</h3><select value={order.status} disabled={busy === `order-${order.id}`} onChange={(event) => changeOrderStatus(order.id, event.target.value)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><small>Pagamento escolhido: {order.paymentMethod === "pix" ? "Pix" : "Cartão"}</small></div>
@@ -844,7 +995,15 @@ export function AdminPanel() {
 
         {section === "configuracoes" && (
           <div className={styles.pageContent}>
-            <div className={styles.pageTitle}><div><p className={styles.eyebrow}>Conta</p><h1>Segurança</h1></div></div>
+            <div className={styles.pageTitle}><div><p className={styles.eyebrow}>Loja e conta</p><h1>Configurações</h1></div></div>
+            <section className={styles.settingsCard}>
+              <h2>Google Shopping e Instagram</h2><p>Os catálogos são atualizados automaticamente quando um produto é publicado, alterado ou fica sem estoque.</p>
+              <div className={styles.catalogCards}>
+                <article><span>Google Merchant Center</span><strong>Catálogo XML</strong><code>/api/catalog/google.xml</code><div><a href="/api/catalog/google.xml" target="_blank" rel="noreferrer">Abrir</a><button type="button" onClick={() => copyCatalogUrl("/api/catalog/google.xml")}>Copiar endereço</button></div></article>
+                <article><span>Meta Commerce Manager</span><strong>Catálogo para Instagram</strong><code>/api/catalog/meta.csv</code><div><a href="/api/catalog/meta.csv" target="_blank" rel="noreferrer">Abrir</a><button type="button" onClick={() => copyCatalogUrl("/api/catalog/meta.csv")}>Copiar endereço</button></div></article>
+              </div>
+              <small>Cadastre esses endereços como fonte programada nas duas plataformas. Produtos ocultos ou com preço sob consulta não são enviados.</small>
+            </section>
             <section className={styles.settingsCard}>
               <h2>Alterar senha</h2><p>Depois da alteração, todas as sessões serão encerradas e você precisará entrar novamente com o código do e-mail.</p>
               <form onSubmit={changePassword}>
@@ -862,13 +1021,85 @@ export function AdminPanel() {
         <div className={styles.wizardOverlay} role="dialog" aria-modal="true" aria-label={draft.id ? "Editar produto" : "Cadastrar produto"}>
           <section className={styles.wizard}>
             <header><button onClick={() => setWizardOpen(false)}>Fechar</button><img src="/brand/logo.webp" alt="Elle Jew" /><span>{draft.id ? "Editar produto" : "Novo produto"}</span></header>
-            <div className={styles.wizardSteps}>{[1, 2, 3].map((step) => <div key={step} className={wizardStep >= step ? styles.currentStep : ""}><i>{wizardStep > step ? "✓" : step}</i><span>{step === 1 ? "Informações" : step === 2 ? "Foto e detalhes" : "Preço e estoque"}</span></div>)}</div>
+            <div className={styles.wizardSteps}>{["Informações", "Mídias", "Preço e estoque", "Opções e envio", "Publicação"].map((label, index) => { const step = index + 1; return <div key={label} className={wizardStep >= step ? styles.currentStep : ""}><i>{wizardStep > step ? "✓" : step}</i><span>{label}</span></div>; })}</div>
             <div className={styles.wizardBody}>
-              {wizardStep === 1 && <div className={styles.wizardForm}><p className={styles.eyebrow}>Etapa 1 de 3</p><h1>Qual joia você vai cadastrar?</h1><p>Comece pelas informações que ajudam a cliente a encontrar a peça.</p><div className={styles.formGrid}><label className={styles.fullField}>Nome do produto<input required value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Ex.: Riviera Oval Moissanite" /></label><div className={`${styles.fullField} ${styles.categoryPicker}`}><strong>Categorias do produto</strong><small>Marque quantas forem necessárias.</small>{dashboard.categories.filter((item) => !item.parentId).map((root) => { const children = dashboard.categories.filter((item) => item.parentId === root.id); const options = children.length ? children : [root]; return <fieldset key={root.id}><legend>{root.name}</legend>{options.map((item) => <label key={item.id}><input type="checkbox" checked={draft.categoryIds.includes(item.id)} onChange={() => toggleDraftCategory(item)} /><span>{item.name}{item.active ? "" : " (oculta)"}</span></label>)}</fieldset>; })}</div><label>Selo na vitrine<input value={draft.badge} onChange={(event) => setDraft({ ...draft, badge: event.target.value })} placeholder="Ex.: Novidade" maxLength={50} /></label></div></div>}
-              {wizardStep === 2 && <div className={styles.wizardForm}><p className={styles.eyebrow}>Etapa 2 de 3</p><h1>Mostre cada detalhe.</h1><p>Use uma foto clara e descreva o que torna essa peça especial.</p><div className={styles.mediaGrid}><label className={styles.uploadBox}><span className={styles.visuallyHidden}>Escolher foto do produto</span>{draft.image ? <img src={draft.image} alt="Prévia do produto" /> : <><b>+</b><strong>Escolher foto</strong><small>JPG, PNG ou WebP • até 8 MB</small></>}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => event.target.files?.[0] && uploadImage(event.target.files[0])} /></label><div className={styles.formGrid}><label className={styles.fullField}>Material e acabamento<input value={draft.material} onChange={(event) => setDraft({ ...draft, material: event.target.value })} placeholder="Prata 925 • Zircônias premium" /></label><label className={styles.fullField}>Descrição<textarea value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} placeholder="Conte como é a peça, os detalhes e por que ela é especial…" maxLength={3000} /></label></div></div></div>}
-              {wizardStep === 3 && <div className={styles.wizardForm}><p className={styles.eyebrow}>Etapa 3 de 3</p><h1>Defina preço e estoque.</h1><p>Revise os dados. Ao salvar, a vitrine será atualizada automaticamente.</p><div className={styles.formGrid}><label>Preço de venda (R$)<input type="number" min="0.01" step="0.01" value={draft.price} onChange={(event) => setDraft({ ...draft, price: event.target.value })} placeholder="298,00" /></label><label>Preço anterior (opcional)<input type="number" min="0.01" step="0.01" value={draft.compareAt} onChange={(event) => setDraft({ ...draft, compareAt: event.target.value })} placeholder="350,00" /></label><label>Quantidade em estoque<input type="number" min="0" step="1" value={draft.stock} onChange={(event) => setDraft({ ...draft, stock: event.target.value })} /></label><label className={styles.switchLabel}><span className={styles.visuallyHidden}>Publicar na vitrine</span><input type="checkbox" checked={draft.active} onChange={(event) => setDraft({ ...draft, active: event.target.checked })} /><span><strong>Publicar na vitrine</strong><small>Desative para salvar sem mostrar às clientes</small></span></label><label className={styles.switchLabel}><span className={styles.visuallyHidden}>Destacar na página inicial</span><input type="checkbox" checked={draft.featured} onChange={(event) => setDraft({ ...draft, featured: event.target.checked })} /><span><strong>Destacar na página inicial</strong><small>Mostra a joia na seleção curta da home</small></span></label></div><div className={styles.productReview}>{draft.image && <img src={draft.image} alt="" />}<span><strong>{draft.name || "Nome da joia"}</strong><small>{draft.category} • {draft.material}</small></span><b>{draft.price ? money(cents(draft.price)) : "R$ 0,00"}</b></div></div>}
+              {wizardStep === 1 && <div className={styles.wizardForm}>
+                <p className={styles.eyebrow}>Etapa 1 de 5</p><h1>Nome e descrição</h1><p>As informações principais da joia, do jeito que a cliente verá na loja.</p>
+                <section className={styles.productSectionCard}><div className={styles.formGrid}>
+                  <label className={styles.fullField}>Nome do produto<input required value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Ex.: Riviera Oval Moissanite" /></label>
+                  <label className={styles.fullField}>Descrição<textarea value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} placeholder="Conte como é a peça, seus detalhes e por que ela é especial…" maxLength={3000} /><small>{draft.description.length}/3000 caracteres</small></label>
+                  <label className={styles.fullField}>Material e acabamento<input value={draft.material} onChange={(event) => setDraft({ ...draft, material: event.target.value })} placeholder="Prata 925 • Zircônias premium" /></label>
+                  <label>Selo na vitrine (opcional)<input value={draft.badge} onChange={(event) => setDraft({ ...draft, badge: event.target.value })} placeholder="Ex.: Novidade" maxLength={50} /></label>
+                </div></section>
+                <section className={`${styles.productSectionCard} ${styles.categoryPicker}`}><strong>Categorias do produto</strong><small>Marque quantas forem necessárias.</small>{dashboard.categories.filter((item) => !item.parentId).map((root) => { const children = dashboard.categories.filter((item) => item.parentId === root.id); const options = children.length ? children : [root]; return <fieldset key={root.id}><legend>{root.name}</legend>{options.map((item) => <label key={item.id}><input type="checkbox" checked={draft.categoryIds.includes(item.id)} onChange={() => toggleDraftCategory(item)} /><span>{item.name}{item.active ? "" : " (oculta)"}</span></label>)}</fieldset>; })}</section>
+              </div>}
+              {wizardStep === 2 && <div className={styles.wizardForm}>
+                <p className={styles.eyebrow}>Etapa 2 de 5</p><h1>Fotos e vídeos</h1><p>Adicione até 5 mídias. A primeira foto será a capa da vitrine e os vídeos podem ter até 5 segundos.</p>
+                <section className={styles.productSectionCard}><label className={styles.mediaPickerButton}><strong>+ Selecionar fotos ou vídeos</strong><small>Fotos JPG, PNG ou WebP até 8 MB • vídeos MP4, WebM ou MOV até 80 MB</small><input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,.mov" onChange={(event) => { if (event.target.files) void uploadMediaFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className={styles.mediaPreviewGrid}>{draft.media.map((media, index) => <article key={`${media.url}-${index}`} className={styles.mediaPreviewItem}>{media.type === "video" ? <><video src={media.url} muted playsInline preload="auto" /><i className={styles.mediaVideoBadge} aria-hidden="true">▶</i></> : <img src={media.url} alt={`Mídia ${index + 1}`} />}<span>{media.type === "image" && draft.media.findIndex((item) => item.type === "image") === index ? "Capa" : media.type === "video" ? "Vídeo" : "Foto"}</span><div><button type="button" onClick={() => moveDraftMedia(index, -1)} disabled={index === 0}>←</button><button type="button" onClick={() => moveDraftMedia(index, 1)} disabled={index === draft.media.length - 1}>→</button><button type="button" onClick={() => removeDraftMedia(index)}>Remover</button></div></article>)}</div>{draft.media.length > 0 && !draft.media.some((item) => item.type === "image") && <p className={styles.mediaMissingPhoto}>Adicione também uma foto. Um vídeo sozinho não pode ser a capa da vitrine.</p>}</section>
+              </div>}
+              {wizardStep === 3 && <div className={styles.wizardForm}>
+                <p className={styles.eyebrow}>Etapa 3 de 5</p><h1>Preço e estoque</h1><p>Defina o valor de venda e como o estoque deve ser controlado.</p>
+                <section className={styles.productSectionCard}><h2>Preços</h2><div className={styles.formGrid}>
+                  <label>Preço de venda (R$)<input type="number" min="0.01" step="0.01" inputMode="decimal" value={draft.price} onChange={(event) => setDraft({ ...draft, price: event.target.value })} placeholder="298,00" /></label>
+                  <label>Preço promocional anterior<input type="number" min="0.01" step="0.01" inputMode="decimal" value={draft.compareAt} onChange={(event) => setDraft({ ...draft, compareAt: event.target.value })} placeholder="350,00" /></label>
+                  <label>Custo da peça (R$)<input type="number" min="0" step="0.01" inputMode="decimal" value={(draft.catalogData.costCents / 100).toString()} onChange={(event) => updateCatalog("costCents", cents(event.target.value))} /></label>
+                  <div className={styles.calculatedField}><span>Margem estimada</span><strong>{cents(draft.price) > 0 ? `${Math.round(((cents(draft.price) - draft.catalogData.costCents) / cents(draft.price)) * 100)}%` : "0%"}</strong><small>Uso interno, não aparece na loja.</small></div>
+                  <label className={`${styles.switchLabel} ${styles.fullField}`}><input aria-label="Exibir o preço na loja" type="checkbox" checked={draft.priceVisible} onChange={(event) => setDraft({ ...draft, priceVisible: event.target.checked })} /><span><strong>Exibir o preço na loja</strong><small>Se desligar, a cliente será direcionada ao WhatsApp.</small></span></label>
+                </div></section>
+                <section className={styles.productSectionCard}><h2>Estoque e códigos</h2><div className={styles.formGrid}>
+                  <label className={`${styles.switchLabel} ${styles.fullField}`}><input aria-label="Estoque infinito" type="checkbox" checked={!draft.trackStock} onChange={(event) => setDraft({ ...draft, trackStock: !event.target.checked })} /><span><strong>Estoque infinito</strong><small>Use quando não quiser controlar quantidade.</small></span></label>
+                  {draft.trackStock && !draft.variants.length && <label>Quantidade disponível<input type="number" min="0" step="1" inputMode="numeric" value={draft.stock} onChange={(event) => setDraft({ ...draft, stock: event.target.value })} /></label>}
+                  <label>SKU<input value={draft.catalogData.sku} onChange={(event) => updateCatalog("sku", event.target.value)} placeholder="ELJ-ANEL-001" /></label>
+                  <label>Código de barras<input inputMode="numeric" value={draft.catalogData.barcode} onChange={(event) => updateCatalog("barcode", event.target.value.replace(/\D/g, "").slice(0, 32))} placeholder="7890000000000" /></label>
+                </div></section>
+              </div>}
+              {wizardStep === 4 && <div className={styles.wizardForm}>
+                <p className={styles.eyebrow}>Etapa 4 de 5</p><h1>Opções e envio</h1><p>Cadastre tamanhos, cores ou materiais. Cada opção pode ter preço, SKU e estoque próprios.</p>
+                <section className={styles.productSectionCard}><div className={styles.sectionCardHeading}><div><h2>Variações</h2><p>Exemplo: aro 16, prata, ródio.</p></div><button type="button" className={styles.secondaryButton} onClick={addVariant}>+ Adicionar opção</button></div>
+                  {!draft.variants.length && <div className={styles.emptyVariants}><strong>Este produto não tem variações.</strong><span>Adicione apenas se a cliente precisar escolher uma opção.</span></div>}
+                  <div className={styles.variantList}>{draft.variants.map((variant, index) => <article className={styles.variantCard} key={variant.id}><header><strong>Opção {index + 1}</strong><button type="button" onClick={() => removeVariant(index)}>Remover</button></header><div className={styles.formGrid}>
+                    <label>Tamanho<input value={variant.size} onChange={(event) => updateVariant(index, { size: event.target.value })} placeholder="Ex.: Aro 16" /></label>
+                    <label>Cor<input value={variant.color} onChange={(event) => updateVariant(index, { color: event.target.value })} placeholder="Ex.: Prata" /></label>
+                    <label className={styles.fullField}>Material<input value={variant.material} onChange={(event) => updateVariant(index, { material: event.target.value })} placeholder="Ex.: Prata 925 com banho de ródio" /></label>
+                    <label>SKU da opção<input value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} placeholder="ELJ-ANEL-16" /></label>
+                    <label>Preço (R$)<input type="number" min="0.01" step="0.01" inputMode="decimal" value={(variant.priceCents / 100).toString()} onChange={(event) => updateVariant(index, { priceCents: cents(event.target.value) })} /></label>
+                    {draft.trackStock && <label>Estoque<input type="number" min="0" step="1" inputMode="numeric" value={variant.stock} onChange={(event) => updateVariant(index, { stock: Math.max(0, Math.trunc(Number(event.target.value) || 0)) })} /></label>}
+                    <label className={styles.switchLabel}><input aria-label={`Opção ${index + 1} disponível`} type="checkbox" checked={variant.active} onChange={(event) => updateVariant(index, { active: event.target.checked })} /><span><strong>Opção disponível</strong><small>Desligue sem precisar apagar.</small></span></label>
+                  </div></article>)}</div>
+                </section>
+                <section className={styles.productSectionCard}><h2>Peso e dimensões da embalagem</h2><p className={styles.fieldHint}>Esses dados são usados no cálculo real do frete.</p><div className={styles.formGrid}>
+                  <label>Peso (gramas)<input type="number" min="1" step="1" inputMode="numeric" value={draft.catalogData.weightGrams} onChange={(event) => updateCatalog("weightGrams", Number(event.target.value))} /></label>
+                  <label>Comprimento (cm)<input type="number" min="1" step="1" inputMode="numeric" value={draft.catalogData.lengthCm} onChange={(event) => updateCatalog("lengthCm", Number(event.target.value))} /></label>
+                  <label>Largura (cm)<input type="number" min="1" step="1" inputMode="numeric" value={draft.catalogData.widthCm} onChange={(event) => updateCatalog("widthCm", Number(event.target.value))} /></label>
+                  <label>Altura (cm)<input type="number" min="1" step="1" inputMode="numeric" value={draft.catalogData.heightCm} onChange={(event) => updateCatalog("heightCm", Number(event.target.value))} /></label>
+                  <label className={`${styles.switchLabel} ${styles.fullField}`}><input aria-label="Este produto tem frete grátis" type="checkbox" checked={draft.freeShipping} onChange={(event) => setDraft({ ...draft, freeShipping: event.target.checked })} /><span><strong>Este produto tem frete grátis</strong><small>Pedidos formados somente por itens assim não pagam frete.</small></span></label>
+                </div></section>
+              </div>}
+              {wizardStep === 5 && <div className={styles.wizardForm}>
+                <p className={styles.eyebrow}>Etapa 5 de 5</p><h1>Catálogo e publicação</h1><p>Prepare o produto para Google, Instagram e mecanismos de busca.</p>
+                <section className={styles.productSectionCard}><h2>Google e Instagram</h2><div className={styles.formGrid}>
+                  <label>Marca<input value={draft.catalogData.brand} onChange={(event) => updateCatalog("brand", event.target.value)} placeholder="Elle Jew" /></label>
+                  <label>MPN (opcional)<input value={draft.catalogData.mpn} onChange={(event) => updateCatalog("mpn", event.target.value)} placeholder="Código do fabricante" /></label>
+                  <label>Faixa etária<select value={draft.catalogData.ageGroup} onChange={(event) => updateCatalog("ageGroup", event.target.value)}><option value="adult">Adulto</option><option value="kids">Infantil</option></select></label>
+                  <label>Gênero<select value={draft.catalogData.gender} onChange={(event) => updateCatalog("gender", event.target.value)}><option value="female">Feminino</option><option value="male">Masculino</option><option value="unisex">Unissex</option></select></label>
+                  <label className={styles.fullField}>Tags de busca<input value={draft.catalogData.tags} onChange={(event) => updateCatalog("tags", event.target.value)} placeholder="riviera, prata 925, presente" /></label>
+                </div></section>
+                <section className={styles.productSectionCard}><h2>SEO e endereço do produto</h2><div className={styles.formGrid}>
+                  <label className={styles.fullField}>Título para Google<input maxLength={70} value={draft.catalogData.seoTitle} onChange={(event) => updateCatalog("seoTitle", event.target.value)} placeholder={draft.name || "Nome do produto"} /><small>{draft.catalogData.seoTitle.length}/70 caracteres</small></label>
+                  <label className={styles.fullField}>Descrição para Google<textarea maxLength={160} value={draft.catalogData.seoDescription} onChange={(event) => updateCatalog("seoDescription", event.target.value)} placeholder="Resumo atraente para os resultados de busca." /><small>{draft.catalogData.seoDescription.length}/160 caracteres</small></label>
+                  <label className={styles.fullField}>URL do produto<div className={styles.urlField}><span>/produtos/</span><input value={draft.slug} onChange={(event) => setDraft({ ...draft, slug: event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-") })} placeholder="gerada-pelo-nome" /></div></label>
+                </div></section>
+                <section className={styles.productSectionCard}><h2>Visibilidade</h2><div className={styles.visibilityOptions}>{[
+                  { value: "visible", title: "Visível", text: "Aparece na loja, busca e catálogos." },
+                  { value: "unlisted", title: "Não listado", text: "Só abre pelo link direto." },
+                  { value: "hidden", title: "Oculto", text: "Fica salvo apenas no painel." },
+                ].map((option) => <label key={option.value} className={draft.visibility === option.value ? styles.selectedVisibility : ""}><input aria-label={option.title} type="radio" name="visibility" value={option.value} checked={draft.visibility === option.value} onChange={() => setDraft({ ...draft, visibility: option.value, active: option.value !== "hidden" })} /><span><strong>{option.title}</strong><small>{option.text}</small></span></label>)}</div>
+                  <label className={styles.switchLabel}><input aria-label="Destacar na página inicial" type="checkbox" checked={draft.featured} onChange={(event) => setDraft({ ...draft, featured: event.target.checked })} /><span><strong>Destacar na página inicial</strong><small>Mostra a joia na seleção de destaques.</small></span></label>
+                </section>
+                <div className={styles.productReview}>{draft.image && <img src={draft.image} alt="" />}<span><strong>{draft.name || "Nome da joia"}</strong><small>{draft.category} • {draft.material}</small></span><b>{draft.priceVisible && draft.price ? money(cents(draft.price)) : "Sob consulta"}</b></div>
+              </div>}
             </div>
-            <footer><button className={styles.secondaryButton} onClick={() => wizardStep === 1 ? setWizardOpen(false) : setWizardStep(wizardStep - 1)}>{wizardStep === 1 ? "Cancelar" : "← Voltar"}</button>{wizardStep < 3 ? <button className={styles.primaryButton} disabled={(wizardStep === 1 && (!draft.name.trim() || !draft.categoryIds.length)) || (wizardStep === 2 && (!draft.image || !draft.description.trim() || busy === "upload"))} onClick={() => setWizardStep(wizardStep + 1)}>{busy === "upload" ? "Enviando foto…" : "Continuar →"}</button> : <button className={styles.primaryButton} disabled={busy === "saveProduct" || !draft.price || draft.stock === ""} onClick={saveProduct}>{busy === "saveProduct" ? "Salvando…" : draft.id ? "Salvar alterações" : "Cadastrar e publicar"}</button>}</footer>
+            <footer><button className={styles.secondaryButton} onClick={() => wizardStep === 1 ? setWizardOpen(false) : setWizardStep(wizardStep - 1)}>{wizardStep === 1 ? "Cancelar" : "← Voltar"}</button>{wizardStep < 5 ? <button className={styles.primaryButton} disabled={(wizardStep === 1 && (!draft.name.trim() || !draft.description.trim() || !draft.material.trim() || !draft.categoryIds.length)) || (wizardStep === 2 && (!draft.media.some((item) => item.type === "image") || busy === "media")) || (wizardStep === 3 && (!draft.price || (draft.trackStock && !draft.variants.length && draft.stock === "")))} onClick={() => setWizardStep(wizardStep + 1)}>{busy === "media" ? "Enviando mídia…" : "Continuar →"}</button> : <button className={styles.primaryButton} disabled={busy === "saveProduct" || !draft.price || (draft.trackStock && !draft.variants.length && draft.stock === "")} onClick={saveProduct}>{busy === "saveProduct" ? "Salvando…" : draft.id ? "Salvar alterações" : draft.visibility === "visible" ? "Cadastrar e publicar" : "Salvar produto"}</button>}</footer>
           </section>
         </div>
       )}

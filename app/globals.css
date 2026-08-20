@@ -418,6 +418,18 @@ img {
   transform: scale(1.045);
 }
 
+.hero-slide-loading {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, var(--navy) 8%, #293844 18%, var(--navy) 33%);
+  background-size: 200% 100%;
+  animation: hero-loading 1.2s linear infinite;
+}
+
+@keyframes hero-loading {
+  to { background-position: -200% 0; }
+}
+
 .hero-visual::after {
   content: "";
   position: absolute;
@@ -1599,6 +1611,13 @@ img {
   font-size: 12px;
 }
 
+.drawer-item .cart-variant {
+  margin: -3px 0 8px;
+  display: block;
+  color: var(--black-42);
+  font-size: 10px;
+}
+
 .quantity {
   width: 98px;
   margin-top: 15px;
@@ -1769,6 +1788,80 @@ img {
   text-transform: uppercase;
 }
 
+.modal-image video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--navy);
+}
+
+.modal-thumbs {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 18px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: rgba(20, 28, 36, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.modal-thumbs button {
+  position: relative;
+  flex: 0 0 auto;
+  width: 62px;
+  height: 62px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: var(--navy-08);
+  cursor: pointer;
+}
+
+.modal-thumbs button.active {
+  border-color: var(--gold-light);
+}
+
+.modal-thumbs img,
+.modal-thumbs video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.modal-thumbs i {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 28, 36, 0.35);
+  color: var(--white);
+  font-size: 14px;
+  font-style: normal;
+}
+
+.product-video-flag {
+  position: absolute;
+  top: 10px;
+  right: 54px;
+  z-index: 2;
+  padding: 6px 10px;
+  border-radius: 20px;
+  background: rgba(20, 28, 36, 0.82);
+  color: var(--gold-light);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .modal-copy {
   padding: 65px 54px 48px;
   display: flex;
@@ -1799,6 +1892,65 @@ img {
   margin: 0;
   color: var(--navy);
   font-size: 11px;
+}
+
+.variant-picker {
+  margin: 22px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border: 0;
+}
+
+.variant-picker legend {
+  grid-column: 1 / -1;
+  margin-bottom: 3px;
+  color: var(--navy);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.variant-picker label {
+  min-height: 58px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--black-14);
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.variant-picker label.selected {
+  border-color: var(--navy);
+  background: var(--navy-05);
+}
+
+.variant-picker label:has(input:disabled) {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.variant-picker input {
+  position: absolute;
+  opacity: 0;
+}
+
+.variant-picker span {
+  display: grid;
+  gap: 4px;
+}
+
+.variant-picker strong {
+  color: var(--navy);
+  font-size: 11px;
+}
+
+.variant-picker small {
+  color: var(--black-42);
+  font-size: 9px;
 }
 
 .modal-price {
@@ -2496,6 +2648,7 @@ img {
 }
 
 @media (max-width: 640px) {
+  .variant-picker { grid-template-columns: 1fr; }
   .category-card-grid {
     grid-auto-columns: 78vw;
     gap: 12px;
@@ -2589,6 +2742,17 @@ img {
     left: 15px;
     bottom: 15px;
     width: calc(100% - 30px);
+    padding: 14px 16px;
+    gap: 4px;
+  }
+
+  .hero-card strong {
+    font-size: 20px;
+  }
+
+  .hero-card a {
+    margin-top: 2px;
+    font-size: 9px;
   }
 
   .hero-seal {
@@ -2666,6 +2830,24 @@ img {
     left: 8px;
     max-width: 90px;
     font-size: 6px;
+  }
+
+  .product-video-flag {
+    top: 8px;
+    right: 44px;
+    padding: 5px 8px;
+    font-size: 6px;
+  }
+
+  .modal-thumbs {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .modal-thumbs button {
+    width: 50px;
+    height: 50px;
   }
 
   .heart-button {

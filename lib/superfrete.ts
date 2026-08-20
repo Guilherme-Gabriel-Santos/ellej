@@ -10,6 +10,37 @@ export const SUPERFRETE_PACKAGE = {
   length: 18,
 } as const;
 
+export type ShippingPackage = {
+  weight: number;
+  height: number;
+  width: number;
+  length: number;
+};
+
+type PackageItem = {
+  quantity: number;
+  catalogData?: {
+    weightGrams?: number;
+    heightCm?: number;
+    widthCm?: number;
+    lengthCm?: number;
+  };
+};
+
+export function shippingPackageFromItems(items: PackageItem[]): ShippingPackage {
+  if (!items.length) return { ...SUPERFRETE_PACKAGE };
+  const positive = (value: unknown, fallback: number) => {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : fallback;
+  };
+  return {
+    weight: Math.max(0.01, items.reduce((sum, item) => sum + positive(item.catalogData?.weightGrams, 300) * Math.max(1, item.quantity), 0) / 1000),
+    height: Math.max(...items.map((item) => positive(item.catalogData?.heightCm, SUPERFRETE_PACKAGE.height))),
+    width: Math.max(...items.map((item) => positive(item.catalogData?.widthCm, SUPERFRETE_PACKAGE.width))),
+    length: Math.max(...items.map((item) => positive(item.catalogData?.lengthCm, SUPERFRETE_PACKAGE.length))),
+  };
+}
+
 const ORIGIN = {
   name: "ElleJew",
   address: "Avenida Professor João Fiúsa",
@@ -99,7 +130,7 @@ function postalCode(value: string) {
   return digits;
 }
 
-export async function calculateSuperFrete(destinationCep: string, insuranceValueCents = 0) {
+export async function calculateSuperFrete(destinationCep: string, insuranceValueCents = 0, shippingPackage: ShippingPackage = SUPERFRETE_PACKAGE) {
   const response = await superFreteRequest<CalculatorResponse[]>("/api/v0/calculator", "POST", {
     from: { postal_code: ORIGIN.postal_code },
     to: { postal_code: postalCode(destinationCep) },
@@ -110,7 +141,7 @@ export async function calculateSuperFrete(destinationCep: string, insuranceValue
       insurance_value: Math.max(0, insuranceValueCents) / 100,
       use_insurance_value: false,
     },
-    products: [{ quantity: 1, ...SUPERFRETE_PACKAGE }],
+    products: [{ quantity: 1, ...shippingPackage }],
   });
 
   const options = (Array.isArray(response) ? response : [])
@@ -159,10 +190,16 @@ export async function createSuperFreteShipment(orderId: string) {
   const order = await shipmentOrder(orderId);
   if (order.superfrete_order_id) return refreshSuperFreteShipment(orderId);
 
-  const items = await database.prepare("SELECT product_name, unit_price_cents, quantity FROM order_items WHERE order_id = ? ORDER BY id").bind(orderId).all<{ product_name: string; unit_price_cents: number; quantity: number }>();
+  const items = await database.prepare("SELECT oi.product_name, oi.unit_price_cents, oi.quantity, p.catalog_data FROM order_items oi INNER JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ? ORDER BY oi.id").bind(orderId).all<{ product_name: string; unit_price_cents: number; quantity: number; catalog_data: string }>();
   if (!items.results.length) throw new Error("O pedido não possui itens para envio.");
 
-  const quotes = await calculateSuperFrete(order.cep, Number(order.subtotal_cents));
+  const shippingPackage = shippingPackageFromItems(items.results.map((item) => {
+    let catalogData = {};
+    try { catalogData = JSON.parse(item.catalog_data || "{}"); } catch { catalogData = {}; }
+    return { quantity: Number(item.quantity), catalogData };
+  }));
+
+  const quotes = await calculateSuperFrete(order.cep, Number(order.subtotal_cents), shippingPackage);
   const quote = quotes.find((item) => item.id === String(order.superfrete_service_id));
   if (!quote) throw new Error("A modalidade selecionada não está mais disponível para esse CEP.");
 
@@ -186,7 +223,7 @@ export async function createSuperFreteShipment(orderId: string) {
       quantity: String(item.quantity),
       unitary_value: (Number(item.unit_price_cents) / 100).toFixed(2),
     })),
-    volumes: SUPERFRETE_PACKAGE,
+    volumes: shippingPackage,
     options: {
       insurance_value: Number((Number(order.subtotal_cents) / 100).toFixed(2)),
       receipt: false,
