@@ -499,7 +499,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
             <p className="eyebrow dark">Curadoria da vez</p>
             <h2>{selectedCategoryName}</h2>
           </div>
-          <p className="section-intro">Colares, brincos e conjuntos cravejados com zircônias cristal de alta lapidação. Frete grátis para compras acima de R$399.</p>
+          <p className="section-intro">Moissanites selecionadas para revelar um brilho intenso, sofisticado e incomparável</p>
         </div>
 
         <div className="shop-tools">
@@ -558,7 +558,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
         <div className="editorial-copy">
           <p className="eyebrow">Qualidade & Acabamento</p>
           <h2>O brilho do ouro branco com<br /><em>a durabilidade da Prata 925.</em></h2>
-          <p>Trabalhamos com Joias prata 925 com Ródio e Pedras lapidadas cuidadosamente para um brilho intenso. Joias hipoalergênicas, resistentes com acabamento premium de alta joalheria.</p>
+          <p>Trabalhamos com Joias em prata 925 com banho de Ródio e Pedras lapidadas cuidadosamente para um brilho intenso. Joias Eternas, com acabamento premium de alta joalheria.</p>
           <a className="button button-light" href="#colecao">Conhecer Lançamentos</a>
           <div className="editorial-quote">“O Luxo pode estar nos momentos mais comuns”</div>
         </div>
