@@ -64,3 +64,16 @@ test("permite controlar temporariamente o código de login", async () => {
   assert.match(panel, /if \(data\.authenticated\)/);
   assert.match(route, /setSessionCookie\(request, login\.token\)/);
 });
+
+test("permite navegar pelas mídias do produto com teclado e gesto", async () => {
+  const [storefront, styles] = await Promise.all([
+    readFile(new URL("../app/Storefront.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(storefront, /"ArrowLeft", "ArrowRight"/);
+  assert.match(storefront, /onTouchStart=\{beginMediaSwipe\}/);
+  assert.match(storefront, /onTouchEnd=\{finishMediaSwipe\}/);
+  assert.match(storefront, /changeProductMedia\(horizontalDistance < 0 \? 1 : -1\)/);
+  assert.match(styles, /touch-action: pan-y/);
+  assert.match(styles, /\.modal-media-arrow/);
+});

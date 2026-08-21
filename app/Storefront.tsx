@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 type Product = {
   id: string;
@@ -125,6 +125,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [carouselPaused, setCarouselPaused] = useState(false);
+  const mediaSwipeStart = useRef<{ x: number; y: number } | null>(null);
   const countdown = useCountdown();
 
   useEffect(() => {
@@ -182,10 +183,26 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (selectedProduct) closeProduct();
-      else if (drawer) setDrawer(null);
-      else if (checkoutOpen && checkoutStep < 3) setCheckoutOpen(false);
+      if (event.key === "Escape") {
+        if (selectedProduct) closeProduct();
+        else if (drawer) setDrawer(null);
+        else if (checkoutOpen && checkoutStep < 3) setCheckoutOpen(false);
+        return;
+      }
+      if (!selectedProduct || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      const items = galleryOf(selectedProduct);
+      if (items.length < 2) return;
+      event.preventDefault();
+      const direction = event.key === "ArrowLeft" ? -1 : 1;
+      setActiveMedia((current) => {
+        const currentIndex = current?.productId === selectedProduct.id ? current.index : 0;
+        return {
+          productId: selectedProduct.id,
+          index: (currentIndex + direction + items.length) % items.length,
+        };
+      });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -240,6 +257,36 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
     const childIds = new Set([item.id, ...store.categories.filter((child) => child.parentId === item.id).map((child) => child.id)]);
     return store.products.find((product) => product.categoryIds.some((id) => childIds.has(id)))?.image ?? "/brand/editorial-silver.webp";
   };
+
+  function changeProductMedia(direction: -1 | 1) {
+    if (!selectedProduct) return;
+    const items = galleryOf(selectedProduct);
+    if (items.length < 2) return;
+    setActiveMedia((current) => {
+      const currentIndex = current?.productId === selectedProduct.id ? current.index : 0;
+      return {
+        productId: selectedProduct.id,
+        index: (currentIndex + direction + items.length) % items.length,
+      };
+    });
+  }
+
+  function beginMediaSwipe(event: React.TouchEvent<HTMLDivElement>) {
+    const touch = event.touches[0];
+    mediaSwipeStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }
+
+  function finishMediaSwipe(event: React.TouchEvent<HTMLDivElement>) {
+    const start = mediaSwipeStart.current;
+    const touch = event.changedTouches[0];
+    mediaSwipeStart.current = null;
+    if (!start || !touch) return;
+    const horizontalDistance = touch.clientX - start.x;
+    const verticalDistance = touch.clientY - start.y;
+    if (Math.abs(horizontalDistance) < 48 || Math.abs(horizontalDistance) < Math.abs(verticalDistance) * 1.2) return;
+    changeProductMedia(horizontalDistance < 0 ? 1 : -1);
+  }
+
   function chooseCategory(categoryId: string) {
     setCategory(categoryId);
     setSearch("");
@@ -256,6 +303,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
   function closeProduct() {
     setSelectedProduct(null);
     setSelectedVariantId("");
+    setActiveMedia(null);
     window.history.replaceState({}, "", "/");
   }
 
@@ -644,27 +692,37 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
         <div className="overlay product-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeProduct(); }}>
           <section className="product-modal" role="dialog" aria-modal="true" aria-label={`Detalhes de ${selectedProduct.name}`}>
             <button className="modal-close" onClick={closeProduct} aria-label="Fechar">×</button>
-            <div className="modal-image">
+            <div
+              className="modal-image"
+              onTouchStart={beginMediaSwipe}
+              onTouchEnd={finishMediaSwipe}
+              onTouchCancel={() => { mediaSwipeStart.current = null; }}
+            >
               {currentMedia?.type === "video"
                 ? <video key={currentMedia.url} src={currentMedia.url} controls autoPlay muted loop playsInline preload="metadata" />
-                : <img src={currentMedia?.url ?? selectedProduct.image} alt={selectedProduct.name} />}
+                : <img key={currentMedia?.url ?? selectedProduct.image} src={currentMedia?.url ?? selectedProduct.image} alt={selectedProduct.name} draggable={false} />}
               <span>{selectedProduct.badge}</span>
               {gallery.length > 1 && (
-                <div className="modal-thumbs">
-                  {gallery.map((item, index) => (
-                    <button
-                      key={item.url + index}
-                      type="button"
-                      className={index === mediaIndex ? "active" : ""}
-                      onClick={() => setActiveMedia({ productId: selectedProduct.id, index })}
-                      aria-label={(item.type === "video" ? "Ver vídeo " : "Ver foto ") + (index + 1) + " de " + selectedProduct.name}
-                    >
-                      {item.type === "video"
-                        ? <><video src={item.url} muted playsInline preload="metadata" /><i aria-hidden="true">▶</i></>
-                        : <img src={item.url} alt="" />}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <button type="button" className="modal-media-arrow previous" onClick={() => changeProductMedia(-1)} aria-label="Ver mídia anterior">‹</button>
+                  <button type="button" className="modal-media-arrow next" onClick={() => changeProductMedia(1)} aria-label="Ver próxima mídia">›</button>
+                  <output className="modal-media-count" aria-live="polite">{mediaIndex + 1} / {gallery.length}</output>
+                  <div className="modal-thumbs">
+                    {gallery.map((item, index) => (
+                      <button
+                        key={item.url + index}
+                        type="button"
+                        className={index === mediaIndex ? "active" : ""}
+                        onClick={() => setActiveMedia({ productId: selectedProduct.id, index })}
+                        aria-label={(item.type === "video" ? "Ver vídeo " : "Ver foto ") + (index + 1) + " de " + selectedProduct.name}
+                      >
+                        {item.type === "video"
+                          ? <><video src={item.url} muted playsInline preload="metadata" /><i aria-hidden="true">▶</i></>
+                          : <img src={item.url} alt="" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
             <div className="modal-copy">

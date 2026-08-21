@@ -1767,6 +1767,9 @@ img {
 .modal-image {
   position: relative;
   min-height: 620px;
+  overflow: hidden;
+  touch-action: pan-y;
+  overscroll-behavior-x: contain;
   background: var(--navy-08);
 }
 
@@ -1793,6 +1796,54 @@ img {
   height: 100%;
   object-fit: cover;
   background: var(--navy);
+}
+
+.modal-media-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  background: rgba(20, 28, 36, 0.48);
+  color: var(--white);
+  font-family: Georgia, serif;
+  font-size: 34px;
+  line-height: 1;
+  cursor: pointer;
+  transform: translateY(-50%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.modal-media-arrow.previous {
+  left: 16px;
+}
+
+.modal-media-arrow.next {
+  right: 16px;
+}
+
+.modal-media-arrow:hover,
+.modal-media-arrow:focus-visible {
+  border-color: var(--gold-light);
+  background: rgba(20, 28, 36, 0.78);
+}
+
+.modal-media-count {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 2;
+  padding: 7px 10px;
+  border-radius: 20px;
+  background: rgba(20, 28, 36, 0.62);
+  color: var(--white);
+  font-size: 9px;
+  letter-spacing: 0.12em;
 }
 
 .modal-thumbs {
@@ -2848,6 +2899,25 @@ img {
   .modal-thumbs button {
     width: 50px;
     height: 50px;
+  }
+
+  .modal-media-arrow {
+    width: 42px;
+    height: 42px;
+    font-size: 30px;
+  }
+
+  .modal-media-arrow.previous {
+    left: 10px;
+  }
+
+  .modal-media-arrow.next {
+    right: 10px;
+  }
+
+  .modal-media-count {
+    top: 14px;
+    right: 54px;
   }
 
   .heart-button {
