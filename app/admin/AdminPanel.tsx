@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, startTransition, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import styles from "./admin.module.css";
 
@@ -169,6 +169,34 @@ const emptyProduct: ProductDraft = {
 };
 
 const emptyBanner = { id: "", title: "Foto da capa", subtitle: "", image: "", linkUrl: "", linkLabel: "", focalX: 50, focalY: 24 };
+const productDraftStorageKey = "elle-jew-admin-product-draft-v1";
+
+function readSavedProductDraft() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(productDraftStorageKey);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as { draft?: Partial<ProductDraft>; step?: number };
+    if (!saved.draft || typeof saved.draft !== "object") return null;
+    const draft: ProductDraft = {
+      ...emptyProduct,
+      ...saved.draft,
+      catalogData: { ...emptyProduct.catalogData, ...(saved.draft.catalogData ?? {}) },
+      media: Array.isArray(saved.draft.media) ? saved.draft.media.slice(0, 5) as ProductMedia[] : [],
+      variants: Array.isArray(saved.draft.variants) ? saved.draft.variants as ProductVariant[] : [],
+      categoryIds: Array.isArray(saved.draft.categoryIds) ? saved.draft.categoryIds.filter((id): id is string => typeof id === "string") : [],
+    };
+    if (!draft.name && !draft.description && !draft.media.length) return null;
+    return { draft, step: Math.max(1, Math.min(5, Math.trunc(Number(saved.step) || 1))) };
+  } catch {
+    window.localStorage.removeItem(productDraftStorageKey);
+    return null;
+  }
+}
+
+function clearSavedProductDraft() {
+  try { window.localStorage.removeItem(productDraftStorageKey); } catch {}
+}
 
 const statusLabels: Record<string, string> = {
   aguardando_pagamento: "Aguardando pagamento",
@@ -222,6 +250,14 @@ export function AdminPanel() {
           setAdminEmail(data.admin.email);
           setDashboard(data.dashboard);
           setAuth("authenticated");
+          const saved = readSavedProductDraft();
+          if (saved) {
+            setDraft(saved.draft);
+            setWizardStep(saved.step);
+            setWizardOpen(true);
+            setSection("produtos");
+            setNotice({ type: "ok", text: "Seu cadastro anterior foi recuperado. Você pode continuar de onde parou." });
+          }
         } else {
           setSetupConfigured(data.setupConfigured !== false);
           setAuth(data.setupRequired ? "setup" : "login");
@@ -238,6 +274,21 @@ export function AdminPanel() {
     const timer = window.setTimeout(() => setNotice(null), 6000);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    if (!wizardOpen) return;
+    const timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(productDraftStorageKey, JSON.stringify({ draft, step: wizardStep, savedAt: Date.now() }));
+      } catch {}
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [draft, wizardOpen, wizardStep]);
+
+  function closeProductWizard() {
+    clearSavedProductDraft();
+    setWizardOpen(false);
+  }
 
   async function post(payload: Record<string, unknown>) {
     const response = await fetch("/api/admin", {
@@ -299,6 +350,14 @@ export function AdminPanel() {
       setLogin((current) => ({ ...current, password: "" }));
       setAuth("authenticated");
       setNotice({ type: "ok", text: "Acesso confirmado. Bem-vinda ao painel." });
+      const saved = readSavedProductDraft();
+      if (saved) {
+        setDraft(saved.draft);
+        setWizardStep(saved.step);
+        setWizardOpen(true);
+        setSection("produtos");
+        setNotice({ type: "ok", text: "Seu cadastro anterior foi recuperado. Você pode continuar de onde parou." });
+      }
     } catch (error) {
       setNotice({ type: "error", text: error instanceof Error ? error.message : "Código inválido." });
     } finally {
@@ -321,12 +380,14 @@ export function AdminPanel() {
 
   function openNewProduct() {
     const defaultCategory = dashboard?.categories.find((category) => category.active && category.parentId) ?? dashboard?.categories.find((category) => category.active) ?? dashboard?.categories[0];
+    clearSavedProductDraft();
     setDraft({ ...emptyProduct, category: defaultCategory?.name ?? "", categoryIds: defaultCategory ? [defaultCategory.id] : [] });
     setWizardStep(1);
     setWizardOpen(true);
   }
 
   function editProduct(product: Product) {
+    clearSavedProductDraft();
     setDraft({
       id: product.id,
       name: product.name,
@@ -422,11 +483,20 @@ export function AdminPanel() {
         compareAtCents: draft.compareAt ? cents(draft.compareAt) : null,
         stock: Number(draft.stock),
       };
-      const data = await post({ action: draft.id ? "updateProduct" : "createProduct", product });
-      setDashboard(data.dashboard);
+      await post({ action: draft.id ? "updateProduct" : "createProduct", product });
+      clearSavedProductDraft();
       setWizardOpen(false);
       setNotice({ type: "ok", text: draft.id ? "Produto atualizado e vitrine sincronizada." : "Produto cadastrado e publicado na vitrine." });
       setSection("produtos");
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      try {
+        const response = await fetch("/api/admin", { cache: "no-store", credentials: "same-origin" });
+        const data = await response.json();
+        if (!response.ok || !data.authenticated) throw new Error(data.error ?? "Não foi possível atualizar a lista.");
+        startTransition(() => setDashboard(data.dashboard));
+      } catch {
+        setNotice({ type: "ok", text: "Produto salvo com sucesso. Atualize a página para renovar a lista." });
+      }
     } catch (error) {
       setNotice({ type: "error", text: error instanceof Error ? error.message : "Não foi possível salvar." });
     } finally {
@@ -1033,7 +1103,7 @@ export function AdminPanel() {
       {wizardOpen && (
         <div className={styles.wizardOverlay} role="dialog" aria-modal="true" aria-label={draft.id ? "Editar produto" : "Cadastrar produto"}>
           <section className={styles.wizard}>
-            <header><button onClick={() => setWizardOpen(false)}>Fechar</button><img src="/brand/logo.webp" alt="Elle Jew" /><span>{draft.id ? "Editar produto" : "Novo produto"}</span></header>
+            <header><button type="button" onClick={closeProductWizard}>Fechar</button><img src="/brand/logo.webp" alt="Elle Jew" /><span>{draft.id ? "Editar produto" : "Novo produto"}</span></header>
             <div className={styles.wizardSteps}>{["Informações", "Mídias", "Preço e estoque", "Opções e envio", "Publicação"].map((label, index) => { const step = index + 1; return <div key={label} className={wizardStep >= step ? styles.currentStep : ""}><i>{wizardStep > step ? "✓" : step}</i><span>{label}</span></div>; })}</div>
             <div className={styles.wizardBody}>
               {wizardStep === 1 && <div className={styles.wizardForm}>
@@ -1048,7 +1118,7 @@ export function AdminPanel() {
               </div>}
               {wizardStep === 2 && <div className={styles.wizardForm}>
                 <p className={styles.eyebrow}>Etapa 2 de 5</p><h1>Fotos e vídeos</h1><p>Adicione até 5 mídias. A primeira foto será a capa da vitrine e os vídeos podem ter até 5 segundos.</p>
-                <section className={styles.productSectionCard}><label className={styles.mediaPickerButton}><strong>+ Selecionar fotos ou vídeos</strong><small>Fotos JPG, PNG ou WebP até 8 MB • vídeos MP4, WebM ou MOV até 80 MB</small><input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,.mov" onChange={(event) => { if (event.target.files) void uploadMediaFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className={styles.mediaPreviewGrid}>{draft.media.map((media, index) => <article key={`${media.url}-${index}`} className={styles.mediaPreviewItem}>{media.type === "video" ? <><video src={media.url} muted playsInline preload="auto" /><i className={styles.mediaVideoBadge} aria-hidden="true">▶</i></> : <img src={media.url} alt={`Mídia ${index + 1}`} />}<span>{media.type === "image" && draft.media.findIndex((item) => item.type === "image") === index ? "Capa" : media.type === "video" ? "Vídeo" : "Foto"}</span><div><button type="button" onClick={() => moveDraftMedia(index, -1)} disabled={index === 0}>←</button><button type="button" onClick={() => moveDraftMedia(index, 1)} disabled={index === draft.media.length - 1}>→</button><button type="button" onClick={() => removeDraftMedia(index)}>Remover</button></div></article>)}</div>{draft.media.length > 0 && !draft.media.some((item) => item.type === "image") && <p className={styles.mediaMissingPhoto}>Adicione também uma foto. Um vídeo sozinho não pode ser a capa da vitrine.</p>}</section>
+                <section className={styles.productSectionCard}><label className={styles.mediaPickerButton}><strong>+ Selecionar fotos ou vídeos</strong><small>Fotos JPG, PNG ou WebP até 8 MB • vídeos MP4, WebM ou MOV até 80 MB</small><input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,.mov" onChange={(event) => { if (event.target.files) void uploadMediaFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className={styles.mediaPreviewGrid}>{draft.media.map((media, index) => <article key={`${media.url}-${index}`} className={styles.mediaPreviewItem}>{media.type === "video" ? <><video src={media.url} muted playsInline preload="metadata" /><i className={styles.mediaVideoBadge} aria-hidden="true">▶</i></> : <img src={media.url} alt={`Mídia ${index + 1}`} loading="lazy" />}<span>{media.type === "image" && draft.media.findIndex((item) => item.type === "image") === index ? "Capa" : media.type === "video" ? "Vídeo" : "Foto"}</span><div><button type="button" onClick={() => moveDraftMedia(index, -1)} disabled={index === 0}>←</button><button type="button" onClick={() => moveDraftMedia(index, 1)} disabled={index === draft.media.length - 1}>→</button><button type="button" onClick={() => removeDraftMedia(index)}>Remover</button></div></article>)}</div>{draft.media.length > 0 && !draft.media.some((item) => item.type === "image") && <p className={styles.mediaMissingPhoto}>Adicione também uma foto. Um vídeo sozinho não pode ser a capa da vitrine.</p>}</section>
               </div>}
               {wizardStep === 3 && <div className={styles.wizardForm}>
                 <p className={styles.eyebrow}>Etapa 3 de 5</p><h1>Preço e estoque</h1><p>Defina o valor de venda e como o estoque deve ser controlado.</p>
@@ -1112,7 +1182,7 @@ export function AdminPanel() {
                 <div className={styles.productReview}>{draft.image && <img src={draft.image} alt="" />}<span><strong>{draft.name || "Nome da joia"}</strong><small>{draft.category} • {draft.material}</small></span><b>{draft.priceVisible && draft.price ? money(cents(draft.price)) : "Sob consulta"}</b></div>
               </div>}
             </div>
-            <footer><button className={styles.secondaryButton} onClick={() => wizardStep === 1 ? setWizardOpen(false) : setWizardStep(wizardStep - 1)}>{wizardStep === 1 ? "Cancelar" : "← Voltar"}</button>{wizardStep < 5 ? <button className={styles.primaryButton} disabled={(wizardStep === 1 && (!draft.name.trim() || !draft.description.trim() || !draft.material.trim() || !draft.categoryIds.length)) || (wizardStep === 2 && (!draft.media.some((item) => item.type === "image") || busy === "media")) || (wizardStep === 3 && (!draft.price || (draft.trackStock && !draft.variants.length && draft.stock === "")))} onClick={() => setWizardStep(wizardStep + 1)}>{busy === "media" ? "Enviando mídia…" : "Continuar →"}</button> : <button className={styles.primaryButton} disabled={busy === "saveProduct" || !draft.price || (draft.trackStock && !draft.variants.length && draft.stock === "")} onClick={saveProduct}>{busy === "saveProduct" ? "Salvando…" : draft.id ? "Salvar alterações" : draft.visibility === "visible" ? "Cadastrar e publicar" : "Salvar produto"}</button>}</footer>
+            <footer><button type="button" className={styles.secondaryButton} onClick={() => wizardStep === 1 ? closeProductWizard() : setWizardStep(wizardStep - 1)}>{wizardStep === 1 ? "Cancelar" : "← Voltar"}</button>{wizardStep < 5 ? <button type="button" className={styles.primaryButton} disabled={(wizardStep === 1 && (!draft.name.trim() || !draft.description.trim() || !draft.material.trim() || !draft.categoryIds.length)) || (wizardStep === 2 && (!draft.media.some((item) => item.type === "image") || busy === "media")) || (wizardStep === 3 && (!draft.price || (draft.trackStock && !draft.variants.length && draft.stock === "")))} onClick={() => setWizardStep(wizardStep + 1)}>{busy === "media" ? "Enviando mídia…" : "Continuar →"}</button> : <button type="button" className={styles.primaryButton} disabled={busy === "saveProduct" || !draft.price || (draft.trackStock && !draft.variants.length && draft.stock === "")} onClick={saveProduct}>{busy === "saveProduct" ? "Salvando…" : draft.id ? "Salvar alterações" : draft.visibility === "visible" ? "Cadastrar e publicar" : "Salvar produto"}</button>}</footer>
           </section>
         </div>
       )}

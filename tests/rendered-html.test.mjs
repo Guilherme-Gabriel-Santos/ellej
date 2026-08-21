@@ -41,3 +41,14 @@ test("mantém as consultas parametrizadas e sem execução dinâmica", async () 
   assert.match(source, /request_rate_limits/);
   assert.match(source, /stock_committed/);
 });
+
+test("mantém o cadastro de produto leve no celular", async () => {
+  const [panel, route] = await Promise.all([
+    readFile(new URL("../app/admin/AdminPanel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/admin/route.ts", import.meta.url), "utf8"),
+  ]);
+  assert.doesNotMatch(panel, /preload="auto"/);
+  assert.match(panel, /preload="metadata"/);
+  assert.match(panel, /productDraftStorageKey/);
+  assert.match(route, /return response\(\{ ok: true, productId \}/);
+});

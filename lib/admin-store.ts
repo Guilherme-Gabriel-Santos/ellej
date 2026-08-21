@@ -450,6 +450,7 @@ export async function updateProduct(session: AdminSession, payload: ProductPaylo
     ...categories.ids.map((categoryId) => d1.prepare("INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)").bind(id, categoryId)),
   ]);
   await writeAudit(session.userId, "product.updated", "product", id, { name: product.name });
+  return id;
 }
 
 export async function setProductActive(session: AdminSession, productId: string, active: boolean) {

@@ -95,8 +95,14 @@ export async function POST(request: Request) {
 
     await enforceRateLimit(request, "admin.mutation", 60, 60);
     const session = await requireAdminSession(request);
-    if (action === "createProduct") await createProduct(session, payload.product as Record<string, unknown>);
-    else if (action === "updateProduct") await updateProduct(session, payload.product as Record<string, unknown>);
+    if (action === "createProduct") {
+      const productId = await createProduct(session, payload.product as Record<string, unknown>);
+      return response({ ok: true, productId }, 201);
+    }
+    else if (action === "updateProduct") {
+      const productId = await updateProduct(session, payload.product as Record<string, unknown>);
+      return response({ ok: true, productId });
+    }
     else if (action === "setProductActive") await setProductActive(session, String(payload.productId ?? ""), Boolean(payload.active));
     else if (action === "createCategory") await createCategory(session, payload.category as Record<string, unknown>);
     else if (action === "updateCategory") await updateCategory(session, payload.category as Record<string, unknown>);
