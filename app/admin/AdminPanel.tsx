@@ -195,7 +195,11 @@ function readSavedProductDraft() {
 }
 
 function clearSavedProductDraft() {
-  try { window.localStorage.removeItem(productDraftStorageKey); } catch {}
+  try {
+    window.localStorage.removeItem(productDraftStorageKey);
+  } catch {
+    // The panel remains usable when the browser blocks local storage.
+  }
 }
 
 const statusLabels: Record<string, string> = {
@@ -280,7 +284,9 @@ export function AdminPanel() {
     const timer = window.setTimeout(() => {
       try {
         window.localStorage.setItem(productDraftStorageKey, JSON.stringify({ draft, step: wizardStep, savedAt: Date.now() }));
-      } catch {}
+      } catch {
+        // The panel remains usable when the browser blocks local storage.
+      }
     }, 250);
     return () => window.clearTimeout(timer);
   }, [draft, wizardOpen, wizardStep]);
@@ -330,6 +336,22 @@ export function AdminPanel() {
     setBusy("login");
     try {
       const data = await post({ action: "login", ...login });
+      if (data.authenticated) {
+        setAdminEmail(data.admin.email);
+        setDashboard(data.dashboard);
+        setLogin((current) => ({ ...current, password: "" }));
+        setAuth("authenticated");
+        setNotice({ type: "ok", text: "Acesso liberado. Bem-vinda ao painel." });
+        const saved = readSavedProductDraft();
+        if (saved) {
+          setDraft(saved.draft);
+          setWizardStep(saved.step);
+          setWizardOpen(true);
+          setSection("produtos");
+          setNotice({ type: "ok", text: "Seu cadastro anterior foi recuperado. Você pode continuar de onde parou." });
+        }
+        return;
+      }
       setChallenge({ id: data.challengeId, emailHint: data.emailHint, code: "", localCode: data.localCode ?? "" });
       setAuth("code");
       setNotice({ type: "ok", text: "Código enviado. Ele vale por 10 minutos." });
@@ -866,7 +888,7 @@ export function AdminPanel() {
           {auth === "login" && (
             <>
               <h1>Bem-vinda de volta</h1>
-              <p className={styles.authLead}>Entre com seu e-mail e senha. Em seguida enviaremos um código de confirmação.</p>
+              <p className={styles.authLead}>Entre com seu e-mail e senha para acessar o painel.</p>
               <form className={styles.authForm} onSubmit={submitLogin}>
                 <label>E-mail<input type="email" autoComplete="username" required value={login.email} onChange={(event) => setLogin({ ...login, email: event.target.value })} /></label>
                 <label>Senha<input type="password" autoComplete="current-password" required value={login.password} onChange={(event) => setLogin({ ...login, password: event.target.value })} /></label>
@@ -1088,7 +1110,7 @@ export function AdminPanel() {
               <small>Cadastre esses endereços como fonte programada nas duas plataformas. Produtos ocultos ou com preço sob consulta não são enviados.</small>
             </section>
             <section className={styles.settingsCard}>
-              <h2>Alterar senha</h2><p>Depois da alteração, todas as sessões serão encerradas e você precisará entrar novamente com o código do e-mail.</p>
+              <h2>Alterar senha</h2><p>Depois da alteração, todas as sessões serão encerradas e você precisará entrar novamente.</p>
               <form onSubmit={changePassword}>
                 <label>Senha atual<input type="password" autoComplete="current-password" required value={passwords.current} onChange={(event) => setPasswords({ ...passwords, current: event.target.value })} /></label>
                 <label>Nova senha<input type="password" autoComplete="new-password" minLength={12} required value={passwords.next} onChange={(event) => setPasswords({ ...passwords, next: event.target.value })} /></label>

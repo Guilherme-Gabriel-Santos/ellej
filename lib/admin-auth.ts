@@ -184,6 +184,19 @@ export async function beginAdminLogin(emailInput: string, password: string, allo
     throw new Error("E-mail ou senha incorretos.");
   }
 
+  if (env.ADMIN_LOGIN_CODE_DISABLED === "true") {
+    const token = randomToken();
+    const tokenHash = await sha256(token);
+    await d1.batch([
+      d1.prepare("UPDATE admin_users SET failed_attempts = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(user.id),
+      d1.prepare("DELETE FROM admin_login_challenges WHERE user_id = ? AND consumed_at IS NULL").bind(user.id),
+      d1.prepare("DELETE FROM admin_sessions WHERE user_id = ? OR expires_at < ?").bind(user.id, now),
+      d1.prepare("INSERT INTO admin_sessions (token_hash, user_id, expires_at, last_seen_at) VALUES (?, ?, ?, ?)").bind(tokenHash, user.id, now + sessionLifetimeMs, now),
+    ]);
+    await writeAudit(user.id, "admin.login.password_only", "admin_session", tokenHash.slice(0, 12), { temporary: true });
+    return { authenticated: true as const, token, email: user.email };
+  }
+
   const challengeId = crypto.randomUUID();
   const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
   const codeHash = await verificationHash(challengeId, code);
@@ -200,6 +213,7 @@ export async function beginAdminLogin(emailInput: string, password: string, allo
   }
 
   return {
+    authenticated: false as const,
     challengeId,
     emailHint: maskEmail(user.email),
     ...(allowLocalCode && !env.RESEND_API_KEY ? { localCode: code } : {}),

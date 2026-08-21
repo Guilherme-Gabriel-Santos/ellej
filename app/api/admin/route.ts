@@ -74,8 +74,15 @@ export async function POST(request: Request) {
     }
     if (action === "login") {
       await enforceRateLimit(request, "admin.login", 10, 15 * 60);
-      const challenge = await beginAdminLogin(String(payload.email ?? ""), String(payload.password ?? ""), allowLocalCode);
-      return response({ ok: true, ...challenge });
+      const login = await beginAdminLogin(String(payload.email ?? ""), String(payload.password ?? ""), allowLocalCode);
+      if (login.authenticated) {
+        return response(
+          { authenticated: true, admin: { email: login.email }, dashboard: await readAdminDashboard() },
+          200,
+          setSessionCookie(request, login.token),
+        );
+      }
+      return response({ ok: true, ...login });
     }
     if (action === "verify") {
       await enforceRateLimit(request, "admin.verify", 15, 15 * 60);

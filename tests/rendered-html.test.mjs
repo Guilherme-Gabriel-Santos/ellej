@@ -52,3 +52,15 @@ test("mantém o cadastro de produto leve no celular", async () => {
   assert.match(panel, /productDraftStorageKey/);
   assert.match(route, /return response\(\{ ok: true, productId \}/);
 });
+
+test("permite controlar temporariamente o código de login", async () => {
+  const [auth, panel, route] = await Promise.all([
+    readFile(new URL("../lib/admin-auth.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/AdminPanel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/admin/route.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(auth, /ADMIN_LOGIN_CODE_DISABLED === "true"/);
+  assert.match(auth, /admin\.login\.password_only/);
+  assert.match(panel, /if \(data\.authenticated\)/);
+  assert.match(route, /setSessionCookie\(request, login\.token\)/);
+});
