@@ -91,3 +91,9 @@ test("preserva quebras de linha das descrições importadas", async () => {
   assert.match(importer, /joinedDescriptionPattern/);
   assert.match(styles, /\.modal-description\s*\{[^}]*white-space: pre-line/s);
 });
+
+test("não expõe a quantidade disponível ao cliente", async () => {
+  const storefront = await readFile(new URL("../app/Storefront.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(storefront, /Restam apenas|stock-warning|modal-stock/);
+  assert.match(storefront, /Produto esgotado/);
+});
