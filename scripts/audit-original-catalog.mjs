@@ -103,7 +103,7 @@ function plainText(value) {
   return decodeHtml(String(value ?? "")
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<(?:br|hr)\s*\/?>/gi, "\n")
+    .replace(/<(?:br|hr)\b[^>]*\/?>/gi, "\n")
     .replace(/<li\b[^>]*>/gi, "• ")
     .replace(/<\/(?:p|div|li|h[1-6]|article|section)>/gi, "\n")
     .replace(/<[^>]+>/g, ""))
@@ -381,6 +381,12 @@ const audited = await mapConcurrent(products, 2, async (product) => {
   };
 });
 
+const joinedDescriptionPattern = /[\p{Ll}](?=\p{Lu})|[:;!?](?=\p{L})|\.(?=\p{Lu})/u;
+const productsWithJoinedWords = audited.filter((product) => joinedDescriptionPattern.test(product.description));
+if (productsWithJoinedWords.length) {
+  throw new Error(`Descrições com possíveis palavras unidas: ${productsWithJoinedWords.map((product) => product.sourceSlug).join(", ")}`);
+}
+
 const summary = {
   sourceProducts: audited.length,
   sourceVisible: audited.filter((product) => product.active).length,
@@ -392,6 +398,7 @@ const summary = {
   productsWithoutImages: audited.filter((product) => !product.sourceImages.length).length,
   totalImages: audited.reduce((total, product) => total + product.sourceImages.length, 0),
   maximumImagesPerProduct: Math.max(0, ...audited.map((product) => product.sourceImages.length)),
+  descriptionFormattingIssues: productsWithJoinedWords.length,
 };
 
 await writeFile(auditPath, `${JSON.stringify({ summary, products: audited }, null, 2)}\n`);

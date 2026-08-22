@@ -81,3 +81,13 @@ test("permite navegar pelas mídias do produto com teclado e gesto", async () =>
   assert.match(styles, /touch-action: pan-y/);
   assert.match(styles, /\.modal-media-arrow/);
 });
+
+test("preserva quebras de linha das descrições importadas", async () => {
+  const [importer, styles] = await Promise.all([
+    readFile(new URL("../scripts/audit-original-catalog.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(importer, /br\|hr\).*\\b\[\^>\]\*/);
+  assert.match(importer, /joinedDescriptionPattern/);
+  assert.match(styles, /\.modal-description\s*\{[^}]*white-space: pre-line/s);
+});

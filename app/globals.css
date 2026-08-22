@@ -1937,6 +1937,8 @@ img {
   margin: 24px 0 18px;
   color: var(--black-65);
   line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .modal-material {
