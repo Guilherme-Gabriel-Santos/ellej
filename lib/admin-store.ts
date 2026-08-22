@@ -286,7 +286,7 @@ type ProductPayload = Record<string, unknown>;
 
 type ProductMedia = { type: "image" | "video"; url: string };
 
-const maxMediaPerProduct = 5;
+const maxMediaPerProduct = 10;
 
 function isAllowedMediaUrl(url: string) {
   return url.startsWith("/api/media?key=") || url.startsWith("/brand/") || url.toLowerCase().startsWith("https://");

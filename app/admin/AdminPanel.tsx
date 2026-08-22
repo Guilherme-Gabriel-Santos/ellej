@@ -451,8 +451,8 @@ export function AdminPanel() {
   async function uploadMediaFiles(files: FileList | File[]) {
     const selected = Array.from(files);
     if (!selected.length) return;
-    if (selected.length + draft.media.length > 5) {
-      setNotice({ type: "error", text: "Cada produto pode ter no máximo 5 mídias." });
+    if (selected.length + draft.media.length > 10) {
+      setNotice({ type: "error", text: "Cada produto pode ter no máximo 10 mídias." });
       return;
     }
     setBusy("media");
@@ -468,7 +468,7 @@ export function AdminPanel() {
         uploaded.push({ type, url: data.url });
       }
       setDraft((current) => {
-        const media = [...current.media, ...uploaded].slice(0, 5);
+        const media = [...current.media, ...uploaded].slice(0, 10);
         return { ...current, media, image: media.find((item) => item.type === "image")?.url ?? "", video: media.find((item) => item.type === "video")?.url ?? "" };
       });
       setNotice({ type: "ok", text: `${uploaded.length} mídia(s) adicionada(s).` });
@@ -1139,7 +1139,7 @@ export function AdminPanel() {
                 <section className={`${styles.productSectionCard} ${styles.categoryPicker}`}><strong>Categorias do produto</strong><small>Marque quantas forem necessárias.</small>{dashboard.categories.filter((item) => !item.parentId).map((root) => { const children = dashboard.categories.filter((item) => item.parentId === root.id); const options = children.length ? children : [root]; return <fieldset key={root.id}><legend>{root.name}</legend>{options.map((item) => <label key={item.id}><input type="checkbox" checked={draft.categoryIds.includes(item.id)} onChange={() => toggleDraftCategory(item)} /><span>{item.name}{item.active ? "" : " (oculta)"}</span></label>)}</fieldset>; })}</section>
               </div>}
               {wizardStep === 2 && <div className={styles.wizardForm}>
-                <p className={styles.eyebrow}>Etapa 2 de 5</p><h1>Fotos e vídeos</h1><p>Adicione até 5 mídias. A primeira foto será a capa da vitrine e os vídeos podem ter até 5 segundos.</p>
+                <p className={styles.eyebrow}>Etapa 2 de 5</p><h1>Fotos e vídeos</h1><p>Adicione até 10 mídias. A primeira foto será a capa da vitrine e os vídeos podem ter até 5 segundos.</p>
                 <section className={styles.productSectionCard}><label className={styles.mediaPickerButton}><strong>+ Selecionar fotos ou vídeos</strong><small>Fotos JPG, PNG ou WebP até 8 MB • vídeos MP4, WebM ou MOV até 80 MB</small><input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,.mov" onChange={(event) => { if (event.target.files) void uploadMediaFiles(event.target.files); event.currentTarget.value = ""; }} /></label><div className={styles.mediaPreviewGrid}>{draft.media.map((media, index) => <article key={`${media.url}-${index}`} className={styles.mediaPreviewItem}>{media.type === "video" ? <><video src={media.url} muted playsInline preload="metadata" /><i className={styles.mediaVideoBadge} aria-hidden="true">▶</i></> : <img src={media.url} alt={`Mídia ${index + 1}`} loading="lazy" />}<span>{media.type === "image" && draft.media.findIndex((item) => item.type === "image") === index ? "Capa" : media.type === "video" ? "Vídeo" : "Foto"}</span><div><button type="button" onClick={() => moveDraftMedia(index, -1)} disabled={index === 0}>←</button><button type="button" onClick={() => moveDraftMedia(index, 1)} disabled={index === draft.media.length - 1}>→</button><button type="button" onClick={() => removeDraftMedia(index)}>Remover</button></div></article>)}</div>{draft.media.length > 0 && !draft.media.some((item) => item.type === "image") && <p className={styles.mediaMissingPhoto}>Adicione também uma foto. Um vídeo sozinho não pode ser a capa da vitrine.</p>}</section>
               </div>}
               {wizardStep === 3 && <div className={styles.wizardForm}>

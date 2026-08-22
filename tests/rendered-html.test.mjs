@@ -43,13 +43,17 @@ test("mantém as consultas parametrizadas e sem execução dinâmica", async () 
 });
 
 test("mantém o cadastro de produto leve no celular", async () => {
-  const [panel, route] = await Promise.all([
+  const [panel, route, store] = await Promise.all([
     readFile(new URL("../app/admin/AdminPanel.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/admin/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/admin-store.ts", import.meta.url), "utf8"),
   ]);
   assert.doesNotMatch(panel, /preload="auto"/);
   assert.match(panel, /preload="metadata"/);
   assert.match(panel, /productDraftStorageKey/);
+  assert.match(panel, /no máximo 10 mídias/);
+  assert.match(panel, /\.slice\(0, 10\)/);
+  assert.match(store, /maxMediaPerProduct = 10/);
   assert.match(route, /return response\(\{ ok: true, productId \}/);
 });
 
