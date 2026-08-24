@@ -106,7 +106,10 @@ test("revela a vitrine suavemente durante o scroll", async () => {
   assert.match(storefront, /new IntersectionObserver/);
   assert.doesNotMatch(storefront, /reducedMotion \|\|/);
   assert.match(storefront, /data-reveal="up"/);
+  assert.match(storefront, /data-reveal="product"/);
+  assert.match(storefront, /data-reveal="heading"/);
   assert.match(styles, /\.scroll-reveal-ready \[data-reveal\]/);
-  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*--reveal-start-y: 24px/);
-  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*transition: opacity 420ms/);
+  assert.match(styles, /@keyframes reveal-image-settle/);
+  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*--reveal-start-x: -38px/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*opacity 780ms/);
 });

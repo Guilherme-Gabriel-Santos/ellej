@@ -546,16 +546,16 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
       </section>
 
       <section className="category-showcase section" aria-labelledby="category-showcase-title">
-        <div className="section-heading category-showcase-heading" data-reveal="up">
+        <div className="section-heading category-showcase-heading" data-reveal="heading">
           <div><h2 id="category-showcase-title">Compre por categoria.</h2></div>
         </div>
         <div className="category-card-grid">
-          <button className="category-card" data-reveal="up" onClick={() => chooseCategory("Todos")}>
+          <button className="category-card" data-reveal="card" onClick={() => chooseCategory("Todos")}>
             <img src={store.allCategoryImage || store.products[0]?.image || "/brand/editorial-gold.webp"} alt="Seleção de joias Elle Jew" />
             <span><small>Descubra toda a coleção</small><strong>Todas as joias</strong><em>Ver tudo</em></span>
           </button>
           {rootCategories.map((item) => (
-            <button className="category-card" data-reveal="up" key={item.id} onClick={() => chooseCategory(item.id)}>
+            <button className="category-card" data-reveal="card" key={item.id} onClick={() => chooseCategory(item.id)}>
               <img src={categoryImage(item)} alt={`Categoria ${item.name}`} />
               <span><small>Curadoria Elle Jew</small><strong>{item.name}</strong><em>Ver {item.name.toLocaleLowerCase("pt-BR")}</em></span>
             </button>
@@ -564,7 +564,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
       </section>
 
       <section className="collection section" id="colecao">
-        <div className="section-heading" data-reveal="up">
+        <div className="section-heading" data-reveal="heading">
           <div>
             <p className="eyebrow dark">Curadoria da vez</p>
             <h2>{selectedCategoryName}</h2>
@@ -595,7 +595,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
           {displayedProducts.map((product) => {
             const favorite = store.favoriteIds.includes(product.id);
             return (
-              <article className="product-card" data-reveal="up" key={product.id}>
+              <article className="product-card" data-reveal="product" key={product.id}>
                 <div className="product-media">
                   {product.badge && <span className="product-badge">{product.badge}</span>}
                   <button className={`heart-button ${favorite ? "active" : ""}`} onClick={() => toggleFavorite(product)} disabled={busy === `favorite-${product.id}`} aria-label={favorite ? `Remover ${product.name} dos favoritos` : `Favoritar ${product.name}`}>{favorite ? "♥" : "♡"}</button>
@@ -635,24 +635,24 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
       </section>
 
       <section className="social section" id="sobre">
-        <div className="social-heading" data-reveal="up">
+        <div className="social-heading" data-reveal="heading">
           <div><p className="eyebrow dark">No Instagram</p><h2>O brilho que transforma cada momento</h2></div>
           <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer">@ellejew_ ↗</a>
         </div>
         <div className="social-grid">
-          <a data-reveal="up" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-riviera.jpg" alt="Riviera Elle Jew em close" /><span>Colares Riviera cravejados</span></a>
-          <a data-reveal="up" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-rings.jpg" alt="Anéis e colares Elle Jew em uso" /><span>Mix de colares e anéis</span></a>
-          <a data-reveal="up" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-bastidores.jpg" alt="Embalagens Elle Jew sendo preparadas" /><span>Embaladas com carinho</span></a>
-          <a data-reveal="up" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-look.jpg" alt="Colar Riviera Elle Jew" /><span>Brilho radiante em cada detalhe</span></a>
+          <a data-reveal="card" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-riviera.jpg" alt="Riviera Elle Jew em close" /><span>Colares Riviera cravejados</span></a>
+          <a data-reveal="card" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-rings.jpg" alt="Anéis e colares Elle Jew em uso" /><span>Mix de colares e anéis</span></a>
+          <a data-reveal="card" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-bastidores.jpg" alt="Embalagens Elle Jew sendo preparadas" /><span>Embaladas com carinho</span></a>
+          <a data-reveal="card" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-look.jpg" alt="Colar Riviera Elle Jew" /><span>Brilho radiante em cada detalhe</span></a>
         </div>
       </section>
 
       <section className="reviews section">
-        <div className="reviews-heading" data-reveal="left"><p className="eyebrow dark">Por que escolher a Elle Jew?</p><h2>Qualidade garantida e<br />carinho em cada detalhe.</h2></div>
+        <div className="reviews-heading" data-reveal="heading"><p className="eyebrow dark">Por que escolher a Elle Jew?</p><h2>Qualidade garantida e<br />carinho em cada detalhe.</h2></div>
         <div className="review-cards">
-          <article data-reveal="up"><p className="stars">★★★★★</p><blockquote>Peças confeccionadas em prata de lei 925 legítima, revestidas para manter a cor e o brilho intenso por muito mais tempo.</blockquote><footer><strong>PRATA 925 LEGÍTIMA</strong><span>Garantia e durabilidade</span></footer></article>
-          <article data-reveal="up"><p className="stars">★★★★★</p><blockquote>Zircônias cristal de alta lapidação com o mesmo brilho e precisão dos diamantes, perfeitas para qualquer ocasião.</blockquote><footer><strong>LAPIDAÇÃO PREMIUM</strong><span>Cravejamento impecável</span></footer></article>
-          <article data-reveal="up"><p className="stars">★★★★★</p><blockquote>Cada pedido é embalado à mão em caixa personalizada com saquinho aveludado protetor e um aroma exclusivo da marca.</blockquote><footer><strong>EMBALAGEM ESPECIAL</strong><span>Pronta para presentear</span></footer></article>
+          <article data-reveal="card"><p className="stars">★★★★★</p><blockquote>Peças confeccionadas em prata de lei 925 legítima, revestidas para manter a cor e o brilho intenso por muito mais tempo.</blockquote><footer><strong>PRATA 925 LEGÍTIMA</strong><span>Garantia e durabilidade</span></footer></article>
+          <article data-reveal="card"><p className="stars">★★★★★</p><blockquote>Zircônias cristal de alta lapidação com o mesmo brilho e precisão dos diamantes, perfeitas para qualquer ocasião.</blockquote><footer><strong>LAPIDAÇÃO PREMIUM</strong><span>Cravejamento impecável</span></footer></article>
+          <article data-reveal="card"><p className="stars">★★★★★</p><blockquote>Cada pedido é embalado à mão em caixa personalizada com saquinho aveludado protetor e um aroma exclusivo da marca.</blockquote><footer><strong>EMBALAGEM ESPECIAL</strong><span>Pronta para presentear</span></footer></article>
         </div>
       </section>
 
