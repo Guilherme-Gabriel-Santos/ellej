@@ -97,3 +97,15 @@ test("não expõe a quantidade disponível ao cliente", async () => {
   assert.doesNotMatch(storefront, /Restam apenas|stock-warning|modal-stock/);
   assert.match(storefront, /Produto esgotado/);
 });
+
+test("revela a vitrine suavemente durante o scroll", async () => {
+  const [storefront, styles] = await Promise.all([
+    readFile(new URL("../app/Storefront.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(storefront, /new IntersectionObserver/);
+  assert.match(storefront, /prefers-reduced-motion: reduce/);
+  assert.match(storefront, /data-reveal="up"/);
+  assert.match(styles, /\.scroll-reveal-ready \[data-reveal\]/);
+  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*--reveal-start-y: 24px/);
+});

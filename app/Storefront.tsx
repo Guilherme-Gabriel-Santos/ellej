@@ -462,6 +462,29 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
   const updateCheckout = (field: keyof typeof checkout, value: string) =>
     setCheckout((current) => ({ ...current, [field]: value }));
 
+  useEffect(() => {
+    const items = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+    if (!items.length) return;
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reducedMotion || !("IntersectionObserver" in window)) {
+      items.forEach((item) => item.classList.add("is-visible"));
+      return;
+    }
+
+    document.documentElement.classList.add("scroll-reveal-ready");
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    }, { rootMargin: "0px 0px -8%", threshold: 0.08 });
+
+    items.forEach((item) => observer.observe(item));
+    return () => observer.disconnect();
+  }, [loading, category, search, newsletterDone, store.products.length, store.categories.length]);
+
   return (
     <main>
       <div className="announcement">
@@ -517,23 +540,23 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
       </section>
 
       <section className="trust-strip" aria-label="Benefícios da loja">
-        <div><strong>Prata 925 Legítima</strong><span>Garantia vitalícia no metal</span></div>
-        <div><strong>Envio Rápido 24h</strong><span>Para produtos em estoque</span></div>
-        <div><strong>Pagamento Facilitado</strong><span>Até 6x sem juros ou 5% OFF no Pix</span></div>
-        <div><strong>Troca Fácil e Grátis</strong><span>Até 7 dias após receber</span></div>
+        <div data-reveal="up"><strong>Prata 925 Legítima</strong><span>Garantia vitalícia no metal</span></div>
+        <div data-reveal="up"><strong>Envio Rápido 24h</strong><span>Para produtos em estoque</span></div>
+        <div data-reveal="up"><strong>Pagamento Facilitado</strong><span>Até 6x sem juros ou 5% OFF no Pix</span></div>
+        <div data-reveal="up"><strong>Troca Fácil e Grátis</strong><span>Até 7 dias após receber</span></div>
       </section>
 
       <section className="category-showcase section" aria-labelledby="category-showcase-title">
-        <div className="section-heading category-showcase-heading">
+        <div className="section-heading category-showcase-heading" data-reveal="up">
           <div><h2 id="category-showcase-title">Compre por categoria.</h2></div>
         </div>
         <div className="category-card-grid">
-          <button className="category-card" onClick={() => chooseCategory("Todos")}>
+          <button className="category-card" data-reveal="up" onClick={() => chooseCategory("Todos")}>
             <img src={store.allCategoryImage || store.products[0]?.image || "/brand/editorial-gold.webp"} alt="Seleção de joias Elle Jew" />
             <span><small>Descubra toda a coleção</small><strong>Todas as joias</strong><em>Ver tudo</em></span>
           </button>
           {rootCategories.map((item) => (
-            <button className="category-card" key={item.id} onClick={() => chooseCategory(item.id)}>
+            <button className="category-card" data-reveal="up" key={item.id} onClick={() => chooseCategory(item.id)}>
               <img src={categoryImage(item)} alt={`Categoria ${item.name}`} />
               <span><small>Curadoria Elle Jew</small><strong>{item.name}</strong><em>Ver {item.name.toLocaleLowerCase("pt-BR")}</em></span>
             </button>
@@ -542,7 +565,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
       </section>
 
       <section className="collection section" id="colecao">
-        <div className="section-heading">
+        <div className="section-heading" data-reveal="up">
           <div>
             <p className="eyebrow dark">Curadoria da vez</p>
             <h2>{selectedCategoryName}</h2>
@@ -550,7 +573,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
           <p className="section-intro">Moissanites selecionadas para revelar um brilho intenso, sofisticado e incomparável</p>
         </div>
 
-        <div className="shop-tools">
+        <div className="shop-tools" data-reveal="up">
           <div className="category-tabs" aria-label="Filtrar por categoria">
             <button className={category === "Destaques" ? "active" : ""} onClick={() => setCategory("Destaques")}>Destaques</button>
             <button className={category === "Todos" ? "active" : ""} onClick={() => setCategory("Todos")}>Todos</button>
@@ -573,7 +596,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
           {displayedProducts.map((product) => {
             const favorite = store.favoriteIds.includes(product.id);
             return (
-              <article className="product-card" key={product.id}>
+              <article className="product-card" data-reveal="up" key={product.id}>
                 <div className="product-media">
                   {product.badge && <span className="product-badge">{product.badge}</span>}
                   <button className={`heart-button ${favorite ? "active" : ""}`} onClick={() => toggleFavorite(product)} disabled={busy === `favorite-${product.id}`} aria-label={favorite ? `Remover ${product.name} dos favoritos` : `Favoritar ${product.name}`}>{favorite ? "♥" : "♡"}</button>
@@ -601,43 +624,43 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
       </section>
 
       <section className="editorial" id="editorial">
-        <div className="editorial-image editorial-main"><img src="/brand/editorial-ellej-box.png" alt="Modelo apresentando uma joia Elle Jew" /></div>
-        <div className="editorial-copy">
+        <div className="editorial-image editorial-main" data-reveal="left"><img src="/brand/editorial-ellej-box.png" alt="Modelo apresentando uma joia Elle Jew" /></div>
+        <div className="editorial-copy" data-reveal="up">
           <p className="eyebrow">Qualidade & Acabamento</p>
           <h2>O brilho do ouro branco com<br /><em>a durabilidade da Prata 925.</em></h2>
           <p>Trabalhamos com Joias em prata 925 com banho de Ródio e Pedras lapidadas cuidadosamente para um brilho intenso. Joias Eternas, com acabamento premium de alta joalheria.</p>
           <a className="button button-light" href="#colecao">Conhecer Lançamentos</a>
           <div className="editorial-quote">“O Luxo pode estar nos momentos mais comuns”</div>
         </div>
-        <div className="editorial-image editorial-side"><img src="/brand/editorial-ellej-rings.png" alt="Modelo usando anéis e brincos Elle Jew" /></div>
+        <div className="editorial-image editorial-side" data-reveal="right"><img src="/brand/editorial-ellej-rings.png" alt="Modelo usando anéis e brincos Elle Jew" /></div>
       </section>
 
       <section className="social section" id="sobre">
-        <div className="social-heading">
+        <div className="social-heading" data-reveal="up">
           <div><p className="eyebrow dark">No Instagram</p><h2>O brilho que transforma cada momento</h2></div>
           <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer">@ellejew_ ↗</a>
         </div>
         <div className="social-grid">
-          <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-riviera.jpg" alt="Riviera Elle Jew em close" /><span>Colares Riviera cravejados</span></a>
-          <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-rings.jpg" alt="Anéis e colares Elle Jew em uso" /><span>Mix de colares e anéis</span></a>
-          <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-bastidores.jpg" alt="Embalagens Elle Jew sendo preparadas" /><span>Embaladas com carinho</span></a>
-          <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-look.jpg" alt="Colar Riviera Elle Jew" /><span>Brilho radiante em cada detalhe</span></a>
+          <a data-reveal="up" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-riviera.jpg" alt="Riviera Elle Jew em close" /><span>Colares Riviera cravejados</span></a>
+          <a data-reveal="up" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-rings.jpg" alt="Anéis e colares Elle Jew em uso" /><span>Mix de colares e anéis</span></a>
+          <a data-reveal="up" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-bastidores.jpg" alt="Embalagens Elle Jew sendo preparadas" /><span>Embaladas com carinho</span></a>
+          <a data-reveal="up" href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer"><img src="/brand/instagram-look.jpg" alt="Colar Riviera Elle Jew" /><span>Brilho radiante em cada detalhe</span></a>
         </div>
       </section>
 
       <section className="reviews section">
-        <div className="reviews-heading"><p className="eyebrow dark">Por que escolher a Elle Jew?</p><h2>Qualidade garantida e<br />carinho em cada detalhe.</h2></div>
+        <div className="reviews-heading" data-reveal="left"><p className="eyebrow dark">Por que escolher a Elle Jew?</p><h2>Qualidade garantida e<br />carinho em cada detalhe.</h2></div>
         <div className="review-cards">
-          <article><p className="stars">★★★★★</p><blockquote>Peças confeccionadas em prata de lei 925 legítima, revestidas para manter a cor e o brilho intenso por muito mais tempo.</blockquote><footer><strong>PRATA 925 LEGÍTIMA</strong><span>Garantia e durabilidade</span></footer></article>
-          <article><p className="stars">★★★★★</p><blockquote>Zircônias cristal de alta lapidação com o mesmo brilho e precisão dos diamantes, perfeitas para qualquer ocasião.</blockquote><footer><strong>LAPIDAÇÃO PREMIUM</strong><span>Cravejamento impecável</span></footer></article>
-          <article><p className="stars">★★★★★</p><blockquote>Cada pedido é embalado à mão em caixa personalizada com saquinho aveludado protetor e um aroma exclusivo da marca.</blockquote><footer><strong>EMBALAGEM ESPECIAL</strong><span>Pronta para presentear</span></footer></article>
+          <article data-reveal="up"><p className="stars">★★★★★</p><blockquote>Peças confeccionadas em prata de lei 925 legítima, revestidas para manter a cor e o brilho intenso por muito mais tempo.</blockquote><footer><strong>PRATA 925 LEGÍTIMA</strong><span>Garantia e durabilidade</span></footer></article>
+          <article data-reveal="up"><p className="stars">★★★★★</p><blockquote>Zircônias cristal de alta lapidação com o mesmo brilho e precisão dos diamantes, perfeitas para qualquer ocasião.</blockquote><footer><strong>LAPIDAÇÃO PREMIUM</strong><span>Cravejamento impecável</span></footer></article>
+          <article data-reveal="up"><p className="stars">★★★★★</p><blockquote>Cada pedido é embalado à mão em caixa personalizada com saquinho aveludado protetor e um aroma exclusivo da marca.</blockquote><footer><strong>EMBALAGEM ESPECIAL</strong><span>Pronta para presentear</span></footer></article>
         </div>
       </section>
 
       <section className="newsletter-section">
-        <div><p className="eyebrow">CUPOM DE BOAS-VINDAS</p><h2>Ganhe 10% OFF no seu primeiro pedido.</h2><p>Cadastre seu e-mail para receber cupons de desconto, avisos de reposição e lançamentos em primeira mão.</p></div>
-        {newsletterDone ? <p className="newsletter-success">Cadastro realizado com sucesso! Seu cupom foi enviado para o e-mail. ♡</p> : (
-          <form onSubmit={submitNewsletter}>
+        <div data-reveal="left"><p className="eyebrow">CUPOM DE BOAS-VINDAS</p><h2>Ganhe 10% OFF no seu primeiro pedido.</h2><p>Cadastre seu e-mail para receber cupons de desconto, avisos de reposição e lançamentos em primeira mão.</p></div>
+        {newsletterDone ? <p className="newsletter-success" data-reveal="right">Cadastro realizado com sucesso! Seu cupom foi enviado para o e-mail. ♡</p> : (
+          <form data-reveal="right" onSubmit={submitNewsletter}>
             <label htmlFor="newsletter-email">Digite seu melhor e-mail</label>
             <div><input id="newsletter-email" type="email" value={newsletter} onChange={(event) => setNewsletter(event.target.value)} placeholder="seuemail@exemplo.com.br" required /><button disabled={busy === "newsletter"}>{busy === "newsletter" ? "Enviando…" : "Garantir 10% OFF"}</button></div>
             <small>Prometemos não enviar spam. Cancele quando quiser.</small>
