@@ -3512,8 +3512,13 @@ img {
 
 @media (prefers-reduced-motion: reduce) {
   .scroll-reveal-ready [data-reveal] {
-    opacity: 1 !important;
+    opacity: 0 !important;
     transform: none !important;
+    transition: opacity 420ms ease-out var(--reveal-delay) !important;
+  }
+
+  .scroll-reveal-ready [data-reveal].is-visible {
+    opacity: 1 !important;
   }
 
   *,

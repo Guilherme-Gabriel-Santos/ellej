@@ -104,8 +104,9 @@ test("revela a vitrine suavemente durante o scroll", async () => {
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
   assert.match(storefront, /new IntersectionObserver/);
-  assert.match(storefront, /prefers-reduced-motion: reduce/);
+  assert.doesNotMatch(storefront, /reducedMotion \|\|/);
   assert.match(storefront, /data-reveal="up"/);
   assert.match(styles, /\.scroll-reveal-ready \[data-reveal\]/);
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*--reveal-start-y: 24px/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*transition: opacity 420ms/);
 });

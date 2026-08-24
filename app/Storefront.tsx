@@ -466,8 +466,7 @@ export function Storefront({ initialProductSlug = "" }: { initialProductSlug?: s
     const items = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
     if (!items.length) return;
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reducedMotion || !("IntersectionObserver" in window)) {
+    if (!("IntersectionObserver" in window)) {
       items.forEach((item) => item.classList.add("is-visible"));
       return;
     }
