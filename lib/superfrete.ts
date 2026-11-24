@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 
 const API_BASE = "https://api.superfrete.com";
 const SERVICES = "1,2,17,31";
+const USER_AGENT = "ElleJew/1.0 (contato@ellejew.com.br)";
 
 export const SUPERFRETE_PACKAGE = {
   weight: 0.3,
@@ -42,7 +43,7 @@ export function shippingPackageFromItems(items: PackageItem[]): ShippingPackage 
 }
 
 const ORIGIN = {
-  name: "ElleJew",
+  name: "Loja Elle Jew",
   address: "Avenida Professor João Fiúsa",
   complement: "Fiusa One",
   number: "1515",
@@ -57,7 +58,7 @@ function d1() {
   return env.DB;
 }
 
-type ApiError = { message?: string; error?: string | { message?: string }; errors?: Record<string, string[]> };
+type ApiError = { message?: unknown; error?: unknown; errors?: unknown };
 type CalculatorResponse = {
   id?: number | string;
   name?: string;
@@ -79,23 +80,26 @@ export type ShippingOption = {
   deliveryDays: number;
 };
 
-function checkoutShippingPrice(realPriceCents: number) {
-  const configured = Number(env.SHIPPING_TEST_PRICE_CENTS);
-  return Number.isInteger(configured) && configured >= 0 ? configured : realPriceCents;
-}
-
 function token() {
   const value = env.SUPERFRETE_API_TOKEN?.trim();
   if (!value) throw new Error("O SuperFrete ainda não está configurado.");
   return value;
 }
 
+function errorMessages(value: unknown): string[] {
+  if (typeof value === "string") return value.trim() ? [value.trim()] : [];
+  if (Array.isArray(value)) return value.flatMap(errorMessages);
+  if (value && typeof value === "object") return Object.values(value).flatMap(errorMessages);
+  return [];
+}
+
 function apiMessage(body: ApiError | null, status: number) {
-  if (typeof body?.error === "string" && body.error.trim()) return body.error;
-  if (body?.error && typeof body.error === "object" && body.error.message) return body.error.message;
-  if (body?.message?.trim()) return body.message;
-  const firstValidation = body?.errors ? Object.values(body.errors).flat().find(Boolean) : null;
-  return firstValidation ?? `O SuperFrete recusou a solicitação (${status}).`;
+  const error = errorMessages(body?.error)[0];
+  if (error) return error;
+  const validations = errorMessages(body?.errors);
+  if (validations.length) return validations.join(" ");
+  const message = errorMessages(body?.message)[0];
+  return message ?? `O SuperFrete recusou a solicitação (${status}).`;
 }
 
 async function superFreteRequest<T>(path: string, method: "GET" | "POST", payload?: unknown) {
@@ -108,7 +112,7 @@ async function superFreteRequest<T>(path: string, method: "GET" | "POST", payloa
         Authorization: `Bearer ${token()}`,
         Accept: "application/json",
         "Content-Type": "application/json",
-        "User-Agent": "ElleJew/1.0",
+        "User-Agent": USER_AGENT,
       },
       body: payload === undefined ? undefined : JSON.stringify(payload),
       signal: controller.signal,
@@ -131,9 +135,12 @@ function postalCode(value: string) {
 }
 
 export async function calculateSuperFrete(destinationCep: string, insuranceValueCents = 0, shippingPackage: ShippingPackage = SUPERFRETE_PACKAGE) {
-  const response = await superFreteRequest<CalculatorResponse[]>("/api/v0/calculator", "POST", {
+  const to = postalCode(destinationCep);
+  let response: CalculatorResponse[];
+  try {
+    response = await superFreteRequest<CalculatorResponse[]>("/api/v0/calculator", "POST", {
     from: { postal_code: ORIGIN.postal_code },
-    to: { postal_code: postalCode(destinationCep) },
+    to: { postal_code: to },
     services: SERVICES,
     options: {
       own_hand: false,
@@ -143,6 +150,11 @@ export async function calculateSuperFrete(destinationCep: string, insuranceValue
     },
     products: [{ quantity: 1, ...shippingPackage }],
   });
+  } catch (error) {
+    // Detalhes do provedor ficam no log; a cliente recebe uma mensagem estável.
+    console.error("SuperFrete quote failed", { error: error instanceof Error ? error.message : "unknown" });
+    throw new Error("Não foi possível calcular o frete agora. Tente novamente em instantes.");
+  }
 
   const options = (Array.isArray(response) ? response : [])
     .filter((item) => !item.has_error && item.error == null)
@@ -151,7 +163,7 @@ export async function calculateSuperFrete(destinationCep: string, insuranceValue
       const price = Number(item.price);
       const deliveryDays = Number(item.custom_delivery_time ?? item.delivery_time);
       if (!id || !item.name || !Number.isFinite(price) || price < 0 || !Number.isFinite(deliveryDays)) return null;
-      return { id, name: String(item.name), priceCents: checkoutShippingPrice(Math.round(price * 100)), deliveryDays: Math.max(1, Math.trunc(deliveryDays)) };
+      return { id, name: String(item.name), priceCents: Math.round(price * 100), deliveryDays: Math.max(1, Math.trunc(deliveryDays)) };
     })
     .filter((item): item is ShippingOption => item !== null)
     .sort((a, b) => a.priceCents - b.priceCents || a.deliveryDays - b.deliveryDays);
@@ -164,6 +176,7 @@ type ShipmentOrder = {
   id: string;
   customer_name: string;
   email: string;
+  phone: string;
   cpf: string;
   cep: string;
   address: string;
@@ -179,7 +192,7 @@ type ShipmentOrder = {
 };
 
 async function shipmentOrder(orderId: string) {
-  const order = await d1().prepare("SELECT id, customer_name, email, cpf, cep, address, address_number, neighborhood, complement, city, state, status, subtotal_cents, superfrete_service_id, superfrete_order_id FROM orders WHERE id = ?").bind(orderId).first<ShipmentOrder>();
+  const order = await d1().prepare("SELECT id, customer_name, email, phone, cpf, cep, address, address_number, neighborhood, complement, city, state, status, subtotal_cents, superfrete_service_id, superfrete_order_id FROM orders WHERE id = ?").bind(orderId).first<ShipmentOrder>();
   if (!order) throw new Error("Pedido não encontrado.");
   if (!["pago", "em_separacao", "enviado", "concluido"].includes(order.status)) throw new Error("A etiqueta só pode ser preparada após a confirmação do pagamento.");
   return order;
@@ -203,7 +216,7 @@ export async function createSuperFreteShipment(orderId: string) {
   const quote = quotes.find((item) => item.id === String(order.superfrete_service_id));
   if (!quote) throw new Error("A modalidade selecionada não está mais disponível para esse CEP.");
 
-  const result = await superFreteRequest<{ id: string; protocol?: string; price?: number | string; status?: string }>("/api/v0/cart", "POST", {
+  const shipmentPayload = {
     from: ORIGIN,
     to: {
       name: order.customer_name,
@@ -215,6 +228,8 @@ export async function createSuperFreteShipment(orderId: string) {
       state_abbr: order.state,
       postal_code: postalCode(order.cep),
       document: order.cpf.replace(/\D/g, ""),
+      email: order.email,
+      ...(order.phone.replace(/\D/g, "").length === 11 ? { phone: order.phone.replace(/\D/g, "") } : {}),
     },
     email: order.email,
     service: Number(order.superfrete_service_id),
@@ -228,11 +243,25 @@ export async function createSuperFreteShipment(orderId: string) {
       insurance_value: Number((Number(order.subtotal_cents) / 100).toFixed(2)),
       receipt: false,
       own_hand: false,
-      non_commercial: false,
+      non_commercial: true,
       tags: [{ tag: order.id.slice(0, 50), url: "https://elle-jew-loja.ellejew-brasil.workers.dev/admin" }],
     },
     platform: "Elle Jew",
-  });
+  };
+
+  type CreatedShipment = { id: string; protocol?: string; price?: number | string; status?: string };
+  let result: CreatedShipment;
+  try {
+    result = await superFreteRequest<CreatedShipment>("/api/v0/cart", "POST", shipmentPayload);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    const insuranceBelowMinimum = /valor segurado.*(?:abaixo|limite m[ií]nimo)/i.test(message);
+    if (!insuranceBelowMinimum) throw error;
+    result = await superFreteRequest<CreatedShipment>("/api/v0/cart", "POST", {
+      ...shipmentPayload,
+      options: { ...shipmentPayload.options, insurance_value: null },
+    });
+  }
 
   if (!result?.id) throw new Error("O SuperFrete não retornou a identificação da etiqueta.");
   await database.prepare("UPDATE orders SET superfrete_order_id = ?, superfrete_protocol = ?, superfrete_price_cents = ?, superfrete_status = ?, superfrete_updated_at = CURRENT_TIMESTAMP WHERE id = ? AND superfrete_order_id IS NULL")

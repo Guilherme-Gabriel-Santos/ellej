@@ -5,11 +5,43 @@
   "no_bundle": true,
   "compatibility_date": "2026-05-15",
   "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": true,
+  "workers_dev": false,
   "preview_urls": false,
+  "secrets": {
+    "required": [
+      "ADMIN_FROM_EMAIL",
+      "ADMIN_LOGIN_CODE_DISABLED",
+      "ADMIN_SETUP_KEY",
+      "ASAAS_API_KEY",
+      "ASAAS_ENVIRONMENT",
+      "ASAAS_WEBHOOK_TOKEN",
+      "AUTH_SECRET",
+      "META_CAPI_ACCESS_TOKEN",
+      "RESEND_API_KEY",
+      "SUPERFRETE_API_TOKEN",
+      "TURNSTILE_SECRET",
+      "VIP_ACCESS_TOKEN"
+    ]
+  },
+  "routes": [
+    {
+      "pattern": "ellejew.com.br",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.ellejew.com.br/*",
+      "zone_name": "ellejew.com.br"
+    }
+  ],
   "vars": {
-    "ASAAS_ENVIRONMENT": "sandbox",
-    "SHIPPING_TEST_PRICE_CENTS": "100"
+    "PUBLIC_SITE_URL": "https://ellejew.com.br",
+    "ORDER_FROM_EMAIL": "Elle Jew <pedidos@send.ellejew.com.br>",
+    "META_PIXEL_ID": "1585923988916315",
+    "META_GRAPH_API_VERSION": "v26.0",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAEuwg2tI0Ihja9px",
+    "TURNSTILE_HOSTNAMES": "ellejew.com.br,www.ellejew.com.br",
+    "VIP_LAUNCH_AT": "2026-11-26T22:00:00.000Z",
+    "LAUNCH_AT": "2026-11-26T22:00:00.000Z"
   },
   "assets": {
     "directory": "dist/client",
@@ -37,8 +69,14 @@
   ],
   "observability": {
     "enabled": true
+  },
+
+  // Faxina diária (04:17 UTC) das tabelas de rate limit, desafios e sessões
+  // expiradas — ver o handler `scheduled` em worker/index.ts.
+  "triggers": {
+    "crons": ["17 4 * * *", "*/10 * * * *", "*/5 * * * *"]
   }
 
-  // Depois de testar o endereço workers.dev, o domínio pode ser ligado pelo
-  // painel da Cloudflare em Workers & Pages > Settings > Domains & Routes.
+  // O domínio raiz é a origem do Worker; o www permanece como rota enquanto
+  // o CNAME legado é mantido para compatibilidade.
 }

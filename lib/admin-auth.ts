@@ -10,6 +10,8 @@ const sessionCookieName = "ellejew_admin";
 const passwordIterations = 100_000;
 const sessionLifetimeMs = 12 * 60 * 60 * 1000;
 const challengeLifetimeMs = 10 * 60 * 1000;
+const lockLifetimeMs = 15 * 60 * 1000;
+const dummyPasswordSalt = "00000000000000000000000000000000";
 
 type AdminUserRow = {
   id: string;
@@ -171,15 +173,21 @@ export async function beginAdminLogin(emailInput: string, password: string, allo
     .prepare("SELECT id, email, password_hash, password_salt, failed_attempts, locked_until FROM admin_users WHERE email = ?")
     .bind(email)
     .first<AdminUserRow>();
-  if (!user) throw new Error("E-mail ou senha incorretos.");
+  if (!user) {
+    await hashPassword(password, dummyPasswordSalt);
+    throw new Error("E-mail ou senha incorretos.");
+  }
 
   const now = Date.now();
   const candidate = await hashPassword(password, user.password_salt);
+  if (Number(user.locked_until ?? 0) > now) throw new Error("E-mail ou senha incorretos.");
   if (!secureEqual(candidate.hash, user.password_hash)) {
-    const attempts = Math.min(Number(user.failed_attempts ?? 0) + 1, 1_000_000);
+    const previousAttempts = Number(user.locked_until ?? 0) > 0 ? 0 : Number(user.failed_attempts ?? 0);
+    const attempts = Math.min(previousAttempts + 1, 1_000_000);
+    const lockedUntil = attempts >= 5 ? now + lockLifetimeMs : null;
     await d1
       .prepare("UPDATE admin_users SET failed_attempts = ?, locked_until = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-      .bind(attempts, null, user.id)
+      .bind(attempts, lockedUntil, user.id)
       .run();
     throw new Error("E-mail ou senha incorretos.");
   }
@@ -194,7 +202,7 @@ export async function beginAdminLogin(emailInput: string, password: string, allo
       d1.prepare("INSERT INTO admin_sessions (token_hash, user_id, expires_at, last_seen_at) VALUES (?, ?, ?, ?)").bind(tokenHash, user.id, now + sessionLifetimeMs, now),
     ]);
     await writeAudit(user.id, "admin.login.password_only", "admin_session", tokenHash.slice(0, 12), { temporary: true });
-    return { authenticated: true as const, token, email: user.email };
+    return { authenticated: true as const, token, email: user.email, userId: user.id };
   }
 
   const challengeId = crypto.randomUUID();
@@ -231,13 +239,13 @@ export async function verifyAdminCode(challengeId: string, code: string) {
   if (!challenge || challenge.consumed_at || Number(challenge.expires_at) < Date.now()) {
     throw new Error("Esse código expirou. Solicite um novo.");
   }
-  if (Number(challenge.attempts) >= 5) throw new Error("Limite de tentativas atingido. Solicite um novo código.");
+  const attempt = await d1.prepare("UPDATE admin_login_challenges SET attempts = attempts + 1 WHERE id = ? AND attempts < 5 AND consumed_at IS NULL").bind(challenge.id).run();
+  if (Number(attempt.meta.changes ?? 0) !== 1) throw new Error("Limite de tentativas atingido. Solicite um novo código.");
 
   const candidate = await verificationHash(challenge.id, code);
-  if (!secureEqual(candidate, challenge.code_hash)) {
-    await d1.prepare("UPDATE admin_login_challenges SET attempts = attempts + 1 WHERE id = ?").bind(challenge.id).run();
-    throw new Error("Código incorreto.");
-  }
+  if (!secureEqual(candidate, challenge.code_hash)) throw new Error("Código incorreto.");
+  const consume = await d1.prepare("UPDATE admin_login_challenges SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL").bind(Date.now(), challenge.id).run();
+  if (Number(consume.meta.changes ?? 0) !== 1) throw new Error("Esse código expirou. Solicite um novo.");
 
   const token = randomToken();
   const tokenHash = await sha256(token);
@@ -248,7 +256,7 @@ export async function verifyAdminCode(challengeId: string, code: string) {
     d1.prepare("INSERT INTO admin_sessions (token_hash, user_id, expires_at, last_seen_at) VALUES (?, ?, ?, ?)").bind(tokenHash, challenge.user_id, now + sessionLifetimeMs, now),
   ]);
   await writeAudit(challenge.user_id, "admin.login", "admin_session", tokenHash.slice(0, 12));
-  return { token, email: challenge.email };
+  return { token, email: challenge.email, userId: challenge.user_id };
 }
 
 export async function getAdminSession(request: Request): Promise<AdminSession | null> {
@@ -275,6 +283,20 @@ export async function requireAdminSession(request: Request) {
   const session = await getAdminSession(request);
   if (!session) throw new Error("UNAUTHORIZED");
   return session;
+}
+
+export async function issueAdminSession(userId: string, email: string, auditAction: string) {
+  await ensureStoreSchema();
+  const token = randomToken();
+  const tokenHash = await sha256(token);
+  const now = Date.now();
+  const d1 = getD1();
+  await d1.batch([
+    d1.prepare("DELETE FROM admin_sessions WHERE user_id = ? OR expires_at < ?").bind(userId, now),
+    d1.prepare("INSERT INTO admin_sessions (token_hash, user_id, expires_at, last_seen_at) VALUES (?, ?, ?, ?)").bind(tokenHash, userId, now + sessionLifetimeMs, now),
+  ]);
+  await writeAudit(userId, auditAction, "admin_session", tokenHash.slice(0, 12));
+  return { token, email, userId };
 }
 
 export async function logoutAdmin(session: AdminSession | null) {

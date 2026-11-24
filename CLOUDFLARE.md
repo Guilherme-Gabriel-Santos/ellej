@@ -8,7 +8,7 @@ O projeto usa quatro peças: **Workers** para o site, **D1** para o banco,
 1. Crie uma conta na Cloudflare e confirme o e-mail.
 2. Instale o Node.js 22 ou mais recente no computador que fará a publicação.
 3. Crie uma conta na Resend.
-4. Na Resend, adicione `auth.ellejew.com.br` em **Domains** e copie para o DNS
+4. Na Resend, adicione `send.ellejew.com.br` em **Domains** e copie para o DNS
    da Cloudflare os registros SPF e DKIM mostrados. Aguarde o status **Verified**.
 5. Na Resend, crie uma API key com permissão de envio.
 
@@ -58,7 +58,7 @@ Edite `.env.production` e preencha:
 AUTH_SECRET=resultado_AUTH_SECRET
 ADMIN_SETUP_KEY=resultado_ADMIN_SETUP_KEY
 RESEND_API_KEY=re_sua_chave_da_resend
-ADMIN_FROM_EMAIL="Elle Jew <acesso@auth.ellejew.com.br>"
+ADMIN_FROM_EMAIL="Elle Jew <acesso@send.ellejew.com.br>"
 ```
 
 Guarde `ADMIN_SETUP_KEY` no gerenciador de senhas. O arquivo

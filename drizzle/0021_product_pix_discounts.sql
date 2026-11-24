@@ -1,0 +1,3 @@
+ALTER TABLE products ADD COLUMN pix_discount_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE products ADD COLUMN pix_discount_percent INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE orders ADD COLUMN pix_discount_cents INTEGER NOT NULL DEFAULT 0;

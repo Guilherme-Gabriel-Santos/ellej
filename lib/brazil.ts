@@ -26,11 +26,20 @@ export type CepAddress = {
 export async function lookupCep(value: unknown): Promise<CepAddress> {
   const cep = digits(value);
   if (cep.length !== 8) throw new Error("Informe um CEP com 8 números.");
-  const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
-    headers: { Accept: "application/json" },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(8_000),
+    });
+  } catch {
+    throw new Error("Não foi possível consultar o CEP agora. Tente novamente.");
+  }
   const data = await response.json().catch(() => null) as Record<string, unknown> | null;
-  if (!response.ok || !data || data.erro === true) throw new Error("CEP não encontrado.");
+  // O ViaCEP pode responder "erro": true ou "erro": "true".
+  if (!response.ok || !data || data.erro === true || String(data.erro ?? "").toLowerCase() === "true") throw new Error("CEP não encontrado.");
+  const ibge = String(data.ibge ?? "").trim();
+  if (!/^\d{7}$/.test(ibge) || !String(data.localidade ?? "").trim() || !/^[A-Za-z]{2}$/.test(String(data.uf ?? "").trim())) throw new Error("CEP não encontrado.");
   return {
     cep,
     address: String(data.logradouro ?? "").trim(),

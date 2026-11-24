@@ -52,12 +52,23 @@ declare module "cloudflare:workers" {
     AUTH_SECRET?: string;
     ADMIN_SETUP_KEY?: string;
     ADMIN_ALLOW_DEV_CODE?: string;
+    ADMIN_LOGIN_CODE_DISABLED?: string;
     RESEND_API_KEY?: string;
     ADMIN_FROM_EMAIL?: string;
+    ORDER_FROM_EMAIL?: string;
+    PUBLIC_SITE_URL?: string;
+    LAUNCH_AT?: string;
+    VIP_LAUNCH_AT?: string;
+    VIP_ACCESS_TOKEN?: string;
+    META_PIXEL_ID?: string;
+    META_CAPI_ACCESS_TOKEN?: string;
+    META_GRAPH_API_VERSION?: string;
+    TURNSTILE_SITE_KEY?: string;
+    TURNSTILE_SECRET?: string;
+    TURNSTILE_HOSTNAMES?: string;
     ASAAS_API_KEY?: string;
     ASAAS_WEBHOOK_TOKEN?: string;
     ASAAS_ENVIRONMENT?: "sandbox" | "production";
     SUPERFRETE_API_TOKEN?: string;
-    SHIPPING_TEST_PRICE_CENTS?: string;
   };
 }

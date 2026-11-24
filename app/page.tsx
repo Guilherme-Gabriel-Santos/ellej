@@ -1,5 +1,9 @@
 import { Storefront } from "./Storefront";
 
-export default function Home() {
-  return <Storefront />;
+type HomeProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined> };
+
+export default async function Home({ searchParams }: HomeProps) {
+  const params = await searchParams;
+  const initialCategory = params?.categoria === "todos" ? "Todos" : "Destaques";
+  return <Storefront initialCategory={initialCategory} />;
 }

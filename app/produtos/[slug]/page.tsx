@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Storefront } from "../../Storefront";
-import { ensureStoreSchema, getD1 } from "../../../lib/store";
+import { ensureStoreSchema, getD1, publicStore, readStore } from "../../../lib/store";
 
 type PageProps = { params: Promise<{ slug: string }> | { slug: string } };
 
@@ -30,5 +30,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  return <Storefront initialProductSlug={slug} />;
+  let initialStore: Awaited<ReturnType<typeof publicStore>> | undefined;
+  try {
+    await ensureStoreSchema();
+    initialStore = publicStore(await readStore(crypto.randomUUID(), slug));
+  } catch {
+    // The client can retry the product API if the server-side catalog is unavailable.
+  }
+  return <Storefront initialProductSlug={slug} initialStore={initialStore ? { ...initialStore, account: null } : undefined} />;
 }

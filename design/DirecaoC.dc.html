@@ -1,0 +1,214 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&amp;family=Space+Mono:wght@400;700&amp;display=swap" />
+  <style>
+    body { margin: 0; background: #f7f4ed; }
+    a { color: #101820; } a:hover { color: #c39a55; }
+
+    .wipe { clip-path: inset(0 100% 0 0); animation: wipe 1200ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes wipe { to { clip-path: inset(0 0 0 0); } }
+
+    .drawy { transform: scaleY(0); transform-origin: top center; animation: drawy 1300ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes drawy { to { transform: scaleY(1); } }
+
+    .pop { opacity: 0; transform: translateY(16px); animation: pop 700ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes pop { to { opacity: 1; transform: translateY(0); } }
+
+    .shutter { clip-path: inset(100% 0 0 0); animation: shutter 1300ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes shutter { to { clip-path: inset(0 0 0 0); } }
+
+    .row-item { transition: background 400ms ease; }
+    .row-item:hover { background: #f5f1e9; }
+    .row-item img { transition: transform 800ms cubic-bezier(0.16, 1, 0.3, 1); }
+    .row-item:hover img { transform: scale(1.08); }
+    .row-item .go { transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1); }
+    .row-item:hover .go { transform: translateX(6px); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .wipe, .drawy, .pop, .shutter { animation: none; }
+      .wipe, .shutter { clip-path: none; }
+      .drawy { transform: scaleY(1); }
+      .pop { opacity: 1; transform: none; }
+    }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 1440px; background: #f7f4ed; font-family: 'Archivo', system-ui, sans-serif; color: #0b1116; overflow: hidden">
+
+  <div style="position: absolute; inset: 0; z-index: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); pointer-events: none">
+    <div class="drawy" style="border-right: 1px solid rgba(15, 20, 26, 0.07)"></div>
+    <div class="drawy" style="border-right: 1px solid rgba(15, 20, 26, 0.07); animation-delay: 120ms"></div>
+    <div class="drawy" style="border-right: 1px solid rgba(15, 20, 26, 0.07); animation-delay: 240ms"></div>
+    <div class="drawy" style="animation-delay: 360ms"></div>
+  </div>
+
+  <div style="position: relative; z-index: 1">
+
+    <div style="height: 38px; background: #101820; color: #fbf3df; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase">
+      <span>frete_grátis &gt; R$399</span>
+      <span style="color: #c39a55">6x sem juros / 5% off pix</span>
+      <span>envio_24h</span>
+    </div>
+
+    <header style="height: 74px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(15, 20, 26, 0.14)">
+      <div style="font-size: 21px; font-weight: 800; letter-spacing: -0.045em; color: #101820">ELLE JEW</div>
+      <nav style="display: flex; gap: 26px; font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.02em; color: #101820">
+        <a href="#">[colares]</a>
+        <a href="#">[brincos]</a>
+        <a href="#">[anéis]</a>
+        <a href="#">[pulseiras]</a>
+        <a href="#">[rivieras]</a>
+      </nav>
+      <div style="font-family: 'Space Mono', monospace; font-size: 11px; color: #101820">sacola(0)</div>
+    </header>
+
+    <section style="display: grid; grid-template-columns: minmax(0, 1fr) 500px; border-bottom: 1px solid rgba(15, 20, 26, 0.14)">
+
+      <div style="padding: 62px 40px 48px 24px; display: flex; flex-direction: column; justify-content: space-between">
+
+        <div>
+          <div class="pop" style="display: flex; align-items: center; gap: 12px; font-family: 'Space Mono', monospace; font-size: 11px; color: rgba(15, 20, 26, 0.45)">
+            <span style="color: #c39a55">/01</span>
+            <span>prata_925 · moissanite · garantia_1_ano</span>
+          </div>
+
+          <h1 style="margin: 30px 0 0; font-size: 92px; font-weight: 800; line-height: 0.88; letter-spacing: -0.05em; color: #101820">
+            <span class="wipe" style="display: block">A ELEGÂNCIA</span>
+            <span class="wipe" style="display: block; animation-delay: 140ms">QUE ETERNIZA</span>
+            <span class="wipe" style="display: block; animation-delay: 280ms; color: #c39a55">MOMENTOS.</span>
+          </h1>
+
+          <p class="pop" style="margin: 34px 0 0; max-width: 400px; font-size: 15px; font-weight: 400; line-height: 1.6; color: rgba(15, 20, 26, 0.68); animation-delay: 500ms">Joalheria em prata 925 com pedras lapidadas à mão. Sem folheado que descasca, sem peça que oxida.</p>
+        </div>
+
+        <div class="pop" style="display: flex; align-items: stretch; gap: 14px; margin-top: 46px; animation-delay: 640ms">
+          <a href="#" style="display: flex; align-items: center; height: 56px; padding: 0 34px; background: #101820; color: #fbf3df; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.04em">ver_coleção →</a>
+          <a href="#" style="display: flex; align-items: center; height: 56px; padding: 0 34px; border: 1px solid rgba(15, 20, 26, 0.14); color: #101820; font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.04em">mais_vendidos</a>
+        </div>
+      </div>
+
+      <div class="shutter" style="position: relative; height: 618px; overflow: hidden; background: #f5f1e9; border-left: 1px solid rgba(15, 20, 26, 0.14)">
+        <img src="editorial-silver.webp" alt="Modelo com joias Elle Jew em prata 925" style="width: 100%; height: 100%; object-fit: cover; object-position: 50% 24%" />
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 15px 20px; background: rgba(16, 24, 32, 0.95); color: #fbf3df; display: flex; align-items: center; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 11px">
+          <span>riviera_3mm_4garras</span>
+          <span style="color: #c39a55">12.8ct · R$ 3.550,00</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="height: 88px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(15, 20, 26, 0.14); background: #f5f1e9">
+      <div style="display: flex; align-items: center; gap: 34px; font-size: 28px; font-weight: 700; letter-spacing: -0.035em; color: #101820">
+        <a href="#">Coleção Lumière</a>
+        <span style="color: rgba(195, 154, 85, 0.32); font-weight: 400">/</span>
+        <a href="#">Prata 925</a>
+        <span style="color: rgba(195, 154, 85, 0.32); font-weight: 400">/</span>
+        <a href="#">Ródio</a>
+        <span style="color: rgba(195, 154, 85, 0.32); font-weight: 400">/</span>
+        <a href="#">Semi-joias 18k</a>
+      </div>
+      <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: rgba(15, 20, 26, 0.45)">58 peças</span>
+    </section>
+
+    <section style="padding: 52px 24px 0">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 32px">
+        <div style="display: flex; align-items: baseline; gap: 14px">
+          <span style="font-family: 'Space Mono', monospace; font-size: 11px; color: #c39a55">/02</span>
+          <h2 style="margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -0.045em; color: #101820">SELEÇÃO DA CASA</h2>
+        </div>
+        <a href="#" style="font-family: 'Space Mono', monospace; font-size: 12px; color: #101820; border-bottom: 1px solid rgba(195, 154, 85, 0.32); padding-bottom: 3px">ver_tudo →</a>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px">
+
+        <article class="row-item pop" style="display: flex; flex-direction: column; border: 1px solid rgba(15, 20, 26, 0.14); animation-delay: 200ms">
+          <div style="position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: #f5f1e9">
+            <img src="choker-coracoes.webp" alt="Chocker Corações em prata 925" style="width: 100%; height: 100%; object-fit: cover" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px; padding: 14px">
+            <span style="font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(15, 20, 26, 0.45)">EJ-001 / colares</span>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; color: #101820">Chocker Corações</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px">
+              <span style="font-family: 'Space Mono', monospace; font-size: 13px; color: #101820">R$ 535,00</span>
+              <span class="go" style="color: #c39a55; font-family: 'Space Mono', monospace; font-size: 13px">→</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="row-item pop" style="display: flex; flex-direction: column; border: 1px solid rgba(15, 20, 26, 0.14); animation-delay: 280ms">
+          <div style="position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: #f5f1e9">
+            <img src="colar-ponto-luz.webp" alt="Colar Ponto Luz em prata 925" style="width: 100%; height: 100%; object-fit: cover" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px; padding: 14px">
+            <span style="font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(15, 20, 26, 0.45)">EJ-002 / colares</span>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; color: #101820">Colar Ponto Luz</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px">
+              <span style="font-family: 'Space Mono', monospace; font-size: 13px; color: #101820">R$ 285,00</span>
+              <span class="go" style="color: #c39a55; font-family: 'Space Mono', monospace; font-size: 13px">→</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="row-item pop" style="display: flex; flex-direction: column; border: 1px solid rgba(15, 20, 26, 0.14); animation-delay: 360ms">
+          <div style="position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: #f5f1e9">
+            <img src="conjunto-ametista.webp" alt="Conjunto Ametista em prata 925" style="width: 100%; height: 100%; object-fit: cover" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px; padding: 14px">
+            <span style="font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(15, 20, 26, 0.45)">EJ-003 / conjuntos</span>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; color: #101820">Conjunto Ametista</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px">
+              <span style="font-family: 'Space Mono', monospace; font-size: 13px; color: #101820">R$ 298,00</span>
+              <span class="go" style="color: #c39a55; font-family: 'Space Mono', monospace; font-size: 13px">→</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="row-item pop" style="display: flex; flex-direction: column; border: 1px solid rgba(15, 20, 26, 0.14); animation-delay: 440ms">
+          <div style="position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: #f5f1e9">
+            <img src="conjunto-kunzita.webp" alt="Conjunto Kunzita em prata 925" style="width: 100%; height: 100%; object-fit: cover" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px; padding: 14px">
+            <span style="font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(15, 20, 26, 0.45)">EJ-004 / conjuntos</span>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; color: #101820">Conjunto Kunzita</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px">
+              <span style="font-family: 'Space Mono', monospace; font-size: 13px; color: #101820">R$ 298,00</span>
+              <span class="go" style="color: #c39a55; font-family: 'Space Mono', monospace; font-size: 13px">→</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="row-item pop" style="display: flex; flex-direction: column; border: 1px solid rgba(15, 20, 26, 0.14); animation-delay: 520ms">
+          <div style="position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: #f5f1e9">
+            <img src="ear-cuff.webp" alt="Piercing Ear Cuff em prata 925" style="width: 100%; height: 100%; object-fit: cover" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 7px; padding: 14px">
+            <span style="font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(15, 20, 26, 0.45)">EJ-005 / brincos</span>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; color: #101820">Piercing Ear Cuff</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px">
+              <span style="font-family: 'Space Mono', monospace; font-size: 13px; color: #101820">R$ 249,90</span>
+              <span class="go" style="color: #c39a55; font-family: 'Space Mono', monospace; font-size: 13px">→</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <section style="margin-top: 54px; padding: 26px 24px 44px; border-top: 1px solid rgba(15, 20, 26, 0.14); display: flex; align-items: center; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 11px; color: rgba(15, 20, 26, 0.68)">
+      <span>garantia_1_ano</span>
+      <span>troca_fácil_7dias</span>
+      <span>envio_24h</span>
+      <span style="color: #c39a55">@ellejew_</span>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,6 +1,8 @@
-import { getD1 } from "./store";
+import { ensureStoreSchema, getD1 } from "./store";
 import { writeAudit, type AdminSession } from "./admin-auth";
+import { normalizeCouponCode } from "./coupons";
 import { isOrderStatus, transitionOrderStatus } from "./order-status";
+import { LAUNCH_TEASER_SETTING, MAX_LAUNCH_TEASERS, readLaunchAdminData, sendLaunchTestEmail } from "./launch";
 
 type Row = Record<string, unknown>;
 
@@ -36,8 +38,10 @@ function normalizeProduct(row: Row) {
   if (row.video && !media.some((item) => item.url === String(row.video))) media.push({ type: "video", url: String(row.video) });
   let catalogData: Record<string, unknown> = {};
   let variants: Array<Record<string, unknown>> = [];
+  let optionGroups: Array<Record<string, unknown>> = [];
   try { catalogData = JSON.parse(String(row.catalog_data ?? "{}")); } catch { catalogData = {}; }
   try { variants = JSON.parse(String(row.variants ?? "[]")); } catch { variants = []; }
+  try { optionGroups = JSON.parse(String(row.option_groups ?? "[]")); } catch { optionGroups = []; }
   return {
     id: String(row.id),
     slug: String(row.slug),
@@ -50,16 +54,23 @@ function normalizeProduct(row: Row) {
     media,
     catalogData,
     variants,
+    multiOptionsEnabled: Boolean(Number(row.multi_options_enabled ?? 0)),
+    optionGroups,
     visibility: String(row.visibility ?? "visible"),
     trackStock: Boolean(Number(row.track_stock ?? 1)),
     priceVisible: Boolean(Number(row.price_visible ?? 1)),
     freeShipping: Boolean(Number(row.free_shipping ?? 0)),
+    pixDiscountEnabled: Boolean(Number(row.pix_discount_enabled ?? 0)),
+    pixDiscountPercent: Number(row.pix_discount_percent ?? 0),
+    personalizationEnabled: Boolean(Number(row.personalization_enabled ?? 0)),
+    personalizationMaxChars: Number(row.personalization_max_chars ?? 20),
     badge: row.badge ? String(row.badge) : "",
     priceCents: Number(row.price_cents),
     compareAtCents: row.compare_at_cents === null ? null : Number(row.compare_at_cents),
     stock: Number(row.stock),
     active: Boolean(Number(row.active)),
     featured: Boolean(Number(row.featured)),
+    sortOrder: Number(row.sort_order ?? 0),
     createdAt: String(row.created_at),
   };
 }
@@ -93,16 +104,20 @@ function normalizeBanner(row: Row) {
 }
 
 export async function readAdminDashboard() {
+  await ensureStoreSchema();
   const d1 = getD1();
-  const [productsResult, categoriesResult, productCategoriesResult, bannersResult, ordersResult, itemsResult, subscribersResult, allCategoryImageResult] = await Promise.all([
-    d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, visibility, track_stock, price_visible, free_shipping, badge, price_cents, compare_at_cents, stock, active, featured, created_at FROM products ORDER BY active DESC, featured DESC, created_at DESC, name").all(),
+  const [productsResult, categoriesResult, productCategoriesResult, bannersResult, ordersResult, itemsResult, subscribersResult, allCategoryImageResult, couponsResult, couponProductsResult, reviewsResult] = await Promise.all([
+    d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, active, featured, sort_order, created_at FROM products ORDER BY sort_order, created_at, id").all(),
     d1.prepare("SELECT c.id, c.name, c.slug, c.parent_id, c.image, c.active, c.sort_order, (SELECT COUNT(DISTINCT pc.product_id) FROM product_categories pc INNER JOIN categories assigned ON assigned.id = pc.category_id WHERE assigned.id = c.id OR assigned.parent_id = c.id) AS product_count FROM categories c ORDER BY c.sort_order, c.name").all(),
     d1.prepare("SELECT product_id, category_id FROM product_categories ORDER BY created_at, category_id").all(),
     d1.prepare("SELECT id, title, subtitle, image, link_url, link_label, focal_x, focal_y, active, sort_order FROM homepage_banners ORDER BY sort_order, created_at, id").all(),
-    d1.prepare("SELECT id, customer_name, email, phone, cpf, cep, address, address_number, neighborhood, complement, city, state, shipping_method, payment_method, subtotal_cents, shipping_cents, discount_cents, total_cents, status, superfrete_service_id, superfrete_service_name, superfrete_delivery_days, superfrete_quote_price_cents, superfrete_order_id, superfrete_protocol, superfrete_price_cents, superfrete_status, superfrete_tracking_code, superfrete_label_url, superfrete_updated_at, created_at FROM orders ORDER BY created_at DESC LIMIT 100").all(),
-    d1.prepare("SELECT id, order_id, product_id, variant_id, variant_label, product_name, unit_price_cents, quantity FROM order_items WHERE order_id IN (SELECT id FROM orders ORDER BY created_at DESC LIMIT 100) ORDER BY id").all(),
+    d1.prepare("SELECT id, customer_name, email, phone, cpf, cep, address, address_number, neighborhood, complement, city, state, shipping_method, payment_method, subtotal_cents, shipping_cents, discount_cents, pix_discount_cents, coupon_code, coupon_discount_cents, shipping_discount_cents, total_cents, status, stock_issue, payment_status, payment_provider, superfrete_service_id, superfrete_service_name, superfrete_delivery_days, superfrete_order_id, superfrete_protocol, superfrete_price_cents, superfrete_status, superfrete_tracking_code, superfrete_label_url, superfrete_updated_at, created_at FROM orders ORDER BY created_at DESC LIMIT 100").all(),
+    d1.prepare("SELECT id, order_id, product_id, variant_id, variant_label, personalization_text, product_name, unit_price_cents, quantity FROM order_items WHERE order_id IN (SELECT id FROM orders ORDER BY created_at DESC LIMIT 100) ORDER BY id").all(),
     d1.prepare("SELECT COUNT(*) AS total FROM subscribers").first<{ total: number }>(),
     d1.prepare("SELECT value FROM site_settings WHERE key = 'all_category_image'").first<{ value: string }>(),
+    d1.prepare("SELECT id, code, name, description, discount_type, discount_value, free_shipping, applies_to, minimum_subtotal_cents, maximum_discount_cents, usage_limit, usage_count, per_customer_limit, starts_at, expires_at, active, created_at, updated_at FROM coupons ORDER BY active DESC, created_at DESC").all(),
+    d1.prepare("SELECT coupon_id, product_id FROM coupon_products ORDER BY coupon_id, product_id").all(),
+    d1.prepare("SELECT id, customer_name, location, rating, body, product_name, active, sort_order, created_at, updated_at FROM homepage_reviews ORDER BY sort_order, created_at, id").all(),
   ]);
 
   const itemsByOrder = new Map<string, Array<Record<string, unknown>>>();
@@ -114,6 +129,7 @@ export async function readAdminDashboard() {
       productId: String(row.product_id),
       variantId: row.variant_id ? String(row.variant_id) : "",
       variantLabel: row.variant_label ? String(row.variant_label) : "",
+      personalizationText: String(row.personalization_text ?? ""),
       productName: String(row.product_name),
       unitPriceCents: Number(row.unit_price_cents),
       quantity: Number(row.quantity),
@@ -148,8 +164,15 @@ export async function readAdminDashboard() {
     subtotalCents: Number(row.subtotal_cents),
     shippingCents: Number(row.shipping_cents),
     discountCents: Number(row.discount_cents),
+    pixDiscountCents: Number(row.pix_discount_cents ?? 0),
+    couponCode: row.coupon_code ? String(row.coupon_code) : "",
+    couponDiscountCents: Number(row.coupon_discount_cents ?? 0),
+    shippingDiscountCents: Number(row.shipping_discount_cents ?? 0),
     totalCents: Number(row.total_cents),
     status: String(row.status),
+    paymentStatus: row.payment_status ? String(row.payment_status) : "",
+    stockIssue: Boolean(Number(row.stock_issue ?? 0)),
+    paymentProvider: row.payment_provider ? String(row.payment_provider) : "",
     superfreteServiceId: row.superfrete_service_id ? String(row.superfrete_service_id) : "",
     superfreteServiceName: row.superfrete_service_name ? String(row.superfrete_service_name) : "",
     superfreteDeliveryDays: row.superfrete_delivery_days === null ? null : Number(row.superfrete_delivery_days),
@@ -166,12 +189,51 @@ export async function readAdminDashboard() {
   }));
 
   const paidStatuses = new Set(["pago", "em_separacao", "enviado", "concluido"]);
+  const productIdsByCoupon = new Map<string, string[]>();
+  for (const row of couponProductsResult.results as Row[]) {
+    const couponId = String(row.coupon_id);
+    productIdsByCoupon.set(couponId, [...(productIdsByCoupon.get(couponId) ?? []), String(row.product_id)]);
+  }
   return {
     products,
     categories: (categoriesResult.results as Row[]).map(normalizeCategory),
     banners: (bannersResult.results as Row[]).map(normalizeBanner),
     orders,
+    coupons: (couponsResult.results as Row[]).map((row) => ({
+      id: String(row.id),
+      code: String(row.code),
+      name: String(row.name),
+      description: String(row.description ?? ""),
+      discountType: String(row.discount_type),
+      discountValue: Number(row.discount_value),
+      freeShipping: Boolean(Number(row.free_shipping)),
+      appliesTo: String(row.applies_to),
+      minimumSubtotalCents: Number(row.minimum_subtotal_cents),
+      maximumDiscountCents: row.maximum_discount_cents === null ? null : Number(row.maximum_discount_cents),
+      usageLimit: row.usage_limit === null ? null : Number(row.usage_limit),
+      perCustomerLimit: row.per_customer_limit === null || row.per_customer_limit === undefined ? null : Number(row.per_customer_limit),
+      usageCount: Number(row.usage_count),
+      startsAt: row.starts_at ? String(row.starts_at) : "",
+      expiresAt: row.expires_at ? String(row.expires_at) : "",
+      active: Boolean(Number(row.active)),
+      productIds: productIdsByCoupon.get(String(row.id)) ?? [],
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+    })),
+    reviews: (reviewsResult.results as Row[]).map((row) => ({
+      id: String(row.id),
+      customerName: String(row.customer_name),
+      location: String(row.location ?? ""),
+      rating: Math.max(0, Math.min(5, Number(row.rating))),
+      body: String(row.body),
+      productName: String(row.product_name ?? ""),
+      active: Boolean(Number(row.active)),
+      sortOrder: Number(row.sort_order),
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+    })),
     allCategoryImage: allCategoryImageResult?.value ? String(allCategoryImageResult.value) : "",
+    launch: await readLaunchAdminData(),
     stats: {
       activeProducts: products.filter((product) => product.active).length,
       lowStock: products.filter((product) => product.active && product.trackStock && product.stock <= 3).length,
@@ -334,6 +396,9 @@ function validateProduct(payload: ProductPayload) {
   if (compareAtCents !== null && compareAtCents <= priceCents) {
     throw new Error("O preço anterior precisa ser maior que o preço atual.");
   }
+  const pixDiscountEnabled = payload.pixDiscountEnabled === true;
+  const pixDiscountPercent = integerValue(payload.pixDiscountPercent ?? 0, "O desconto Pix", 0, 90);
+  if (pixDiscountEnabled && pixDiscountPercent < 1) throw new Error("Informe um percentual de desconto Pix entre 1% e 90%.");
   const catalogInput = payload.catalogData && typeof payload.catalogData === "object" ? payload.catalogData as Record<string, unknown> : {};
   const catalogData = {
     costCents: integerValue(catalogInput.costCents ?? 0, "O custo", 0, 100_000_000),
@@ -364,6 +429,35 @@ function validateProduct(payload: ProductPayload) {
       active: item.active !== false,
     };
   }).filter((item) => item.size || item.color || item.material) : [];
+  const multiOptionsEnabled = payload.multiOptionsEnabled === true;
+  const personalizationEnabled = payload.personalizationEnabled === true;
+  const optionGroups = Array.isArray(payload.optionGroups) ? payload.optionGroups.slice(0, 8).map((entry, groupIndex) => {
+    const group = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+    const selectionMode = group.selectionMode === "personalizationLength" ? "personalizationLength" as const : "manual" as const;
+    const options = Array.isArray(group.options) ? group.options.slice(0, 30).map((optionEntry, optionIndex) => {
+      const option = optionEntry && typeof optionEntry === "object" ? optionEntry as Record<string, unknown> : {};
+      return {
+        id: textValue(option.id, "a opção", 40, false) || `opt_${crypto.randomUUID().slice(0, 8)}`,
+        label: textValue(option.label, `o nome da opção ${optionIndex + 1}`, 100, multiOptionsEnabled),
+        addedPriceCents: integerValue(option.addedPriceCents ?? 0, `o acréscimo da opção ${optionIndex + 1}`, 0, 100_000_000),
+        active: option.active !== false,
+      };
+    }) : [];
+    if (multiOptionsEnabled && !options.length) throw new Error(`Adicione pelo menos uma alternativa ao grupo ${groupIndex + 1}.`);
+    if (selectionMode === "personalizationLength" && options.some((option) => option.active && !/(\d+)\s*(?:-|–|—|a|até)\s*(\d+)/i.test(option.label))) {
+      throw new Error(`As alternativas do grupo ${groupIndex + 1} precisam informar uma faixa, como “2 a 6 letras”.`);
+    }
+    return { id: textValue(group.id, "o grupo de opções", 40, false) || `grp_${crypto.randomUUID().slice(0, 8)}`, name: textValue(group.name, `o nome do grupo ${groupIndex + 1}`, 60, multiOptionsEnabled), options, selectionMode };
+  }) : [];
+  if (multiOptionsEnabled && optionGroups.length < 1) throw new Error("Adicione pelo menos um grupo de opções.");
+  if (multiOptionsEnabled && variants.length) throw new Error("Remova as variações simples antes de ativar as múltiplas opções.");
+  if (multiOptionsEnabled && optionGroups.some((group) => group.options.length < 1)) throw new Error("Cada grupo precisa ter pelo menos uma alternativa.");
+  if (multiOptionsEnabled && optionGroups.reduce((sum, group) => sum + Math.max(...group.options.map((option) => option.addedPriceCents)), 0) + priceCents > 100_000_000) throw new Error("O preço máximo formado pelas opções ultrapassa o limite permitido.");
+  if (multiOptionsEnabled && new Set(optionGroups.map((group) => group.id)).size !== optionGroups.length) throw new Error("Os grupos de opções precisam ter identificadores diferentes.");
+  if (multiOptionsEnabled && optionGroups.some((group) => new Set(group.options.map((option) => option.id)).size !== group.options.length)) throw new Error("As alternativas de cada grupo precisam ter identificadores diferentes.");
+  if (optionGroups.filter((group) => group.selectionMode === "personalizationLength").length > 1) throw new Error("Ative a seleção automática em apenas um grupo de faixas de letras.");
+  if (optionGroups.some((group) => group.selectionMode === "personalizationLength") && !personalizationEnabled) throw new Error("Ative a personalização para usar faixas automáticas de letras.");
+  if (optionGroups.some((group) => group.options.filter((option) => option.active).length < 1)) throw new Error("Cada grupo precisa ter ao menos uma alternativa disponível.");
   const visibility = ["visible", "unlisted", "hidden"].includes(String(payload.visibility)) ? String(payload.visibility) : "visible";
   return {
     name,
@@ -376,6 +470,8 @@ function validateProduct(payload: ProductPayload) {
     media,
     catalogData,
     variants,
+    multiOptionsEnabled: multiOptionsEnabled ? 1 : 0,
+    optionGroups,
     slug: slugify(textValue(payload.slug, "a URL", 80, false) || name),
     badge: textValue(payload.badge, "o selo", 50, false) || null,
     priceCents,
@@ -384,6 +480,10 @@ function validateProduct(payload: ProductPayload) {
     trackStock: payload.trackStock !== false ? 1 : 0,
     priceVisible: payload.priceVisible !== false ? 1 : 0,
     freeShipping: payload.freeShipping === true ? 1 : 0,
+    pixDiscountEnabled: pixDiscountEnabled ? 1 : 0,
+    pixDiscountPercent,
+    personalizationEnabled: personalizationEnabled ? 1 : 0,
+    personalizationMaxChars: integerValue(payload.personalizationMaxChars ?? 20, "O limite de caracteres da gravação", 1, 80),
     visibility,
     active: visibility === "hidden" || payload.active === false || payload.active === 0 ? 0 : 1,
     featured: payload.featured === true || payload.featured === 1 ? 1 : 0,
@@ -426,26 +526,46 @@ export async function createProduct(session: AdminSession, payload: ProductPaylo
   const id = `prd_${crypto.randomUUID()}`;
   const slug = await availableSlug(product.slug);
   const d1 = getD1();
+  const position = await d1.prepare("SELECT COALESCE(MAX(sort_order), 0) + 1 AS next FROM products").first<{ next: number }>();
   await d1.batch([
-    d1.prepare("INSERT INTO products (id, slug, name, category, description, material, image, video, media, catalog_data, variants, visibility, track_stock, price_visible, free_shipping, badge, price_cents, compare_at_cents, stock, active, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(id, slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured),
+    d1.prepare("INSERT INTO products (id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, active, featured, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(id, slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.multiOptionsEnabled, JSON.stringify(product.optionGroups), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.pixDiscountEnabled, product.pixDiscountPercent, product.personalizationEnabled, product.personalizationMaxChars, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured, Number(position?.next ?? 1)),
     ...categories.ids.map((categoryId) => d1.prepare("INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)").bind(id, categoryId)),
   ]);
   await writeAudit(session.userId, "product.created", "product", id, { name: product.name });
   return id;
 }
 
+type StockSnapshot = { stock?: unknown; variants?: Array<{ id?: unknown; stock?: unknown }> };
+
+/** Compara o estoque que o admin viu ao abrir o produto com o atual; se houve venda no meio, recusa o salvamento. */
+function assertStockSnapshot(snapshot: unknown, current: { stock: number; variants: string }) {
+  if (!snapshot || typeof snapshot !== "object") return;
+  const seen = snapshot as StockSnapshot;
+  const changedMessage = "O estoque deste produto mudou desde que você abriu a edição (provavelmente uma venda). Reabra o produto para conferir o estoque atual.";
+  if (Number(seen.stock) !== Number(current.stock)) throw new Error(changedMessage);
+  let variants: Array<{ id: string; stock: number }> = [];
+  try { variants = JSON.parse(current.variants || "[]"); } catch { variants = []; }
+  for (const variant of Array.isArray(seen.variants) ? seen.variants : []) {
+    const live = variants.find((item) => item.id === String(variant.id ?? ""));
+    if (live && Number(live.stock) !== Number(variant.stock)) throw new Error(changedMessage);
+  }
+}
+
 export async function updateProduct(session: AdminSession, payload: ProductPayload) {
   const id = textValue(payload.id, "o produto", 80);
-  const existing = await getD1().prepare("SELECT id FROM products WHERE id = ?").bind(id).first();
+  const existing = await getD1().prepare("SELECT id, stock, variants FROM products WHERE id = ?").bind(id).first<{ id: string; stock: number; variants: string }>();
   if (!existing) throw new Error("Produto não encontrado.");
+  assertStockSnapshot(payload.stockSnapshot, existing);
   const product = validateProduct(payload);
   const categories = await resolveProductCategories(product.categoryIds, product.category);
   const slug = await availableSlug(product.slug, id);
   const d1 = getD1();
+  // Atualização condicional: se houve venda (estoque mudou) desde a leitura acima, nada é sobrescrito.
+  const updated = await d1.prepare("UPDATE products SET slug = ?, name = ?, category = ?, description = ?, material = ?, image = ?, video = ?, media = ?, catalog_data = ?, variants = ?, multi_options_enabled = ?, option_groups = ?, visibility = ?, track_stock = ?, price_visible = ?, free_shipping = ?, pix_discount_enabled = ?, pix_discount_percent = ?, personalization_enabled = ?, personalization_max_chars = ?, badge = ?, price_cents = ?, compare_at_cents = ?, stock = ?, active = ?, featured = ? WHERE id = ? AND stock = ? AND variants = ?")
+      .bind(slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.multiOptionsEnabled, JSON.stringify(product.optionGroups), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.pixDiscountEnabled, product.pixDiscountPercent, product.personalizationEnabled, product.personalizationMaxChars, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured, id, Number(existing.stock), existing.variants).run();
+  if (Number(updated.meta.changes ?? 0) !== 1) throw new Error("O estoque deste produto mudou enquanto você editava (provavelmente uma venda). Reabra o produto e salve novamente.");
   await d1.batch([
-    d1.prepare("UPDATE products SET slug = ?, name = ?, category = ?, description = ?, material = ?, image = ?, video = ?, media = ?, catalog_data = ?, variants = ?, visibility = ?, track_stock = ?, price_visible = ?, free_shipping = ?, badge = ?, price_cents = ?, compare_at_cents = ?, stock = ?, active = ?, featured = ? WHERE id = ?")
-      .bind(slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured, id),
     d1.prepare("DELETE FROM product_categories WHERE product_id = ?").bind(id),
     ...categories.ids.map((categoryId) => d1.prepare("INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)").bind(id, categoryId)),
   ]);
@@ -475,6 +595,40 @@ function validateBanner(payload: Record<string, unknown>) {
   const focalY = Math.max(0, Math.min(100, Math.round(Number(payload.focalY ?? 24))));
   if (!Number.isFinite(focalX) || !Number.isFinite(focalY)) throw new Error("Posição de foco inválida.");
   return { title, subtitle, image, linkUrl: linkUrl || null, linkLabel: linkUrl ? (linkLabel || "Saiba mais") : null, focalX, focalY };
+}
+
+export async function reorderProducts(session: AdminSession, orderedIds: unknown) {
+  if (!Array.isArray(orderedIds) || orderedIds.length > 1_000 || orderedIds.some((id) => typeof id !== "string")) throw new Error("Ordem de produtos inválida.");
+  const ids = [...new Set(orderedIds as string[])];
+  const total = await getD1().prepare("SELECT COUNT(*) AS total FROM products").first<{ total: number }>();
+  if (ids.length !== Number(total?.total ?? 0)) throw new Error("Atualize a página e tente ordenar novamente.");
+  await getD1().batch(ids.map((id, index) => getD1().prepare("UPDATE products SET sort_order = ? WHERE id = ?").bind(index + 1, id)));
+  await writeAudit(session.userId, "product.reordered", "product", null, { orderedIds: ids });
+}
+
+export async function reorderStorefrontProducts(session: AdminSession, orderedIds: unknown) {
+  if (!Array.isArray(orderedIds) || orderedIds.length > 1_000 || orderedIds.some((id) => typeof id !== "string")) throw new Error("Ordem de produtos inválida.");
+  const ids = orderedIds as string[];
+  if (new Set(ids).size !== ids.length) throw new Error("Ordem de produtos inválida.");
+
+  const result = await getD1()
+    .prepare("SELECT id, active, visibility FROM products ORDER BY sort_order, created_at, id")
+    .all<{ id: string; active: number; visibility: string }>();
+  const products = result.results ?? [];
+  const storefrontIds = products.filter((product) => Boolean(product.active) && product.visibility === "visible").map((product) => product.id);
+  const requestedIds = new Set(ids);
+  if (ids.length !== storefrontIds.length || storefrontIds.some((id) => !requestedIds.has(id))) {
+    throw new Error("A vitrine mudou. Atualize a página antes de salvar a nova ordem.");
+  }
+
+  const storefrontSet = new Set(storefrontIds);
+  let storefrontIndex = 0;
+  const completeOrder = products.map((product) => storefrontSet.has(product.id) ? ids[storefrontIndex++] : product.id);
+  if (completeOrder.length) {
+    await getD1().batch(completeOrder.map((id, index) => getD1().prepare("UPDATE products SET sort_order = ? WHERE id = ?").bind(index + 1, id)));
+  }
+  await writeAudit(session.userId, "product.storefront_reordered", "product", null, { orderedIds: ids });
+  return ids;
 }
 
 export async function createBanner(session: AdminSession, payload: Record<string, unknown>) {
@@ -522,4 +676,169 @@ export async function updateOrderStatus(session: AdminSession, orderId: string, 
   if (!isOrderStatus(status)) throw new Error("Situação do pedido inválida.");
   const changed = await transitionOrderStatus(orderId, status);
   await writeAudit(session.userId, "order.status_changed", "order", orderId, changed);
+}
+
+function optionalInteger(value: unknown, field: string, maximum = 100_000_000) {
+  if (value === null || value === undefined || value === "" || Number(value) === 0) return null;
+  return integerValue(value, field, 1, maximum);
+}
+
+function optionalDate(value: unknown, field: string) {
+  const normalized = textValue(value, field, 40, false);
+  if (!normalized) return null;
+  const date = new Date(normalized);
+  if (!Number.isFinite(date.getTime())) throw new Error(`${field} está inválida.`);
+  return date.toISOString();
+}
+
+async function validateCoupon(payload: Record<string, unknown>, excludedId?: string) {
+  const code = normalizeCouponCode(payload.code);
+  if (code.length < 3) throw new Error("O código precisa ter pelo menos 3 letras ou números.");
+  const name = textValue(payload.name, "o nome interno do cupom", 80);
+  const description = textValue(payload.description, "a descrição", 220, false);
+  const discountType = ["none", "percentage", "fixed"].includes(String(payload.discountType)) ? String(payload.discountType) : "none";
+  const discountValue = discountType === "percentage"
+    ? integerValue(payload.discountValue, "A porcentagem", 1, 100)
+    : discountType === "fixed"
+      ? integerValue(payload.discountValue, "O valor do desconto", 1, 100_000_000)
+      : 0;
+  const freeShipping = Boolean(payload.freeShipping);
+  if (discountType === "none" && !freeShipping) throw new Error("Escolha um desconto nos produtos, frete grátis ou os dois.");
+  const appliesTo = payload.appliesTo === "selected" ? "selected" : "all";
+  const productIds = appliesTo === "selected" && Array.isArray(payload.productIds)
+    ? [...new Set(payload.productIds.filter((id): id is string => typeof id === "string" && /^[-_a-zA-Z0-9]{2,100}$/.test(id)))].slice(0, 500)
+    : [];
+  if (appliesTo === "selected" && !productIds.length) throw new Error("Selecione pelo menos um produto elegível.");
+  if (productIds.length) {
+    const placeholders = productIds.map(() => "?").join(",");
+    const found = await getD1().prepare(`SELECT COUNT(*) AS total FROM products WHERE id IN (${placeholders})`).bind(...productIds).first<{ total: number }>();
+    if (Number(found?.total ?? 0) !== productIds.length) throw new Error("Um dos produtos selecionados não existe mais.");
+  }
+  const minimumSubtotalCents = integerValue(payload.minimumSubtotalCents ?? 0, "A compra mínima", 0, 100_000_000);
+  const maximumDiscountCents = discountType === "percentage" ? optionalInteger(payload.maximumDiscountCents, "O desconto máximo") : null;
+  const usageLimit = optionalInteger(payload.usageLimit, "O limite de usos", 1_000_000);
+  const perCustomerLimit = optionalInteger(payload.perCustomerLimit, "O limite por cliente", 1_000);
+  const startsAt = optionalDate(payload.startsAt, "A data inicial");
+  const expiresAt = optionalDate(payload.expiresAt, "A data final");
+  if (startsAt && expiresAt && Date.parse(expiresAt) <= Date.parse(startsAt)) throw new Error("A data final precisa ser posterior à data inicial.");
+  const duplicate = await getD1().prepare("SELECT id FROM coupons WHERE code = ? COLLATE NOCASE AND (? IS NULL OR id != ?)").bind(code, excludedId ?? null, excludedId ?? null).first();
+  if (duplicate) throw new Error("Já existe um cupom com esse código.");
+  return { code, name, description, discountType, discountValue, freeShipping, appliesTo, productIds, minimumSubtotalCents, maximumDiscountCents, usageLimit, perCustomerLimit, startsAt, expiresAt, active: payload.active !== false };
+}
+
+export async function createCoupon(session: AdminSession, payload: Record<string, unknown>) {
+  const coupon = await validateCoupon(payload);
+  const id = `coupon_${crypto.randomUUID()}`;
+  const d1 = getD1();
+  await d1.batch([
+    d1.prepare("INSERT INTO coupons (id, code, name, description, discount_type, discount_value, free_shipping, applies_to, minimum_subtotal_cents, maximum_discount_cents, usage_limit, per_customer_limit, starts_at, expires_at, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(id, coupon.code, coupon.name, coupon.description, coupon.discountType, coupon.discountValue, coupon.freeShipping ? 1 : 0, coupon.appliesTo, coupon.minimumSubtotalCents, coupon.maximumDiscountCents, coupon.usageLimit, coupon.perCustomerLimit, coupon.startsAt, coupon.expiresAt, coupon.active ? 1 : 0),
+    ...coupon.productIds.map((productId) => d1.prepare("INSERT INTO coupon_products (coupon_id, product_id) VALUES (?, ?)").bind(id, productId)),
+  ]);
+  await writeAudit(session.userId, "coupon.created", "coupon", id, { code: coupon.code });
+}
+
+export async function updateCoupon(session: AdminSession, payload: Record<string, unknown>) {
+  const id = textValue(payload.id, "o cupom", 80);
+  const current = await getD1().prepare("SELECT id FROM coupons WHERE id = ?").bind(id).first();
+  if (!current) throw new Error("Cupom não encontrado.");
+  const coupon = await validateCoupon(payload, id);
+  const d1 = getD1();
+  await d1.batch([
+    d1.prepare("UPDATE coupons SET code = ?, name = ?, description = ?, discount_type = ?, discount_value = ?, free_shipping = ?, applies_to = ?, minimum_subtotal_cents = ?, maximum_discount_cents = ?, usage_limit = ?, per_customer_limit = ?, starts_at = ?, expires_at = ?, active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+      .bind(coupon.code, coupon.name, coupon.description, coupon.discountType, coupon.discountValue, coupon.freeShipping ? 1 : 0, coupon.appliesTo, coupon.minimumSubtotalCents, coupon.maximumDiscountCents, coupon.usageLimit, coupon.perCustomerLimit, coupon.startsAt, coupon.expiresAt, coupon.active ? 1 : 0, id),
+    d1.prepare("DELETE FROM coupon_products WHERE coupon_id = ?").bind(id),
+    ...coupon.productIds.map((productId) => d1.prepare("INSERT INTO coupon_products (coupon_id, product_id) VALUES (?, ?)").bind(id, productId)),
+  ]);
+  await writeAudit(session.userId, "coupon.updated", "coupon", id, { code: coupon.code });
+}
+
+export async function setCouponActive(session: AdminSession, couponId: string, active: boolean) {
+  const result = await getD1().prepare("UPDATE coupons SET active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(active ? 1 : 0, couponId).run();
+  if (!result.meta.changes) throw new Error("Cupom não encontrado.");
+  await writeAudit(session.userId, active ? "coupon.activated" : "coupon.disabled", "coupon", couponId);
+}
+
+export async function deleteCoupon(session: AdminSession, couponId: string) {
+  const coupon = await getD1().prepare("SELECT code, usage_count FROM coupons WHERE id = ?").bind(couponId).first<{ code: string; usage_count: number }>();
+  if (!coupon) throw new Error("Cupom não encontrado.");
+  if (Number(coupon.usage_count) > 0) throw new Error("Este cupom já foi utilizado. Desative-o para preservar o histórico.");
+  await getD1().batch([
+    getD1().prepare("DELETE FROM coupon_products WHERE coupon_id = ?").bind(couponId),
+    getD1().prepare("DELETE FROM coupons WHERE id = ?").bind(couponId),
+  ]);
+  await writeAudit(session.userId, "coupon.deleted", "coupon", couponId, { code: coupon.code });
+}
+
+function validateReview(payload: Record<string, unknown>) {
+  return {
+    customerName: textValue(payload.customerName, "o nome da cliente", 80),
+    location: textValue(payload.location, "a cidade", 80, false),
+    rating: integerValue(payload.rating, "A nota", 0, 5),
+    body: textValue(payload.body, "o texto da avaliação", 500),
+    productName: textValue(payload.productName, "o produto", 120, false),
+    active: payload.active !== false,
+  };
+}
+
+export async function createReview(session: AdminSession, payload: Record<string, unknown>) {
+  const total = await getD1().prepare("SELECT COUNT(*) AS total FROM homepage_reviews").first<{ total: number }>();
+  if (Number(total?.total ?? 0) >= 50) throw new Error("O painel aceita no máximo 50 avaliações.");
+  const review = validateReview(payload);
+  const id = `review_${crypto.randomUUID()}`;
+  const position = await getD1().prepare("SELECT COALESCE(MAX(sort_order), 0) + 1 AS next FROM homepage_reviews").first<{ next: number }>();
+  await getD1().prepare("INSERT INTO homepage_reviews (id, customer_name, location, rating, body, product_name, active, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(id, review.customerName, review.location, review.rating, review.body, review.productName, review.active ? 1 : 0, Number(position?.next ?? 1)).run();
+  await writeAudit(session.userId, "review.created", "review", id, { customerName: review.customerName });
+}
+
+export async function updateReview(session: AdminSession, payload: Record<string, unknown>) {
+  const id = textValue(payload.id, "a avaliação", 80);
+  const review = validateReview(payload);
+  const result = await getD1().prepare("UPDATE homepage_reviews SET customer_name = ?, location = ?, rating = ?, body = ?, product_name = ?, active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+    .bind(review.customerName, review.location, review.rating, review.body, review.productName, review.active ? 1 : 0, id).run();
+  if (!result.meta.changes) throw new Error("Avaliação não encontrada.");
+  await writeAudit(session.userId, "review.updated", "review", id, { customerName: review.customerName });
+}
+
+export async function setReviewActive(session: AdminSession, reviewId: string, active: boolean) {
+  const result = await getD1().prepare("UPDATE homepage_reviews SET active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(active ? 1 : 0, reviewId).run();
+  if (!result.meta.changes) throw new Error("Avaliação não encontrada.");
+  await writeAudit(session.userId, active ? "review.published" : "review.hidden", "review", reviewId);
+}
+
+export async function reorderReviews(session: AdminSession, orderedIds: unknown) {
+  if (!Array.isArray(orderedIds) || orderedIds.length > 50 || orderedIds.some((id) => typeof id !== "string")) throw new Error("Ordem de avaliações inválida.");
+  const ids = [...new Set(orderedIds as string[])];
+  const total = await getD1().prepare("SELECT COUNT(*) AS total FROM homepage_reviews").first<{ total: number }>();
+  if (ids.length !== Number(total?.total ?? 0)) throw new Error("Atualize a página e tente novamente.");
+  await getD1().batch(ids.map((id, index) => getD1().prepare("UPDATE homepage_reviews SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(index + 1, id)));
+  await writeAudit(session.userId, "review.reordered", "review", null, { orderedIds: ids });
+}
+
+export async function deleteReview(session: AdminSession, reviewId: string) {
+  const result = await getD1().prepare("DELETE FROM homepage_reviews WHERE id = ?").bind(reviewId).run();
+  if (!result.meta.changes) throw new Error("Avaliação não encontrada.");
+  await writeAudit(session.userId, "review.deleted", "review", reviewId);
+}
+
+
+/** Define quais joias aparecem como spoiler na tela de lançamento (até 6, na ordem escolhida). */
+export async function saveLaunchTeasers(session: AdminSession, value: unknown) {
+  const ids = Array.isArray(value) ? [...new Set(value.map((item) => String(item ?? "").trim()).filter(Boolean))] : [];
+  if (ids.length > MAX_LAUNCH_TEASERS) throw new Error(`Escolha no máximo ${MAX_LAUNCH_TEASERS} joias para o spoiler.`);
+  const d1 = getD1();
+  if (ids.length) {
+    const found = await d1.prepare(`SELECT id FROM products WHERE active = 1 AND id IN (${ids.map(() => "?").join(",")})`).bind(...ids).all<{ id: string }>();
+    if (found.results.length !== ids.length) throw new Error("Uma das joias escolhidas não está mais ativa. Atualize a página.");
+  }
+  await d1.prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP")
+    .bind(LAUNCH_TEASER_SETTING, JSON.stringify(ids))
+    .run();
+  await writeAudit(session.userId, "launch.teasers_updated", "site_settings", LAUNCH_TEASER_SETTING, { count: ids.length });
+}
+
+export async function sendLaunchTest(session: AdminSession) {
+  await sendLaunchTestEmail(session.email);
+  await writeAudit(session.userId, "launch.test_email_sent", "launch", "test");
 }

@@ -14,6 +14,7 @@ const allowedTypes = new Map([
 
 // Átomos aceitos no início de MP4 e dos .MOV gravados pelo iPhone.
 const videoAtoms = ["ftyp", "moov", "mdat", "wide", "free", "skip"];
+const maximumRequestBytes = 81 * 1024 * 1024;
 
 async function hasValidSignature(file: File) {
   const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
@@ -45,6 +46,10 @@ export async function POST(request: Request) {
     const session = await requireAdminSession(request);
     await enforceRateLimit(request, "admin.media", 20, 10 * 60, session.userId);
     if (!env.MEDIA) throw new Error("O armazenamento de imagens ainda não foi configurado.");
+    const declaredLength = Number(request.headers.get("content-length") ?? 0);
+    if (Number.isFinite(declaredLength) && declaredLength > maximumRequestBytes) {
+      throw new Error("O envio precisa ter no máximo 80 MB.");
+    }
     const form = await request.formData();
     const file = form.get("file");
     const context = String(form.get("context") ?? "");

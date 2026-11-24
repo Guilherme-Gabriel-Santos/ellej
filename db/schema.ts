@@ -22,21 +22,29 @@ export const products = sqliteTable(
     media: text("media").notNull().default("[]"),
     catalogData: text("catalog_data").notNull().default("{}"),
     variants: text("variants").notNull().default("[]"),
+    multiOptionsEnabled: integer("multi_options_enabled", { mode: "boolean" }).notNull().default(false),
+    optionGroups: text("option_groups").notNull().default("[]"),
     visibility: text("visibility").notNull().default("visible"),
     trackStock: integer("track_stock", { mode: "boolean" }).notNull().default(true),
     priceVisible: integer("price_visible", { mode: "boolean" }).notNull().default(true),
     freeShipping: integer("free_shipping", { mode: "boolean" }).notNull().default(false),
+    pixDiscountEnabled: integer("pix_discount_enabled", { mode: "boolean" }).notNull().default(false),
+    pixDiscountPercent: integer("pix_discount_percent").notNull().default(0),
+    personalizationEnabled: integer("personalization_enabled", { mode: "boolean" }).notNull().default(false),
+    personalizationMaxChars: integer("personalization_max_chars").notNull().default(20),
     badge: text("badge"),
     priceCents: integer("price_cents").notNull(),
     compareAtCents: integer("compare_at_cents"),
     stock: integer("stock").notNull().default(0),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     featured: integer("featured", { mode: "boolean" }).notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
     uniqueIndex("idx_products_slug").on(table.slug),
     index("idx_products_category_active").on(table.category, table.active),
+    index("idx_products_storefront_sort").on(table.active, table.visibility, table.sortOrder),
   ],
 );
 
@@ -115,11 +123,12 @@ export const cartItems = sqliteTable(
     visitorId: text("visitor_id").notNull(),
     productId: text("product_id").notNull(),
     variantId: text("variant_id").notNull().default(""),
+    personalizationText: text("personalization_text").notNull().default(""),
     quantity: integer("quantity").notNull().default(1),
     updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [
-    primaryKey({ columns: [table.visitorId, table.productId, table.variantId] }),
+    primaryKey({ columns: [table.visitorId, table.productId, table.variantId, table.personalizationText] }),
     index("idx_cart_items_visitor_id").on(table.visitorId),
   ],
 );
@@ -129,6 +138,7 @@ export const orders = sqliteTable(
   {
     id: text("id").primaryKey(),
     visitorId: text("visitor_id").notNull(),
+    customerId: text("customer_id"),
     customerName: text("customer_name").notNull(),
     email: text("email").notNull(),
     phone: text("phone").notNull(),
@@ -146,15 +156,22 @@ export const orders = sqliteTable(
     subtotalCents: integer("subtotal_cents").notNull(),
     shippingCents: integer("shipping_cents").notNull(),
     discountCents: integer("discount_cents").notNull().default(0),
+    pixDiscountCents: integer("pix_discount_cents").notNull().default(0),
+    couponCode: text("coupon_code"),
+    couponDiscountCents: integer("coupon_discount_cents").notNull().default(0),
+    shippingDiscountCents: integer("shipping_discount_cents").notNull().default(0),
     totalCents: integer("total_cents").notNull(),
     status: text("status").notNull().default("aguardando_pagamento"),
     stockCommitted: integer("stock_committed", { mode: "boolean" }).notNull().default(false),
+    stockIssue: integer("stock_issue", { mode: "boolean" }).notNull().default(false),
     paymentProvider: text("payment_provider"),
     paymentPreferenceId: text("payment_preference_id"),
     paymentId: text("payment_id"),
     paymentStatus: text("payment_status"),
     paymentCheckoutUrl: text("payment_checkout_url"),
     paymentUpdatedAt: text("payment_updated_at"),
+    marketingConsent: integer("marketing_consent", { mode: "boolean" }).notNull().default(false),
+    metaPurchaseSentAt: text("meta_purchase_sent_at"),
     superfreteServiceId: text("superfrete_service_id"),
     superfreteServiceName: text("superfrete_service_name"),
     superfreteDeliveryDays: integer("superfrete_delivery_days"),
@@ -170,6 +187,7 @@ export const orders = sqliteTable(
   },
   (table) => [
     index("idx_orders_visitor_id_created_at").on(table.visitorId, table.createdAt),
+    index("idx_orders_customer_id_created_at").on(table.customerId, table.createdAt),
     index("idx_orders_email").on(table.email),
     index("idx_orders_payment_preference_id").on(table.paymentPreferenceId),
     index("idx_orders_payment_id").on(table.paymentId),
@@ -186,10 +204,118 @@ export const orderItems = sqliteTable(
     productName: text("product_name").notNull(),
     variantId: text("variant_id"),
     variantLabel: text("variant_label"),
+    personalizationText: text("personalization_text").notNull().default(""),
     unitPriceCents: integer("unit_price_cents").notNull(),
     quantity: integer("quantity").notNull(),
   },
   (table) => [index("idx_order_items_order_id").on(table.orderId)],
+);
+
+export const customerUsers = sqliteTable(
+  "customer_users",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone").notNull().default(""),
+    passwordHash: text("password_hash").notNull(),
+    passwordSalt: text("password_salt").notNull(),
+    emailVerifiedAt: text("email_verified_at"),
+    failedAttempts: integer("failed_attempts").notNull().default(0),
+    lockedUntil: integer("locked_until"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [uniqueIndex("idx_customer_users_email").on(table.email)],
+);
+
+export const customerEmailChallenges = sqliteTable(
+  "customer_email_challenges",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    kind: text("kind").notNull(),
+    codeHash: text("code_hash").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    consumedAt: integer("consumed_at"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_customer_challenges_user_kind_expires").on(table.userId, table.kind, table.expiresAt)],
+);
+
+export const customerSessions = sqliteTable(
+  "customer_sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    userId: text("user_id").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    lastSeenAt: integer("last_seen_at").notNull(),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_customer_sessions_user_expires").on(table.userId, table.expiresAt)],
+);
+
+export const homepageReviews = sqliteTable(
+  "homepage_reviews",
+  {
+    id: text("id").primaryKey(),
+    customerName: text("customer_name").notNull(),
+    location: text("location").notNull().default(""),
+    rating: integer("rating").notNull().default(5),
+    body: text("body").notNull(),
+    productName: text("product_name").notNull().default(""),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_homepage_reviews_active_sort").on(table.active, table.sortOrder)],
+);
+
+export const coupons = sqliteTable(
+  "coupons",
+  {
+    id: text("id").primaryKey(),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    discountType: text("discount_type").notNull().default("none"),
+    discountValue: integer("discount_value").notNull().default(0),
+    freeShipping: integer("free_shipping", { mode: "boolean" }).notNull().default(false),
+    appliesTo: text("applies_to").notNull().default("all"),
+    minimumSubtotalCents: integer("minimum_subtotal_cents").notNull().default(0),
+    maximumDiscountCents: integer("maximum_discount_cents"),
+    usageLimit: integer("usage_limit"),
+    usageCount: integer("usage_count").notNull().default(0),
+    perCustomerLimit: integer("per_customer_limit"),
+    startsAt: text("starts_at"),
+    expiresAt: text("expires_at"),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [uniqueIndex("idx_coupons_code").on(table.code), index("idx_coupons_active_dates").on(table.active, table.startsAt, table.expiresAt)],
+);
+
+export const couponProducts = sqliteTable(
+  "coupon_products",
+  {
+    couponId: text("coupon_id").notNull(),
+    productId: text("product_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.couponId, table.productId] }), index("idx_coupon_products_product").on(table.productId, table.couponId)],
+);
+
+export const couponRedemptions = sqliteTable(
+  "coupon_redemptions",
+  {
+    couponId: text("coupon_id").notNull(),
+    orderId: text("order_id").notNull(),
+    customerId: text("customer_id"),
+    redeemedAt: text("redeemed_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [primaryKey({ columns: [table.couponId, table.orderId] }), uniqueIndex("idx_coupon_redemptions_order").on(table.orderId), index("idx_coupon_redemptions_customer").on(table.couponId, table.customerId)],
 );
 
 export const paymentWebhookEvents = sqliteTable(
@@ -253,6 +379,62 @@ export const adminSessions = sqliteTable(
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [index("idx_admin_sessions_user_expires").on(table.userId, table.expiresAt)],
+);
+
+export const orderNotificationEvents = sqliteTable(
+  "order_notification_events",
+  {
+    orderId: text("order_id").notNull(),
+    eventType: text("event_type").notNull(),
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    providerId: text("provider_id"),
+    lastError: text("last_error"),
+    lockedAt: text("locked_at"),
+    sentAt: text("sent_at"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    primaryKey({ columns: [table.orderId, table.eventType] }),
+    index("idx_order_notification_events_pending").on(table.status, table.sentAt, table.updatedAt),
+  ],
+);
+
+export const adminPasskeys = sqliteTable(
+  "admin_passkeys",
+  {
+    credentialId: text("credential_id").primaryKey(),
+    userId: text("user_id").notNull(),
+    publicKey: text("public_key").notNull(),
+    webauthnUserId: text("webauthn_user_id").notNull(),
+    counter: integer("counter").notNull().default(0),
+    deviceType: text("device_type").notNull(),
+    backedUp: integer("backed_up", { mode: "boolean" }).notNull().default(false),
+    transports: text("transports").notNull().default("[]"),
+    label: text("label").notNull().default("Face ID"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    lastUsedAt: text("last_used_at"),
+  },
+  (table) => [index("idx_admin_passkeys_user_created").on(table.userId, table.createdAt)],
+);
+
+export const adminPasskeyChallenges = sqliteTable(
+  "admin_passkey_challenges",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id"),
+    kind: text("kind").notNull(),
+    challenge: text("challenge").notNull(),
+    webauthnUserId: text("webauthn_user_id"),
+    origin: text("origin").notNull(),
+    rpId: text("rp_id").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    consumedAt: integer("consumed_at"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("idx_admin_passkey_challenges_user_expires").on(table.userId, table.expiresAt)],
 );
 
 export const adminAuditLogs = sqliteTable(

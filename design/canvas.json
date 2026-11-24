@@ -1,0 +1,46 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 1580, "title": "Direção A · Editorial Didone" },
+    { "file": "DirecaoB.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 1580, "title": "Direção B · Joalheria Gravada" },
+    { "file": "DirecaoC.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 1580, "title": "Direção C · Grotesca Catálogo" },
+    { "file": "Mobile.dc.html", "x": 4680, "y": 0, "w": 390, "h": 1780, "title": "Celular · Direção A" }
+  ],
+  "annotations": [
+    {
+      "id": "diagnostico",
+      "x": 0,
+      "y": -430,
+      "w": 620,
+      "text": "O QUE DAVA A CARA DE IA HOJE\n\n1. A dupla Cormorant Garamond + Plus Jakarta Sans — é o par mais usado por IA em site de luxo.\n2. O selinho com tracinho dourado repetido em toda seção.\n3. Blocos empilhados, todos do mesmo tamanho e centralizados.\n4. Fade-up de baixo pra cima como única ideia de movimento.\n\nAs cores estão exatamente as mesmas nas três direções — mexi só em tipografia, composição e movimento."
+    },
+    {
+      "id": "dir-a",
+      "x": 0,
+      "y": -200,
+      "w": 620,
+      "text": "DIREÇÃO A · EDITORIAL DIDONE — minha recomendação\n\nBodoni Moda no display + Jost na interface. Composição assimétrica: o título ocupa a esquerda inteira, a foto entra sangrada à direita, filete dourado vertical e ticker de categorias correndo.\n\nPor quê: é a que mais foge do template sem perder o ar caro — linguagem de revista de moda, que é exatamente o território de joalheria.\n\nContra: exige foto boa em toda peça, e título grande em português quebra em telas médias — precisa de ajuste fino nos tamanhos."
+    },
+    {
+      "id": "dir-b",
+      "x": 1560,
+      "y": -200,
+      "w": 620,
+      "text": "DIREÇÃO B · JOALHERIA GRAVADA\n\nItaliana no display + Commissioner no texto. Eixo central cerimonial, capitulares bem espaçadas, filetes finos que se abrem do centro, foto em tela cheia sob véu escuro.\n\nPor quê: é a mais 'alta joalheria tradicional' — território Cartier/Tiffany. O traço fino da Italiana entrega sofisticação na hora.\n\nContra: tem menos impacto no celular, e traço muito fino some em tela pequena e na exportação em PDF."
+    },
+    {
+      "id": "dir-c",
+      "x": 3120,
+      "y": -200,
+      "w": 620,
+      "text": "DIREÇÃO C · GROTESCA CATÁLOGO\n\nArchivo no display + Space Mono nos dados. Sem serifa nenhuma, grade visível na página, código em cada produto, tudo em caixa-alta e bem apertado.\n\nPor quê: parece marca nova de joalheria (linha Mejuri) — moderno, confiante e muito fotogênico pro Instagram.\n\nContra: pode ler moderno demais pro público de alta joalheria da Elle Jew — é a aposta mais arriscada das três."
+    },
+    {
+      "id": "mobile-a",
+      "x": 4680,
+      "y": -200,
+      "w": 460,
+      "text": "CELULAR · DIREÇÃO A\n\nÉ onde suas clientes realmente compram — por isso desenhei a recomendação também no celular.\n\nTítulo em 52px, foto em corte cheio logo abaixo, botões de 54px de altura (dedo alcança bem) e produtos dois a dois. Os dois tickers continuam correndo."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

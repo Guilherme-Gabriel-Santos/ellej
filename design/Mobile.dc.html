@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&amp;family=Jost:wght@300;400;500;600&amp;display=swap" />
+  <style>
+    body { margin: 0; background: #f7f4ed; }
+    a { color: #101820; } a:hover { color: #c39a55; }
+
+    .rise-mask { display: block; overflow: hidden; }
+    .rise-mask > span { display: block; transform: translateY(106%); animation: rise 1000ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes rise { to { transform: translateY(0); } }
+
+    .fade-up { opacity: 0; transform: translateY(18px); animation: fadeup 850ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes fadeup { to { opacity: 1; transform: translateY(0); } }
+
+    .curtain { clip-path: inset(0 0 100% 0); animation: curtain 1300ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes curtain { to { clip-path: inset(0 0 0 0); } }
+
+    .settle { animation: settle 1700ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes settle { from { transform: scale(1.08); } to { transform: scale(1); } }
+
+    .drawx { transform: scaleX(0); transform-origin: left center; animation: drawx 850ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes drawx { to { transform: scaleX(1); } }
+
+    .ticker { display: flex; width: max-content; animation: ticker 26s linear infinite; }
+    @keyframes ticker { to { transform: translateX(-50%); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .rise-mask > span, .fade-up, .curtain, .settle, .drawx, .ticker { animation: none; }
+      .rise-mask > span { transform: none; }
+      .fade-up { opacity: 1; transform: none; }
+      .curtain { clip-path: none; }
+      .drawx { transform: scaleX(1); }
+    }
+  </style>
+</helmet>
+
+<div style="width: 390px; background: #f7f4ed; font-family: 'Jost', system-ui, sans-serif; color: #0b1116; overflow: hidden">
+
+  <div style="height: 34px; background: #101820; color: #fbf3df; display: flex; align-items: center; overflow: hidden">
+    <div class="ticker">
+      <div style="display: flex; align-items: center; gap: 30px; padding-right: 30px; font-size: 9px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap">
+        <span>Frete grátis &gt; R$399</span><span style="color: #c39a55">✦</span>
+        <span>6x sem juros</span><span style="color: #c39a55">✦</span>
+        <span>5% OFF no Pix</span><span style="color: #c39a55">✦</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 30px; padding-right: 30px; font-size: 9px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap">
+        <span>Frete grátis &gt; R$399</span><span style="color: #c39a55">✦</span>
+        <span>6x sem juros</span><span style="color: #c39a55">✦</span>
+        <span>5% OFF no Pix</span><span style="color: #c39a55">✦</span>
+      </div>
+    </div>
+  </div>
+
+  <header style="height: 60px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(15, 20, 26, 0.14)">
+    <button style="width: 44px; height: 44px; margin-left: -12px; border: 0; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="#101820" stroke-width="1.2"><path d="M0 1h20M0 7h20M0 13h13" /></svg>
+    </button>
+    <div style="font-family: 'Bodoni Moda', Georgia, serif; font-size: 20px; font-weight: 500; letter-spacing: 0.3em; color: #101820; padding-left: 0.3em">ELLE JEW</div>
+    <button style="width: 44px; height: 44px; margin-right: -12px; border: 0; background: none; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <svg width="19" height="20" viewBox="0 0 19 20" fill="none" stroke="#101820" stroke-width="1.2"><path d="M1 6h17l-1.4 13H2.4L1 6Z" /><path d="M6 6V4.6A3.6 3.6 0 0 1 13 4.6V6" /></svg>
+    </button>
+  </header>
+
+  <section style="padding: 40px 18px 34px">
+    <div style="display: flex; align-items: center; gap: 11px; margin-bottom: 22px">
+      <span class="drawx" style="display: block; width: 40px; height: 1px; background: #c39a55"></span>
+      <span class="fade-up" style="font-size: 8px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(15, 20, 26, 0.68)">Alta joalheria em prata</span>
+    </div>
+
+    <h1 style="margin: 0; font-family: 'Bodoni Moda', Georgia, serif; font-weight: 500; font-size: 52px; line-height: 0.86; letter-spacing: -0.03em; color: #101820">
+      <span class="rise-mask"><span>A elegância</span></span>
+      <span class="rise-mask"><span style="animation-delay: 100ms">que <em style="font-weight: 400">eterniza</em></span></span>
+      <span class="rise-mask"><span style="animation-delay: 200ms; padding-left: 0.12em">momentos.</span></span>
+    </h1>
+
+    <p class="fade-up" style="margin: 22px 0 0; font-size: 14px; font-weight: 300; line-height: 1.62; color: rgba(15, 20, 26, 0.68); animation-delay: 460ms">Prata 925 com moissanites lapidadas à mão. Feitas para durar mais que a ocasião.</p>
+  </section>
+
+  <div class="curtain" style="position: relative; height: 400px; overflow: hidden; background: #f5f1e9">
+    <img class="settle" src="editorial-silver.webp" alt="Modelo com colar e bracelete Elle Jew em prata 925" style="width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%" />
+    <div style="position: absolute; left: 14px; bottom: 14px; padding: 11px 14px; background: rgba(16, 24, 32, 0.95); color: #fbf3df">
+      <div style="font-size: 8px; font-weight: 500; letter-spacing: 0.24em; text-transform: uppercase; color: #c39a55">Em destaque</div>
+      <div style="margin-top: 5px; font-family: 'Bodoni Moda', Georgia, serif; font-size: 16px">Riviera 3mm · 12.8ct</div>
+    </div>
+  </div>
+
+  <div style="padding: 22px 18px 30px; display: flex; flex-direction: column; gap: 11px">
+    <a href="#" style="display: flex; align-items: center; justify-content: center; height: 54px; background: #101820; color: #fbf3df; font-size: 10px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase">Ver coleção completa</a>
+    <a href="#" style="display: flex; align-items: center; justify-content: center; gap: 10px; height: 54px; border: 1px solid rgba(195, 154, 85, 0.32); color: #101820; font-size: 10px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase">Mais vendidos
+      <svg width="15" height="8" viewBox="0 0 16 8" fill="none" stroke="#c39a55" stroke-width="1"><path d="M0 4h14M11 1l3.2 3-3.2 3" /></svg>
+    </a>
+  </div>
+
+  <section style="height: 68px; display: flex; align-items: center; border-top: 1px solid rgba(15, 20, 26, 0.14); border-bottom: 1px solid rgba(15, 20, 26, 0.14); background: #f5f1e9; overflow: hidden">
+    <div class="ticker" style="animation-duration: 30s">
+      <div style="display: flex; align-items: center; gap: 26px; padding-right: 26px; font-family: 'Bodoni Moda', Georgia, serif; font-size: 29px; color: #101820; white-space: nowrap">
+        <span>Colares</span><span style="color: #c39a55; font-size: 12px">✦</span>
+        <span style="font-style: italic">Rivieras</span><span style="color: #c39a55; font-size: 12px">✦</span>
+        <span>Brincos</span><span style="color: #c39a55; font-size: 12px">✦</span>
+        <span style="font-style: italic">Anéis</span><span style="color: #c39a55; font-size: 12px">✦</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 26px; padding-right: 26px; font-family: 'Bodoni Moda', Georgia, serif; font-size: 29px; color: #101820; white-space: nowrap">
+        <span>Colares</span><span style="color: #c39a55; font-size: 12px">✦</span>
+        <span style="font-style: italic">Rivieras</span><span style="color: #c39a55; font-size: 12px">✦</span>
+        <span>Brincos</span><span style="color: #c39a55; font-size: 12px">✦</span>
+        <span style="font-style: italic">Anéis</span><span style="color: #c39a55; font-size: 12px">✦</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 38px 18px 0">
+    <div style="display: flex; align-items: baseline; gap: 13px; margin-bottom: 24px">
+      <span style="font-family: 'Bodoni Moda', Georgia, serif; font-size: 13px; font-style: italic; color: #c39a55">02</span>
+      <h2 style="margin: 0; font-family: 'Bodoni Moda', Georgia, serif; font-weight: 500; font-size: 34px; line-height: 1; letter-spacing: -0.02em; color: #101820">Seleção da casa</h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px">
+
+      <article class="fade-up" style="display: flex; flex-direction: column; animation-delay: 160ms">
+        <div style="position: relative; aspect-ratio: 1 / 1.16; overflow: hidden; background: #f5f1e9">
+          <img src="choker-coracoes.webp" alt="Chocker Corações em prata 925" style="width: 100%; height: 100%; object-fit: cover" />
+          <span style="position: absolute; top: 9px; left: 9px; font-family: 'Bodoni Moda', Georgia, serif; font-size: 11px; font-style: italic; color: #fbf3df; text-shadow: 0 1px 6px rgba(16, 24, 32, 0.95)">01</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 12px; margin-top: 12px; border-top: 1px solid rgba(15, 20, 26, 0.14)">
+          <h3 style="margin: 0; font-family: 'Bodoni Moda', Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.15; color: #101820">Chocker Corações</h3>
+          <span style="font-size: 13px; font-weight: 500; color: #101820">R$ 535,00</span>
+        </div>
+      </article>
+
+      <article class="fade-up" style="display: flex; flex-direction: column; animation-delay: 240ms">
+        <div style="position: relative; aspect-ratio: 1 / 1.16; overflow: hidden; background: #f5f1e9">
+          <img src="colar-ponto-luz.webp" alt="Colar Ponto Luz em prata 925" style="width: 100%; height: 100%; object-fit: cover" />
+          <span style="position: absolute; top: 9px; left: 9px; font-family: 'Bodoni Moda', Georgia, serif; font-size: 11px; font-style: italic; color: #fbf3df; text-shadow: 0 1px 6px rgba(16, 24, 32, 0.95)">02</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 12px; margin-top: 12px; border-top: 1px solid rgba(15, 20, 26, 0.14)">
+          <h3 style="margin: 0; font-family: 'Bodoni Moda', Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.15; color: #101820">Colar Ponto Luz</h3>
+          <span style="font-size: 13px; font-weight: 500; color: #101820">R$ 285,00</span>
+        </div>
+      </article>
+
+      <article class="fade-up" style="display: flex; flex-direction: column; animation-delay: 320ms">
+        <div style="position: relative; aspect-ratio: 1 / 1.16; overflow: hidden; background: #f5f1e9">
+          <img src="conjunto-ametista.webp" alt="Conjunto Ametista em prata 925" style="width: 100%; height: 100%; object-fit: cover" />
+          <span style="position: absolute; top: 9px; left: 9px; font-family: 'Bodoni Moda', Georgia, serif; font-size: 11px; font-style: italic; color: #fbf3df; text-shadow: 0 1px 6px rgba(16, 24, 32, 0.95)">03</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 12px; margin-top: 12px; border-top: 1px solid rgba(15, 20, 26, 0.14)">
+          <h3 style="margin: 0; font-family: 'Bodoni Moda', Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.15; color: #101820">Conjunto Ametista</h3>
+          <span style="font-size: 13px; font-weight: 500; color: #101820">R$ 298,00</span>
+        </div>
+      </article>
+
+      <article class="fade-up" style="display: flex; flex-direction: column; animation-delay: 400ms">
+        <div style="position: relative; aspect-ratio: 1 / 1.16; overflow: hidden; background: #f5f1e9">
+          <img src="ear-cuff.webp" alt="Piercing Ear Cuff em prata 925" style="width: 100%; height: 100%; object-fit: cover" />
+          <span style="position: absolute; top: 9px; left: 9px; font-family: 'Bodoni Moda', Georgia, serif; font-size: 11px; font-style: italic; color: #fbf3df; text-shadow: 0 1px 6px rgba(16, 24, 32, 0.95)">04</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 12px; margin-top: 12px; border-top: 1px solid rgba(15, 20, 26, 0.14)">
+          <h3 style="margin: 0; font-family: 'Bodoni Moda', Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.15; color: #101820">Piercing Ear Cuff</h3>
+          <span style="font-size: 13px; font-weight: 500; color: #101820">R$ 249,90</span>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section style="margin-top: 34px; padding: 24px 18px 34px; border-top: 1px solid rgba(15, 20, 26, 0.14); display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span style="font-family: 'Bodoni Moda', Georgia, serif; font-size: 19px; color: #101820; min-width: 96px">Prata 925</span>
+      <span style="font-size: 11px; font-weight: 300; color: rgba(15, 20, 26, 0.68)">Legítima, com garantia de 1 ano</span>
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span style="font-family: 'Bodoni Moda', Georgia, serif; font-size: 19px; color: #101820; min-width: 96px">Envio 24h</span>
+      <span style="font-size: 11px; font-weight: 300; color: rgba(15, 20, 26, 0.68)">Peças em estoque</span>
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span style="font-family: 'Bodoni Moda', Georgia, serif; font-size: 19px; color: #101820; min-width: 96px">@ellejew_</span>
+      <span style="font-size: 11px; font-weight: 300; color: rgba(15, 20, 26, 0.68)">Bastidores no Instagram</span>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

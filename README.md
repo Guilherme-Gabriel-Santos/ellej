@@ -6,7 +6,7 @@ Loja de joias construída para Cloudflare Workers, com:
 - banco D1 para produtos, pedidos e clientes;
 - bucket R2 para fotos cadastradas pelo painel;
 - `/admin` com cadastro guiado de produtos, estoque e gestão de pedidos;
-- login administrativo com senha e código de seis dígitos por e-mail;
+- painel instalável no iPhone, com login por senha/código ou Face ID após o cadastro da passkey;
 - sessões protegidas, limite de tentativas e registro de alterações.
 
 ## Desenvolvimento
@@ -28,6 +28,6 @@ produção.
 
 O roteiro completo está em [CLOUDFLARE.md](./CLOUDFLARE.md).
 
-> O checkout atual registra o pedido e encaminha a cliente para as instruções de
-> pagamento. A confirmação automática de Pix/cartão depende da futura conexão
-> com Mercado Pago e do webhook de pagamento.
+> O checkout usa a página hospedada do Asaas para Pix e cartão. O retorno da página de
+> pagamento é apenas informativo; a aprovação e a atualização do pedido são
+> confirmadas pelo webhook autenticado do Asaas.
