@@ -524,17 +524,19 @@ test("só ativa mensuração da Meta após consentimento", async () => {
 });
 
 test("fecha toda a vitrine até o lançamento sem bloquear o painel", async () => {
-  const [worker, launchPage, config] = await Promise.all([
+  const [worker, launchPage, config, vipAccess] = await Promise.all([
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../worker/launch-page.ts", import.meta.url), "utf8"),
     readFile(new URL("../wrangler.cloudflare.jsonc", import.meta.url), "utf8"),
+    readFile(new URL("../lib/vip-access.ts", import.meta.url), "utf8"),
   ]);
-  assert.match(config, /"LAUNCH_AT": "2026-11-26T22:00:00\.000Z"/);
+  assert.match(config, /"LAUNCH_AT": "2026-11-27T12:00:00\.000Z"/);
   assert.match(config, /"VIP_LAUNCH_AT": "2026-11-26T22:00:00\.000Z"/);
   assert.match(worker, /launchIsActive\(env\)/);
   assert.match(worker, /VIP_ACCESS_TOKEN/);
-  assert.match(worker, /__Host-ellejew_vip/);
-  assert.match(worker, /HttpOnly; Secure; SameSite=Lax/);
+  assert.match(vipAccess, /__Host-ellejew_vip/);
+  assert.match(vipAccess, /HttpOnly; Secure; SameSite=Lax/);
+  assert.match(worker, /"\/api\/vip-access"/);
   assert.match(worker, /"\/api\/admin"/);
   assert.match(worker, /"\/api\/payments\/asaas"/);
   assert.match(worker, /renderPrelaunchUnavailable/);

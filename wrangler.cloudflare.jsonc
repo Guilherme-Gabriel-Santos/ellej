@@ -41,7 +41,7 @@
     "TURNSTILE_SITE_KEY": "0x4AAAAAAEuwg2tI0Ihja9px",
     "TURNSTILE_HOSTNAMES": "ellejew.com.br,www.ellejew.com.br",
     "VIP_LAUNCH_AT": "2026-11-26T22:00:00.000Z",
-    "LAUNCH_AT": "2026-11-26T22:00:00.000Z"
+    "LAUNCH_AT": "2026-11-27T12:00:00.000Z"
   },
   "assets": {
     "directory": "dist/client",

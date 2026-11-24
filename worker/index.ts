@@ -3,6 +3,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import { renderLaunchPage, renderPrelaunchRobots, renderPrelaunchUnavailable, type LaunchTeaser } from "./launch-page";
 import { hasStorePreviewCookie } from "../lib/store-preview";
+import { MIN_VIP_TOKEN_LENGTH, timingSafeEqualText, VIP_COOKIE_NAME, vipCookieHeader, vipCookieValue } from "../lib/vip-access";
 
 interface Env {
   ASSETS: Fetcher;
@@ -21,8 +22,6 @@ interface Env {
   };
 }
 
-const encoder = new TextEncoder();
-const vipCookieName = "__Host-ellejew_vip";
 
 const prelaunchAllowedPrefixes = [
   "/admin/",
@@ -40,6 +39,7 @@ const prelaunchAllowedFiles = new Set([
   "/admin-sw.js",
   "/admin.webmanifest",
   "/api/admin",
+  "/api/vip-access",
   "/api/jobs/retry-notifications",
   "/api/jobs/expire-pending-orders",
   "/api/jobs/launch-notify",
@@ -60,19 +60,6 @@ function timestamp(value: string | undefined) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function secureEqual(left: string, right: string) {
-  const a = encoder.encode(left);
-  const b = encoder.encode(right);
-  let mismatch = a.length ^ b.length;
-  const length = Math.max(a.length, b.length);
-  for (let index = 0; index < length; index += 1) mismatch |= (a[index] ?? 0) ^ (b[index] ?? 0);
-  return mismatch === 0;
-}
-
-async function vipCookieValue(token: string) {
-  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(`ellejew-vip:${token}`));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 
 function requestCookie(request: Request, name: string) {
   for (const part of (request.headers.get("cookie") ?? "").split(";")) {
@@ -84,8 +71,15 @@ function requestCookie(request: Request, name: string) {
 
 async function hasVipCookie(request: Request, env: Env) {
   const token = String(env.VIP_ACCESS_TOKEN ?? "");
-  if (token.length < 32) return false;
-  return secureEqual(requestCookie(request, vipCookieName), await vipCookieValue(token));
+  if (token.length < MIN_VIP_TOKEN_LENGTH) return false;
+  return timingSafeEqualText(requestCookie(request, VIP_COOKIE_NAME), await vipCookieValue(token));
+}
+
+/** Horário VIP, só quando ele é antes da abertura pública. */
+function vipEarlyAccessAt(env: Env) {
+  const vipAt = timestamp(env.VIP_LAUNCH_AT);
+  const publicAt = timestamp(env.LAUNCH_AT);
+  return vipAt !== null && publicAt !== null && vipAt < publicAt ? env.VIP_LAUNCH_AT : undefined;
 }
 
 function vipWindowIsOpen(env: Env) {
@@ -104,10 +98,8 @@ async function acceptVipLink(request: Request, url: URL, env: Env) {
     Location: url.toString(),
     "Referrer-Policy": "no-referrer",
   });
-  if (configuredToken.length >= 32 && secureEqual(suppliedToken, configuredToken)) {
-    const publicAt = timestamp(env.LAUNCH_AT) ?? Date.now() + 86_400_000;
-    const expires = new Date(publicAt + 3_600_000).toUTCString();
-    headers.set("Set-Cookie", `${vipCookieName}=${await vipCookieValue(configuredToken)}; Path=/; Expires=${expires}; HttpOnly; Secure; SameSite=Lax`);
+  if (configuredToken.length >= MIN_VIP_TOKEN_LENGTH && timingSafeEqualText(suppliedToken, configuredToken)) {
+    headers.set("Set-Cookie", await vipCookieHeader(configuredToken, env.LAUNCH_AT));
   }
   return new Response(null, { status: 302, headers });
 }
@@ -165,15 +157,21 @@ const worker = {
     const vipAuthorized = vipCookieAccepted && vipWindowIsOpen(env);
     const previewAuthorized = publicLaunchLocked && await hasStorePreviewCookie(request, env.AUTH_SECRET);
 
+    const isVipPage = url.pathname === "/vip" || url.pathname === "/vip/";
     if (vipLinkResponse) {
       response = vipLinkResponse;
+    } else if (isVipPage && (!publicLaunchLocked || vipCookieAccepted || previewAuthorized)) {
+      // Já liberada (ou loja aberta): a página da senha não é mais necessária.
+      response = new Response(null, { status: 302, headers: { Location: "/", "Cache-Control": "no-store" } });
+    } else if (isVipPage && (request.method === "GET" || request.method === "HEAD")) {
+      response = renderLaunchPage(env.LAUNCH_AT!, request.method, "public", { teasers: await launchTeasers(env), turnstileSiteKey: env.TURNSTILE_SITE_KEY, vipLaunchAt: vipEarlyAccessAt(env), openVip: true });
     } else if (publicLaunchLocked && !isAllowedBeforeLaunch(url.pathname) && !vipAuthorized && !previewAuthorized) {
       const vipAt = timestamp(env.VIP_LAUNCH_AT);
       const awaitingVipOpening = vipCookieAccepted && vipAt !== null && vipAt > Date.now();
       const target = awaitingVipOpening ? env.VIP_LAUNCH_AT! : env.LAUNCH_AT;
       if (url.pathname === "/robots.txt") response = renderPrelaunchRobots(request.method);
       else if (url.pathname.startsWith("/api/")) response = renderPrelaunchUnavailable(target, awaitingVipOpening ? "vip" : "public");
-      else if (request.method === "GET" || request.method === "HEAD") response = renderLaunchPage(target, request.method, awaitingVipOpening ? "vip" : "public", { teasers: await launchTeasers(env), turnstileSiteKey: env.TURNSTILE_SITE_KEY });
+      else if (request.method === "GET" || request.method === "HEAD") response = renderLaunchPage(target, request.method, awaitingVipOpening ? "vip" : "public", { teasers: await launchTeasers(env), turnstileSiteKey: env.TURNSTILE_SITE_KEY, vipLaunchAt: vipEarlyAccessAt(env) });
       else response = renderPrelaunchUnavailable(target, awaitingVipOpening ? "vip" : "public");
     } else if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];

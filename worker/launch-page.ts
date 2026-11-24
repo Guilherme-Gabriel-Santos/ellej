@@ -3,7 +3,7 @@ const whatsappGroup = "https://chat.whatsapp.com/DbBWIoQJrEsLQuFe2jqGzJ";
 
 type LaunchAudience = "public" | "vip";
 export type LaunchTeaser = { name: string; image: string };
-export type LaunchPageOptions = { teasers?: LaunchTeaser[]; turnstileSiteKey?: string };
+export type LaunchPageOptions = { teasers?: LaunchTeaser[]; turnstileSiteKey?: string; vipLaunchAt?: string; openVip?: boolean };
 
 const defaultTeasers: LaunchTeaser[] = [
   { image: "/brand/choker-coracoes.webp", name: "Choker" },
@@ -59,6 +59,26 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
   const chosen = (options.teasers ?? []).map((item) => ({ name: teaserLabel(item.name), image: safeImage(item.image) })).filter((item) => item.image).slice(0, 6);
   const teasers = chosen.length ? chosen : defaultTeasers;
   const siteKey = /^[0-9A-Za-z_-]{10,100}$/.test(options.turnstileSiteKey ?? "") ? options.turnstileSiteKey! : "";
+  const vipWhen = !isVip && options.vipLaunchAt ? launchParts(options.vipLaunchAt) : null;
+  const vipOpenNow = vipWhen ? Date.parse(vipWhen.iso) <= Date.now() : false;
+  const arrow = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.3 3.3a1 1 0 0 1 1.4 0l4 4a1 1 0 0 1 0 1.4l-4 4a1 1 0 1 1-1.4-1.4L11.6 9H2a1 1 0 1 1 0-2h9.6L9.3 4.7a1 1 0 0 1 0-1.4z"/></svg>`;
+  const vipBlock = vipWhen ? `
+      <div class="vip-entry">
+        <p class="vip-line">Quer ter acesso antecipado? <a href="${whatsappGroup}" target="_blank" rel="noopener noreferrer">Entre no grupo VIP!<span class="sr-only"> (WhatsApp, abre em nova aba)</span></a></p>
+        <p class="vip-line vip-when">Para quem é VIP, o acesso é liberado em <time datetime="${vipWhen.iso}">${vipWhen.short}</time>.</p>
+        <button class="vip-open" type="button" id="vip-open" aria-expanded="false" aria-controls="vip"><svg viewBox="0 0 16 20" aria-hidden="true"><path d="M8 0a5 5 0 0 0-5 5v3H2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V5a5 5 0 0 0-5-5zm-3 5a3 3 0 1 1 6 0v3H5V5z"/></svg>Tenho a senha VIP</button>
+      </div>
+      <form class="notify vip-form" id="vip" data-target="${vipWhen.iso}" novalidate hidden>
+        <h2 class="notify-title">Acesso antecipado VIP</h2>
+        <label class="notify-label" for="vip-password">Digite a senha que enviamos no grupo VIP do WhatsApp. ${vipOpenNow ? "O acesso VIP já está liberado." : `Sua entrada abre ${vipWhen.short}.`}</label>
+        <div class="notify-row">
+          <input id="vip-password" name="password" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" required placeholder="Senha VIP" aria-describedby="vip-status">
+          <button class="cta" type="submit" id="vip-submit">Entrar${arrow}</button>
+        </div>
+        <p class="notify-status" id="vip-status" role="status" aria-live="polite"></p>
+        <p class="notify-label vip-join">Ainda não está no grupo? <a href="${whatsappGroup}" target="_blank" rel="noopener noreferrer">Entrar no grupo VIP<span class="sr-only"> do WhatsApp (abre em nova aba)</span></a></p>
+        <button class="notify-back" type="button" id="vip-back">Voltar</button>
+      </form>` : "";
   const body = `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -341,6 +361,23 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
     .notify-back { display: block; margin: 14px auto 0; min-height: 44px; padding: 0 16px; border: 0; background: none; color: var(--muted); font: 500 12px "Jost", sans-serif; letter-spacing: .18em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
     .notify-back:hover { color: var(--gold-light); }
     .turnstile-box { margin-top: 12px; }
+    .vip-entry { margin-top: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; animation: rise 1s 1.55s var(--ease) both; }
+    .vip-line { margin: 0; color: var(--muted); font-size: 13px; letter-spacing: .08em; }
+    .vip-line time { color: var(--gold-light); }
+    .vip-line a { color: var(--gold-light); font-weight: 500; text-underline-offset: 3px; }
+    .vip-line a:hover { color: var(--ivory); }
+    .vip-when { margin-top: -6px; font-size: 12px; }
+    .vip-open { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 22px; border: 1px solid rgba(201, 164, 95, .55); border-radius: 999px; background: rgba(8, 8, 7, .55); color: var(--gold-light); font: 500 12px "Jost", sans-serif; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; transition: background .25s, border-color .25s; }
+    .vip-open svg { width: 12px; height: 15px; fill: currentColor; }
+    .vip-open:hover { background: rgba(201, 164, 95, .14); border-color: var(--gold); }
+    .vip-open:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+    .vip-form input[type="text"] { flex: 1; min-width: 0; min-height: 52px; padding: 0 16px; border: 1px solid rgba(201, 164, 95, .5); background: rgba(8, 8, 7, .85); color: var(--ivory); font: 500 16px "Jost", sans-serif; letter-spacing: .14em; border-radius: 0; }
+    .vip-form input[type="text"]::placeholder { color: rgba(255, 250, 241, .45); letter-spacing: .08em; }
+    .vip-form input[type="text"]:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; border-color: var(--gold); }
+    .vip-form input[aria-invalid="true"] { border-color: #f2a39a; }
+    .vip-join { margin: 14px 0 0; font-size: 13px; }
+    .vip-join a { color: var(--gold-light); }
+    .focus .vip-entry { display: none; }
     /* Modo foco: ao pedir o aviso, fica só o contador e o e-mail. */
     .stage > header, .lock, h1, .intro, .launch-date, .social, .teaser, .marquee { transition: opacity .35s var(--ease); }
     .focus .lock, .focus h1, .focus .intro, .focus .launch-date, .focus .social, .focus .teaser, .focus .marquee, .focus #notify-open { display: none; }
@@ -448,7 +485,7 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
     }
   </style>
 </head>
-<body>
+<body${vipWhen && options.openVip ? ' data-open-vip="1"' : ""}>
   <button class="motion-toggle" id="motion-toggle" type="button" aria-pressed="false" aria-label="Pausar animações">
     <svg class="icon-pause" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
     <svg class="icon-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11a.8.8 0 0 0 1.2.7l9-5.5a.8.8 0 0 0 0-1.4l-9-5.5A.8.8 0 0 0 4 2.5z"/></svg>
@@ -509,7 +546,7 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
           <a class="cta wa-cta" href="${whatsappGroup}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5a8.4 8.4 0 0 0-7.3 12.6L1.5 18.5l4.5-1.2A8.4 8.4 0 1 0 10 1.5zm0 15.3a6.9 6.9 0 0 1-3.5-1l-.3-.1-2.6.7.7-2.5-.2-.3A6.9 6.9 0 1 1 10 16.8z"/></svg>Entrar no grupo VIP<span class="sr-only"> do WhatsApp (abre em nova aba)</span></a>
         </div>
         <button class="notify-back" type="button" id="notify-back">Voltar</button>
-      </form>
+      </form>${vipBlock}
       <p class="social">Prefere WhatsApp? <a href="${whatsappGroup}" target="_blank" rel="noopener noreferrer">Entre no grupo VIP<span class="sr-only"> (abre em nova aba)</span></a> · <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noopener noreferrer">@ellejew_<span class="sr-only"> no Instagram (abre em nova aba)</span></a></p>
       <section class="teaser" aria-labelledby="teaser-title">
         <h2 id="teaser-title">Uma prévia do que vem por aí</h2>
@@ -536,11 +573,11 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
         });
       });
 
-      const target = Date.parse(${target});
+      const publicTarget = Date.parse(${target});
+      let target = publicTarget;
       const nodes = ["days", "hours", "minutes", "seconds"].map((id) => document.getElementById(id));
       const bars = ["days", "hours", "minutes", "seconds"].map((id) => document.getElementById(id + "-bar"));
-      const initialDays = Math.max(1, Math.ceil((target - Date.now()) / 86400000));
-      const maxima = [initialDays, 24, 60, 60];
+      const maxima = [Math.max(1, Math.ceil((target - Date.now()) / 86400000)), 24, 60, 60];
       const pad = (value) => String(value).padStart(2, "0");
       let released = false;
       const srText = document.getElementById("countdown-text");
@@ -622,6 +659,65 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
       openButton.addEventListener("click", openNotify);
       backButton.addEventListener("click", closeNotify);
       document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !form.hidden) closeNotify(); });
+
+      const vipForm = document.getElementById("vip");
+      if (vipForm) {
+        const vipOpen = document.getElementById("vip-open");
+        const vipInput = document.getElementById("vip-password");
+        const vipStatus = document.getElementById("vip-status");
+        const vipSubmit = document.getElementById("vip-submit");
+        const setVipStatus = (message, isError) => {
+          vipStatus.textContent = message;
+          vipStatus.classList.toggle("error", Boolean(isError));
+        };
+        const closeVip = () => {
+          if (target !== publicTarget) countTo(publicTarget);
+          document.body.classList.remove("focus");
+          vipForm.hidden = true;
+          vipOpen.setAttribute("aria-expanded", "false");
+          vipOpen.focus();
+        };
+        const vipTarget = Date.parse(vipForm.dataset.target || "");
+        const countTo = (value) => {
+          target = value;
+          maxima[0] = Math.max(1, Math.ceil((target - Date.now()) / 86400000));
+          update();
+        };
+        vipOpen.addEventListener("click", () => {
+          if (vipTarget > Date.now()) countTo(vipTarget);
+          document.body.classList.add("focus");
+          vipForm.hidden = false;
+          vipOpen.setAttribute("aria-expanded", "true");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          window.setTimeout(() => vipInput.focus({ preventScroll: true }), 50);
+        });
+        document.getElementById("vip-back").addEventListener("click", closeVip);
+        if (document.body.dataset.openVip) vipOpen.click();
+        document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !vipForm.hidden) closeVip(); });
+        vipForm.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const password = vipInput.value.trim();
+          vipInput.setAttribute("aria-invalid", String(!password));
+          if (!password) { setVipStatus("Digite a senha do grupo VIP.", true); vipInput.focus(); return; }
+          vipSubmit.disabled = true;
+          setVipStatus("Verificando…", false);
+          try {
+            const response = await fetch("/api/vip-access", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ password }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || "Não foi possível verificar agora. Tente novamente.");
+            setVipStatus("Senha aceita! Abrindo seu acesso…", false);
+            window.setTimeout(() => window.location.reload(), 700);
+          } catch (error) {
+            vipInput.setAttribute("aria-invalid", "true");
+            setVipStatus(error.message, true);
+            vipSubmit.disabled = false;
+          }
+        });
+      }
       const emailInput = document.getElementById("notify-email");
       const consent = document.getElementById("notify-consent");
       const status = document.getElementById("notify-status");

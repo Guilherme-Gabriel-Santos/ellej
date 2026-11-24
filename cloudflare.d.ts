@@ -60,6 +60,7 @@ declare module "cloudflare:workers" {
     LAUNCH_AT?: string;
     VIP_LAUNCH_AT?: string;
     VIP_ACCESS_TOKEN?: string;
+    VIP_PASSWORD?: string;
     META_PIXEL_ID?: string;
     META_CAPI_ACCESS_TOKEN?: string;
     META_GRAPH_API_VERSION?: string;
