@@ -341,6 +341,35 @@ function paymentStatusLabel(order: Order) {
   return order.paymentStatus || "Sem confirmação de pagamento";
 }
 
+const orderStatusTone: Record<string, "ok" | "warn" | "info" | "danger"> = {
+  aguardando_pagamento: "warn",
+  pago: "ok",
+  em_separacao: "info",
+  enviado: "info",
+  concluido: "ok",
+  cancelado: "danger",
+};
+
+const iconPaths: Record<string, string> = {
+  inicio: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
+  produtos: "M6 3h12l3 6-9 12L3 9zM3 9h18M9 3l3 18M15 3l-3 18",
+  categorias: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+  banners: "M3 5h18v14H3zM3 15l5-5 4 4 3-3 6 6M15.5 9.5h.01",
+  cupons: "M3 8a2 2 0 0 0 0 4v0a2 2 0 0 0 0 4v2h18v-2a2 2 0 0 1 0-4 2 2 0 0 1 0-4V6H3zM14 6v12",
+  avaliacoes: "m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z",
+  pedidos: "M5 7h14l-1 13H6zM9 7a3 3 0 0 1 6 0",
+  lancamento: "M12 3v3M12 18v3M4.2 6.2l2.1 2.1M17.7 15.7l2.1 2.1M3 12h3M18 12h3M4.2 17.8l2.1-2.1M17.7 8.3l2.1-2.1M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+  configuracoes: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z",
+  estoque: "M12 3 3 7.5v9L12 21l9-4.5v-9zM3 7.5l9 4.5 9-4.5M12 12v9",
+  alerta: "M12 3 2 20h20zM12 9v5M12 17h.01",
+  relogio: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",
+  vendas: "M4 19h16M7 15v-4M12 15V7M17 15v-6",
+};
+
+function AdminIcon({ name }: { name: keyof typeof iconPaths }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={iconPaths[name]} /></svg>;
+}
+
 function orderStatusLabel(order: Order) {
   if (order.status === "cancelado" && order.paymentStatus === "CHECKOUT_EXPIRED") return "Cancelado • não pago";
   return statusLabels[order.status] ?? order.status;
@@ -1463,15 +1492,15 @@ export function AdminPanel() {
       <aside className={styles.sidebar}>
         <Link href="/" className={styles.adminLogo}><img src="/brand/logo.webp" alt="Elle Jew" /></Link>
         <nav>
-          <button className={section === "inicio" ? styles.activeNav : ""} onClick={() => setSection("inicio")}><span>01</span> Visão geral</button>
-          <button className={section === "produtos" ? styles.activeNav : ""} onClick={() => setSection("produtos")}><span>02</span> Produtos</button>
-          <button className={section === "categorias" ? styles.activeNav : ""} onClick={() => setSection("categorias")}><span>03</span> Categorias</button>
-          <button className={section === "banners" ? styles.activeNav : ""} onClick={() => setSection("banners")}><span>04</span> Fotos da capa</button>
-          <button className={section === "cupons" ? styles.activeNav : ""} onClick={() => setSection("cupons")}><span>05</span> Cupons</button>
-          <button className={section === "avaliacoes" ? styles.activeNav : ""} onClick={() => setSection("avaliacoes")}><span>06</span> Avaliações</button>
-          <button className={section === "pedidos" ? styles.activeNav : ""} onClick={() => setSection("pedidos")}><span>07</span> Pedidos</button>
-          <button className={section === "lancamento" ? styles.activeNav : ""} onClick={() => setSection("lancamento")}><span>08</span> Black Friday</button>
-          <button className={section === "configuracoes" ? styles.activeNav : ""} onClick={() => setSection("configuracoes")}><span>09</span> Configurações</button>
+          <button className={section === "inicio" ? styles.activeNav : ""} onClick={() => setSection("inicio")} aria-current={section === "inicio" ? "page" : undefined}><span><AdminIcon name="inicio" /></span>Visão geral</button>
+          <button className={section === "produtos" ? styles.activeNav : ""} onClick={() => setSection("produtos")} aria-current={section === "produtos" ? "page" : undefined}><span><AdminIcon name="produtos" /></span>Produtos</button>
+          <button className={section === "categorias" ? styles.activeNav : ""} onClick={() => setSection("categorias")} aria-current={section === "categorias" ? "page" : undefined}><span><AdminIcon name="categorias" /></span>Categorias</button>
+          <button className={section === "banners" ? styles.activeNav : ""} onClick={() => setSection("banners")} aria-current={section === "banners" ? "page" : undefined}><span><AdminIcon name="banners" /></span>Fotos da capa</button>
+          <button className={section === "cupons" ? styles.activeNav : ""} onClick={() => setSection("cupons")} aria-current={section === "cupons" ? "page" : undefined}><span><AdminIcon name="cupons" /></span>Cupons</button>
+          <button className={section === "avaliacoes" ? styles.activeNav : ""} onClick={() => setSection("avaliacoes")} aria-current={section === "avaliacoes" ? "page" : undefined}><span><AdminIcon name="avaliacoes" /></span>Avaliações</button>
+          <button className={section === "pedidos" ? styles.activeNav : ""} onClick={() => setSection("pedidos")} aria-current={section === "pedidos" ? "page" : undefined}><span><AdminIcon name="pedidos" /></span>Pedidos</button>
+          <button className={section === "lancamento" ? styles.activeNav : ""} onClick={() => setSection("lancamento")} aria-current={section === "lancamento" ? "page" : undefined}><span><AdminIcon name="lancamento" /></span>Black Friday</button>
+          <button className={section === "configuracoes" ? styles.activeNav : ""} onClick={() => setSection("configuracoes")} aria-current={section === "configuracoes" ? "page" : undefined}><span><AdminIcon name="configuracoes" /></span>Configurações</button>
         </nav>
         <div className={styles.sidebarBottom}>
           <button onClick={previewStore} disabled={busy === "storePreview"}>{busy === "storePreview" ? "Abrindo…" : "Testar loja ↗"}</button>
@@ -1482,7 +1511,7 @@ export function AdminPanel() {
       <section className={styles.adminMain}>
         <header className={styles.adminHeader}>
           <button className={styles.mobileMenu} onClick={() => setSection(section === "inicio" ? "produtos" : "inicio")}>Menu</button>
-          <div><span>Painel administrativo</span><strong>{adminEmail}</strong></div>
+          <div data-initial={(adminEmail.trim()[0] ?? "E").toUpperCase()}><span>Painel administrativo</span><strong>{adminEmail}</strong></div>
           <button className={styles.previewButton} onClick={previewStore} disabled={busy === "storePreview"}>{busy === "storePreview" ? "Abrindo…" : "Testar loja"}</button>
           <button className={styles.headerAdd} onClick={openNewProduct}>+ Cadastrar produto</button>
         </header>
@@ -1491,10 +1520,10 @@ export function AdminPanel() {
           <div className={styles.pageContent}>
             <div className={styles.pageTitle}><div><p className={styles.eyebrow}>Hoje na Elle Jew</p><h1>Visão geral</h1></div><button className={styles.primaryButton} onClick={openNewProduct}>+ Novo produto</button></div>
             <div className={styles.statGrid}>
-              <article><span>Produtos publicados</span><strong>{dashboard.stats.activeProducts}</strong><button onClick={() => setSection("produtos")}>Gerenciar coleção →</button></article>
-              <article><span>Estoque baixo</span><strong>{dashboard.stats.lowStock}</strong><small>Produtos com até 3 unidades</small></article>
-              <article><span>Aguardando pagamento</span><strong>{dashboard.stats.pendingOrders}</strong><button onClick={() => setSection("pedidos")}>Ver pedidos →</button></article>
-              <article className={styles.revenueCard}><span>Vendas confirmadas</span><strong>{money(dashboard.stats.paidRevenueCents)}</strong><small>Novidades divulgadas pelo grupo do WhatsApp</small></article>
+              <article><i><AdminIcon name="estoque" /></i><span>Produtos publicados</span><strong>{dashboard.stats.activeProducts}</strong><button onClick={() => setSection("produtos")}>Gerenciar coleção →</button></article>
+              <article><i><AdminIcon name="alerta" /></i><span>Estoque baixo</span><strong>{dashboard.stats.lowStock}</strong><small>Produtos com até 3 unidades</small></article>
+              <article><i><AdminIcon name="relogio" /></i><span>Aguardando pagamento</span><strong>{dashboard.stats.pendingOrders}</strong><button onClick={() => setSection("pedidos")}>Ver pedidos →</button></article>
+              <article className={styles.revenueCard}><i><AdminIcon name="vendas" /></i><span>Vendas confirmadas</span><strong>{money(dashboard.stats.paidRevenueCents)}</strong><small>Novidades divulgadas pelo grupo do WhatsApp</small></article>
             </div>
             <div className={styles.dashboardGrid}>
               <section className={styles.panelCard}>
@@ -1510,7 +1539,7 @@ export function AdminPanel() {
                 <div className={styles.panelHeading}><div><p className={styles.eyebrow}>Últimas compras</p><h2>Pedidos recentes</h2></div><button onClick={() => setSection("pedidos")}>Ver todos</button></div>
                 <div className={styles.compactOrders}>
                   {dashboard.orders.slice(0, 5).map((order) => (
-                    <button key={order.id} onClick={() => { setExpandedOrder(order.id); setSection("pedidos"); }}><span><strong>{order.customerName}</strong><small>{order.id} • {date(order.createdAt)}</small></span><b>{money(order.totalCents)}</b><em>{statusLabels[order.status] ?? order.status}</em></button>
+                    <button key={order.id} onClick={() => { setExpandedOrder(order.id); setSection("pedidos"); }}><span><strong>{order.customerName}</strong><small>{order.id} • {date(order.createdAt)}</small></span><b>{money(order.totalCents)}</b><em data-tone={orderStatusTone[order.status]}>{statusLabels[order.status] ?? order.status}</em></button>
                   ))}
                   {!dashboard.orders.length && <p className={styles.empty}>Os novos pedidos aparecerão aqui.</p>}
                 </div>
@@ -1727,7 +1756,7 @@ export function AdminPanel() {
                     <span><small>Cliente</small><strong>{order.customerName}</strong></span>
                     <span><small>Data do pedido</small><strong>{date(order.createdAt)}</strong></span>
                     <span><small>Total</small><strong>{money(order.totalCents)}</strong></span>
-                    <em>{orderStatusLabel(order)}</em><b>{expandedOrder === order.id ? "−" : "+"}</b>
+                    <em data-tone={orderStatusTone[order.status]}>{orderStatusLabel(order)}</em><b>{expandedOrder === order.id ? "−" : "+"}</b>
                   </button>
                   {expandedOrder === order.id && (
                     <div className={styles.orderDetails}>

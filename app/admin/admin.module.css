@@ -1,20 +1,40 @@
 ﻿.authPage,
 .adminShell {
-  --navy: #34495e;
-  --navy-92: rgba(52, 73, 94, 0.92);
-  --navy-72: rgba(52, 73, 94, 0.72);
-  --navy-50: rgba(52, 73, 94, 0.5);
-  --navy-20: rgba(52, 73, 94, 0.2);
-  --navy-10: rgba(52, 73, 94, 0.1);
-  --navy-05: rgba(52, 73, 94, 0.05);
-  --gold: #cfa750;
+  /* Elle Jew — preto, marfim e ouro (mesma identidade da loja). */
+  --navy: #14202b;
+  --navy-92: rgba(20, 32, 43, 0.92);
+  --navy-72: rgba(20, 32, 43, 0.74);
+  --navy-50: rgba(20, 32, 43, 0.6);
+  --navy-20: rgba(20, 32, 43, 0.16);
+  --navy-10: rgba(20, 32, 43, 0.08);
+  --navy-05: rgba(20, 32, 43, 0.04);
+  --ink: #0e161e;
+  --gold: #b1883f;
+  --gold-strong: #8a6626;
+  --gold-soft: #f4ead6;
+  --gold-line: rgba(177, 136, 63, 0.35);
   --cream: #f7f4ed;
+  --ivory: #f8f5ef;
   --white: #fff;
   --black: #000;
+  --ok: #2f7a55;
+  --ok-soft: #e4f2ea;
+  --warn: #9a6a12;
+  --warn-soft: #fbf0d9;
+  --info: #2d5d86;
+  --info-soft: #e5eef7;
+  --danger: #a33b32;
+  --danger-soft: #f8e5e3;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --shadow-sm: 0 1px 2px rgba(14, 22, 30, 0.04), 0 2px 8px rgba(14, 22, 30, 0.04);
+  --shadow: 0 1px 2px rgba(14, 22, 30, 0.04), 0 12px 32px -12px rgba(14, 22, 30, 0.14);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   min-height: 100vh;
   color: var(--navy);
   background: var(--white);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans, "Jost", "Trebuchet MS", sans-serif);
 }
 
 .visuallyHidden {
@@ -77,7 +97,7 @@
 .wizardForm h1 {
   margin: 0;
   color: var(--navy);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: clamp(49.4px, 5vw, 75.4px);
   font-weight: 400;
   line-height: 1.02;
@@ -121,7 +141,7 @@
 .authForm label small,
 .switchLabel small {
   color: var(--navy-50);
-  font-size: 10.4px;
+  font-size: 12px;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
@@ -142,7 +162,7 @@
   border-radius: 0;
   outline: none;
   background: var(--white);
-  font: 16.9px Arial, sans-serif;
+  font: 16px var(--font-sans, sans-serif);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -276,7 +296,7 @@
 }
 
 .sidebar nav button span {
-  font-size: 9.1px;
+  font-size: 11.5px;
 }
 
 .sidebar nav .activeNav {
@@ -327,7 +347,7 @@
 
 .adminHeader > div span {
   color: var(--navy-50);
-  font-size: 9.1px;
+  font-size: 11.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -347,7 +367,7 @@
   border: 1px solid var(--navy-20);
   background: var(--white);
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -399,7 +419,7 @@
 .statGrid article > span {
   min-height: 28px;
   color: var(--navy-50);
-  font-size: 10.4px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -407,7 +427,7 @@
 
 .statGrid article > strong {
   margin: 12px 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 50.7px;
   font-weight: 400;
 }
@@ -420,7 +440,7 @@
   background: transparent;
   cursor: pointer;
   text-align: left;
-  font-size: 10.4px;
+  font-size: 12px;
 }
 
 .statGrid .revenueCard {
@@ -461,7 +481,7 @@
 .panelHeading h2,
 .settingsCard h2 {
   margin: 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 35.1px;
   font-weight: 400;
 }
@@ -473,7 +493,7 @@
   border-bottom: 1px solid var(--navy-20);
   background: transparent;
   cursor: pointer;
-  font-size: 10.4px;
+  font-size: 12px;
   text-transform: uppercase;
 }
 
@@ -519,7 +539,7 @@
 .compactOrders strong,
 .tableProduct strong {
   overflow: hidden;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 18.2px;
   font-weight: 400;
   text-overflow: ellipsis;
@@ -530,7 +550,7 @@
 .compactOrders small,
 .tableProduct small {
   color: var(--navy-50);
-  font-size: 9.1px;
+  font-size: 11.5px;
 }
 
 .compactList b {
@@ -549,7 +569,7 @@
 .compactOrders em {
   padding: 7px;
   background: var(--navy-10);
-  font-size: 9.1px;
+  font-size: 11.5px;
   font-style: normal;
   text-align: center;
   text-transform: uppercase;
@@ -606,7 +626,7 @@
   padding: 0 20px;
   color: var(--navy-50);
   border-bottom: 1px solid var(--navy-10);
-  font-size: 9.1px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -648,14 +668,14 @@
 
 .productTable article > div > small {
   color: var(--navy-50);
-  font-size: 9.1px;
+  font-size: 11.5px;
 }
 
 .statusPill {
   padding: 7px 8px;
   background: var(--navy);
   color: var(--white);
-  font-size: 9.1px;
+  font-size: 11.5px;
   text-align: center;
   text-transform: uppercase;
 }
@@ -676,7 +696,7 @@
   border: 1px solid var(--navy-20);
   background: var(--white);
   cursor: pointer;
-  font-size: 9.1px;
+  font-size: 11.5px;
   text-transform: uppercase;
 }
 
@@ -711,7 +731,7 @@
 
 .orderSummary small {
   color: var(--navy-50);
-  font-size: 9.1px;
+  font-size: 11.5px;
   text-transform: uppercase;
 }
 
@@ -725,14 +745,14 @@
 .orderSummary em {
   padding: 8px;
   background: var(--navy-10);
-  font-size: 9.1px;
+  font-size: 11.5px;
   font-style: normal;
   text-align: center;
   text-transform: uppercase;
 }
 
 .orderSummary b {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 29.9px;
   font-weight: 400;
   text-align: right;
@@ -753,7 +773,7 @@
 
 .orderDetails h3 {
   margin: 0 0 15px;
-  font-size: 10.4px;
+  font-size: 12px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -775,7 +795,7 @@
 
 .orderDetails small {
   color: var(--navy-50);
-  font-size: 10.4px;
+  font-size: 12px;
 }
 
 .orderItemDetails {
@@ -854,7 +874,7 @@
 .faceIdLogin i {
   margin-right: 10px;
   color: var(--gold);
-  font: 400 24px Georgia, serif;
+  font: 400 24px var(--font-serif, Georgia, serif);
 }
 
 .settingsCard > p {
@@ -905,7 +925,7 @@
 
 .couponBlock > strong {
   color: var(--navy);
-  font: 400 22px Georgia, serif;
+  font: 400 22px var(--font-serif, Georgia, serif);
 }
 
 .couponScope {
@@ -981,7 +1001,7 @@
 .couponProductPicker img { width: 48px; height: 48px; object-fit: cover; background: var(--navy-05); }
 .couponProductPicker label span { min-width: 0; display: grid; gap: 4px; }
 .couponProductPicker label strong { overflow: hidden; color: var(--navy); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.couponProductPicker label small { color: var(--navy-50); font-size: 9px; }
+.couponProductPicker label small { color: var(--navy-50); font-size: 11px; }
 
 .couponFormActions { display: flex; align-items: center; gap: 16px; }
 
@@ -1007,11 +1027,11 @@
 .couponList article header { justify-content: space-between; }
 .couponList article header > span { min-width: 0; display: grid; gap: 7px; }
 .couponList code { width: fit-content; padding: 6px 9px; color: var(--navy); background: rgba(207, 167, 80, 0.18); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
-.couponList header strong { color: var(--navy); font: 400 20px Georgia, serif; }
+.couponList header strong { color: var(--navy); font: 400 20px var(--font-serif, Georgia, serif); }
 .couponList article > p { margin: 0; color: var(--navy); font-size: 14px; }
-.couponList article > div span { padding: 5px 8px; color: var(--navy-72); background: var(--navy-05); font-size: 9px; text-transform: uppercase; }
+.couponList article > div span { padding: 5px 8px; color: var(--navy-72); background: var(--navy-05); font-size: 11px; text-transform: uppercase; }
 .couponList article footer { padding-top: 4px; }
-.couponList article footer button { min-height: 36px; padding: 0 12px; color: var(--navy); border: 1px solid var(--navy-20); background: var(--white); cursor: pointer; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.couponList article footer button { min-height: 36px; padding: 0 12px; color: var(--navy); border: 1px solid var(--navy-20); background: var(--white); cursor: pointer; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 
 .reviewAdminLayout {
   display: grid;
@@ -1071,11 +1091,11 @@
 .reviewAdminList article header,
 .reviewAdminList article footer { justify-content: space-between; }
 .reviewAdminList article header > span { min-width: 0; display: grid; gap: 5px; }
-.reviewAdminList article header strong { color: var(--navy); font: 400 20px Georgia, serif; }
+.reviewAdminList article header strong { color: var(--navy); font: 400 20px var(--font-serif, Georgia, serif); }
 .reviewAdminList article header small { color: var(--navy-50); font-size: 10px; }
 .reviewAdminStars { color: var(--gold); font-size: 17px; letter-spacing: 0.13em; }
-.reviewAdminList blockquote { margin: 0; color: var(--navy-72); font: 400 15px/1.65 Georgia, serif; }
-.reviewAdminList article footer button { min-height: 36px; padding: 0 12px; color: var(--navy); border: 1px solid var(--navy-20); background: var(--white); cursor: pointer; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.reviewAdminList blockquote { margin: 0; color: var(--navy-72); font: 400 15px/1.65 var(--font-serif, Georgia, serif); }
+.reviewAdminList article footer button { min-height: 36px; padding: 0 12px; color: var(--navy); border: 1px solid var(--navy-20); background: var(--white); cursor: pointer; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 .reviewAdminList article footer button:disabled { cursor: not-allowed; opacity: 0.35; }
 .reviewOrder button { width: 38px; padding: 0 !important; font-size: 15px !important; }
 
@@ -1093,7 +1113,7 @@
 
 .categoryFormCard h2 {
   margin: 0;
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 37.7px;
   font-weight: 400;
 }
@@ -1130,7 +1150,7 @@
   color: var(--navy);
   border: 1px solid var(--navy-20);
   background: var(--white);
-  font: 16.9px Arial, sans-serif;
+  font: 16px var(--font-sans, sans-serif);
   text-transform: none;
 }
 
@@ -1239,14 +1259,14 @@
 }
 
 .categoryList article > span strong {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 23.4px;
   font-weight: 400;
 }
 
 .categoryList article > span small {
   color: var(--navy-50);
-  font-size: 10.4px;
+  font-size: 12px;
   text-transform: uppercase;
 }
 
@@ -1346,7 +1366,7 @@
 
 .bannerFormCard h2 {
   margin: 7px 0 10px;
-  font: 400 30px/1.1 Georgia, serif;
+  font: 400 30px/1.1 var(--font-serif, Georgia, serif);
 }
 
 .bannerFormCard > p:not(.eyebrow) {
@@ -1382,7 +1402,7 @@
   border: 1px solid var(--navy-20);
   background: var(--white);
   color: var(--navy);
-  font: 16px Arial, sans-serif;
+  font: 16px var(--font-sans, sans-serif);
   text-transform: none;
 }
 
@@ -1463,7 +1483,7 @@
   border: 1px solid var(--gold);
   color: var(--navy);
   background: rgba(207, 167, 80, 0.13);
-  font-size: 9px;
+  font-size: 11px;
   font-style: normal;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -1510,7 +1530,7 @@
   border: 1px solid var(--navy-20);
   background: var(--white);
   cursor: pointer;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1653,12 +1673,12 @@
   background: var(--navy-05);
 }
 
-.catalogCards article > span { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
-.catalogCards article > strong { font-family: Georgia, serif; font-size: 17px; font-weight: 400; }
-.catalogCards code { overflow: hidden; color: var(--navy-50); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.catalogCards article > span { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.catalogCards article > strong { font-family: var(--font-serif, Georgia, serif); font-size: 17px; font-weight: 400; }
+.catalogCards code { overflow: hidden; color: var(--navy-50); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .catalogCards article > div { display: flex; gap: 6px; }
 .catalogCards a,
-.catalogCards button { min-height: 34px; padding: 0 10px; display: grid; place-items: center; color: var(--navy); border: 1px solid var(--navy-20); background: var(--white); cursor: pointer; font: inherit; font-size: 9px; text-decoration: none; }
+.catalogCards button { min-height: 34px; padding: 0 10px; display: grid; place-items: center; color: var(--navy); border: 1px solid var(--navy-20); background: var(--white); cursor: pointer; font: inherit; font-size: 11px; text-decoration: none; }
 
 .bannerList article { cursor: grab; }
 .bannerList article:active { cursor: grabbing; }
@@ -1677,7 +1697,7 @@
 }
 
 .bannerList article > span strong {
-  font: 400 18px/1.2 Georgia, serif;
+  font: 400 18px/1.2 var(--font-serif, Georgia, serif);
 }
 
 .bannerList article > span small {
@@ -1741,7 +1761,7 @@
   border: 0;
   background: transparent;
   cursor: pointer;
-  font-size: 10.4px;
+  font-size: 12px;
   text-transform: uppercase;
 }
 
@@ -1754,7 +1774,7 @@
 
 .wizard > header span {
   justify-self: end;
-  font-size: 10.4px;
+  font-size: 12px;
   text-transform: uppercase;
 }
 
@@ -1772,7 +1792,7 @@
   align-items: center;
   gap: 10px;
   color: var(--navy-50);
-  font-size: 10.4px;
+  font-size: 12px;
   text-transform: uppercase;
 }
 
@@ -1858,7 +1878,7 @@
 .sectionCardHeading h2 {
   margin: 0 0 18px;
   color: var(--navy);
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 25px;
   font-weight: 400;
 }
@@ -1892,7 +1912,7 @@
 }
 
 .calculatedField span { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.calculatedField strong { font-family: Georgia, serif; font-size: 24px; font-weight: 400; }
+.calculatedField strong { font-family: var(--font-serif, Georgia, serif); font-size: 24px; font-weight: 400; }
 .calculatedField small { color: var(--navy-50); font-size: 10px; }
 
 .emptyVariants {
@@ -1979,7 +1999,7 @@
 }
 
 .uploadBox > b {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 58.5px;
   font-weight: 400;
 }
@@ -1991,7 +2011,7 @@
 
 .uploadBox > small {
   color: var(--navy-50);
-  font-size: 10.4px;
+  font-size: 12px;
 }
 
 .uploadBox > img {
@@ -2058,7 +2078,7 @@
   border-radius: 50%;
   background: rgba(20, 28, 36, 0.72);
   color: #fff;
-  font-size: 9px;
+  font-size: 11px;
   font-style: normal;
 }
 
@@ -2120,18 +2140,18 @@
 }
 
 .productReview span strong {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 23.4px;
   font-weight: 400;
 }
 
 .productReview span small {
   color: var(--navy-50);
-  font-size: 10.4px;
+  font-size: 12px;
 }
 
 .productReview b {
-  font-family: Georgia, serif;
+  font-family: var(--font-serif, Georgia, serif);
   font-size: 27.3px;
   font-weight: 400;
 }
@@ -2167,6 +2187,679 @@
   border-color: var(--navy);
 }
 
+/* ==========================================================================
+   Refinamento visual — preto, marfim e ouro
+   (vem antes das media queries para que os ajustes de celular continuem valendo)
+   ========================================================================== */
+
+.adminShell {
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgba(177, 136, 63, 0.07), transparent 60%),
+    var(--ivory);
+}
+
+.adminShell :focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Barra lateral */
+.sidebar {
+  padding: 28px 18px 22px;
+  background:
+    linear-gradient(180deg, rgba(177, 136, 63, 0.10), transparent 220px),
+    linear-gradient(180deg, #16222d 0%, var(--ink) 100%);
+  border-right: 1px solid rgba(177, 136, 63, 0.18);
+}
+
+.adminLogo {
+  margin: 0 auto;
+  width: 132px;
+}
+
+.sidebar nav {
+  margin-top: 36px;
+  padding-top: 24px;
+  gap: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sidebar nav button {
+  position: relative;
+  min-height: 46px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.64);
+  border: 0;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.sidebar nav button span {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: inherit;
+  transition: color 0.2s var(--ease);
+}
+
+.sidebar nav button svg {
+  width: 19px;
+  height: 19px;
+}
+
+.sidebar nav button:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar nav button:hover span {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sidebar nav .activeNav {
+  color: var(--white);
+  background: linear-gradient(90deg, rgba(177, 136, 63, 0.22), rgba(177, 136, 63, 0.06));
+  box-shadow: inset 0 0 0 1px rgba(177, 136, 63, 0.28);
+}
+
+.sidebar nav .activeNav span {
+  color: #e2c27f;
+}
+
+.sidebar nav .activeNav::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #e2c27f, var(--gold));
+}
+
+.sidebarBottom {
+  gap: 8px;
+  border-top-color: rgba(255, 255, 255, 0.07);
+}
+
+.sidebarBottom a,
+.sidebarBottom button {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.sidebarBottom a:hover,
+.sidebarBottom button:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Cabeçalho */
+.adminHeader {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 76px;
+  gap: 14px;
+  border-bottom: 1px solid var(--navy-10);
+  background: rgba(248, 245, 239, 0.84);
+  backdrop-filter: saturate(1.4) blur(14px);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+}
+
+.adminHeader > div {
+  margin-right: auto;
+  grid-template-columns: 40px auto;
+  column-gap: 12px;
+  row-gap: 1px;
+  align-items: center;
+  text-align: left;
+}
+
+.adminHeader > div::before {
+  content: attr(data-initial);
+  grid-row: 1 / 3;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: #f3dfb4;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #1d2b37, var(--ink));
+  box-shadow: inset 0 0 0 1px var(--gold-line);
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 19px;
+  text-transform: uppercase;
+}
+
+.adminHeader > div span {
+  color: var(--navy-50);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.adminHeader > div strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Botões */
+.primaryButton,
+.secondaryButton,
+.headerAdd,
+.previewButton {
+  min-height: 44px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  transition: transform 0.15s var(--ease), box-shadow 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.primaryButton,
+.headerAdd {
+  color: #fff;
+  border: 1px solid var(--ink);
+  background: linear-gradient(180deg, #1c2a36, var(--ink));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 6px 16px -6px rgba(14, 22, 30, 0.45);
+}
+
+.primaryButton:hover:not(:disabled),
+.headerAdd:hover:not(:disabled) {
+  border-color: var(--gold-strong);
+  box-shadow: 0 0 0 1px var(--gold-line), 0 10px 22px -8px rgba(14, 22, 30, 0.5);
+  transform: translateY(-1px);
+}
+
+.primaryButton:active:not(:disabled),
+.headerAdd:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.secondaryButton,
+.previewButton {
+  color: var(--navy);
+  border: 1px solid var(--navy-20);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+
+.secondaryButton:hover:not(:disabled),
+.previewButton:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold-strong);
+}
+
+.textButton {
+  color: var(--gold-strong);
+  border-bottom-color: var(--gold-line);
+}
+
+/* Campos */
+.authForm input,
+.settingsCard input,
+.formGrid input,
+.formGrid select,
+.formGrid textarea,
+.toolbar input,
+.orderDetails select,
+.categoryFormCard input,
+.categoryFormCard select,
+.bannerFormCard input,
+.bannerFormCard textarea {
+  min-height: 48px;
+  border: 1px solid var(--navy-20);
+  border-radius: 10px;
+  background: var(--white);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.formGrid textarea,
+.bannerFormCard textarea {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.authForm input:hover,
+.settingsCard input:hover,
+.formGrid input:hover,
+.formGrid select:hover,
+.formGrid textarea:hover,
+.toolbar input:hover,
+.categoryFormCard input:hover,
+.bannerFormCard input:hover {
+  border-color: rgba(20, 32, 43, 0.3);
+}
+
+.authForm input:focus,
+.settingsCard input:focus,
+.formGrid input:focus,
+.formGrid select:focus,
+.formGrid textarea:focus,
+.toolbar input:focus,
+.orderDetails select:focus,
+.categoryFormCard input:focus,
+.categoryFormCard select:focus,
+.bannerFormCard input:focus,
+.bannerFormCard textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 4px rgba(177, 136, 63, 0.16);
+}
+
+.formGrid input:disabled {
+  color: var(--navy-50);
+  background: var(--navy-05);
+  cursor: not-allowed;
+}
+
+.authForm label,
+.settingsCard label,
+.formGrid label,
+.toolbar label {
+  color: var(--navy-72);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.switchLabel {
+  border-radius: var(--radius);
+  background: var(--white);
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.switchLabel:hover {
+  border-color: var(--gold-line);
+}
+
+.switchLabel:has(input:checked) {
+  border-color: var(--gold-line);
+  background: linear-gradient(180deg, #fffdf8, var(--gold-soft));
+}
+
+.switchLabel input {
+  accent-color: var(--gold-strong);
+}
+
+/* Títulos de página */
+.pageContent {
+  padding-top: clamp(30px, 4vw, 54px);
+}
+
+.pageTitle {
+  margin-bottom: 30px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--navy-10);
+}
+
+.pageTitle h1 {
+  font-size: clamp(44px, 4.2vw, 64px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.eyebrow {
+  color: var(--gold-strong);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+/* Cartões de números */
+.statGrid {
+  gap: 16px;
+  border: 0;
+  background: transparent;
+}
+
+.statGrid article,
+.statGrid article:last-child {
+  position: relative;
+  min-height: 168px;
+  padding: 22px 22px 20px;
+  overflow: hidden;
+  border: 1px solid var(--navy-10);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.statGrid article:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 1px 2px rgba(14, 22, 30, 0.05), 0 18px 40px -16px rgba(14, 22, 30, 0.2);
+}
+
+.statGrid article > i {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 16px;
+  display: grid;
+  place-items: center;
+  color: var(--gold-strong);
+  border-radius: 12px;
+  background: var(--gold-soft);
+  box-shadow: inset 0 0 0 1px var(--gold-line);
+}
+
+.statGrid article > i svg {
+  width: 20px;
+  height: 20px;
+}
+
+.statGrid article > span {
+  min-height: 0;
+  color: var(--navy-50);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
+.statGrid article > strong {
+  margin: 6px 0 10px;
+  font-size: 46px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.statGrid button,
+.statGrid small {
+  color: var(--navy-50);
+  font-size: 12.5px;
+}
+
+.statGrid button {
+  padding: 0;
+  color: var(--gold-strong);
+  font-weight: 600;
+}
+
+.statGrid button:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.statGrid article.revenueCard {
+  border-color: rgba(177, 136, 63, 0.35);
+  background:
+    radial-gradient(420px 200px at 100% 0%, rgba(226, 194, 127, 0.22), transparent 60%),
+    linear-gradient(160deg, #1b2935, var(--ink));
+}
+
+.statGrid article.revenueCard > i {
+  color: #f0d9a6;
+  background: rgba(226, 194, 127, 0.12);
+}
+
+.revenueCard > strong {
+  color: #f6e7c4;
+}
+
+/* Painéis */
+.dashboardGrid {
+  margin-top: 18px;
+  gap: 18px;
+}
+
+.panelCard,
+.settingsCard,
+.categoryFormCard,
+.categoryListCard,
+.bannerFormCard,
+.bannerListCard,
+.couponFormCard,
+.couponListCard,
+.reviewFormCard,
+.reviewListCard {
+  border: 1px solid var(--navy-10);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.panelHeading {
+  align-items: center;
+}
+
+.panelHeading h2,
+.settingsCard h2 {
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.panelHeading > button {
+  min-height: 34px;
+  padding: 0 14px;
+  color: var(--navy);
+  border: 1px solid var(--navy-20);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  transition: border-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.panelHeading > button:hover {
+  color: var(--gold-strong);
+  border-color: var(--gold);
+}
+
+.compactList > button,
+.compactOrders > button {
+  margin: 0 -10px;
+  padding: 12px 10px;
+  border-top-color: var(--navy-05);
+  border-radius: 10px;
+  transition: background 0.2s var(--ease);
+}
+
+.compactList > button:hover,
+.compactOrders > button:hover {
+  background: var(--ivory);
+}
+
+.compactList img,
+.tableProduct img {
+  border-radius: 10px;
+}
+
+.compactList b {
+  padding: 5px 10px;
+  color: var(--warn);
+  border-radius: 999px;
+  background: var(--warn-soft);
+  font-size: 12px;
+}
+
+.compactOrders em,
+.orderSummary em {
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--navy-72);
+  background: var(--navy-05);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.compactOrders em[data-tone="ok"],
+.orderSummary em[data-tone="ok"] { color: var(--ok); background: var(--ok-soft); }
+.compactOrders em[data-tone="warn"],
+.orderSummary em[data-tone="warn"] { color: var(--warn); background: var(--warn-soft); }
+.compactOrders em[data-tone="info"],
+.orderSummary em[data-tone="info"] { color: var(--info); background: var(--info-soft); }
+.compactOrders em[data-tone="danger"],
+.orderSummary em[data-tone="danger"] { color: var(--danger); background: var(--danger-soft); }
+
+/* Barra de busca e tabelas */
+.toolbar {
+  border: 1px solid var(--navy-10);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar > span {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--navy-05);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.productTable,
+.orderList {
+  overflow: hidden;
+  border: 1px solid var(--navy-10);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.tableHeader {
+  background: #fbf9f5;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.productTable > article {
+  border-bottom-color: var(--navy-05);
+  transition: background 0.2s var(--ease);
+}
+
+.productTable > article:hover,
+.orderSummary:hover {
+  background: #fcfaf6;
+}
+
+.productOrder button,
+.categoryOrder button,
+.categoryActions button,
+.bannerOrder button {
+  border-radius: 8px;
+}
+
+.statusPill {
+  padding: 6px 10px;
+  justify-self: start;
+  color: var(--ok);
+  border-radius: 999px;
+  background: var(--ok-soft);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.statusPill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: 1px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.inactivePill {
+  color: var(--navy-72);
+  background: var(--navy-05);
+}
+
+.rowActions button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  transition: border-color 0.2s var(--ease), color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.rowActions button:hover:not(:disabled) {
+  color: var(--gold-strong);
+  border-color: var(--gold);
+}
+
+.orderList > article {
+  border-bottom-color: var(--navy-05);
+}
+
+/* Assistente de cadastro */
+.wizardOverlay {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.productSectionCard {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Avisos */
+.notice {
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, #1b2935, var(--ink));
+  box-shadow: 0 18px 40px -12px rgba(14, 22, 30, 0.45);
+  animation: noticeIn 0.3s var(--ease);
+}
+
+.noticeError {
+  color: var(--danger);
+  border-color: rgba(163, 59, 50, 0.3);
+  background: var(--white);
+}
+
+@keyframes noticeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tela de login */
+.authCard {
+  border-radius: 22px;
+  box-shadow: 0 30px 90px -20px rgba(0, 0, 0, 0.5);
+}
+
+.authPage {
+  background:
+    radial-gradient(900px 500px at 50% 0%, rgba(177, 136, 63, 0.18), transparent 60%),
+    linear-gradient(rgba(14, 22, 30, 0.94), rgba(14, 22, 30, 0.97)),
+    url("/brand/packaging.webp") center / cover;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adminShell *,
+  .adminShell *::before,
+  .adminShell *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
 @media (max-width: 1050px) {
   .adminShell { grid-template-columns: 210px minmax(0, 1fr); }
   .statGrid { grid-template-columns: repeat(2, 1fr); }
@@ -2195,8 +2888,8 @@
   .adminHeader { height: 65px; padding: 0 max(15px, env(safe-area-inset-right)) 0 max(15px, env(safe-area-inset-left)); }
   .adminHeader > div { margin-right: auto; text-align: left; }
   .adminHeader > div span { display: none; }
-  .headerAdd { min-height: 50.7px; padding: 0 15.6px; font-size: 9.1px; }
-  .previewButton { min-height: 42px; padding: 0 12px; font-size: 8px; }
+  .headerAdd { min-height: 50.7px; padding: 0 15.6px; font-size: 11.5px; }
+  .previewButton { min-height: 42px; padding: 0 12px; font-size: 10.5px; }
   .pageContent { padding: 38px max(20px, env(safe-area-inset-right)) max(80px, calc(56px + env(safe-area-inset-bottom))) max(20px, env(safe-area-inset-left)); }
   .pageTitle { align-items: start; flex-direction: column; }
   .pageTitle .primaryButton { width: 100%; }
@@ -2265,7 +2958,7 @@
   .backStore { top: 17px; left: 17px; }
   .authCard { padding: 30px 22px; }
   .authCard h1 { font-size: 54.6px; }
-  .sidebar nav button { min-width: 101.4px; font-size: 10.4px; }
+  .sidebar nav button { min-width: 101.4px; font-size: 12px; }
   .statGrid { grid-template-columns: 1fr; }
   .statGrid article { border-right: 0; border-bottom: 1px solid var(--navy-10); }
   .statGrid article:nth-child(3) { border-bottom: 1px solid var(--navy-10); }
@@ -2319,4 +3012,30 @@
 .teaserSelected {
   border-color: #b1883f !important;
   box-shadow: 0 0 0 2px rgba(177, 136, 63, .35);
+}
+
+/* Ajustes do refinamento visual no celular */
+@media (max-width: 760px) {
+  .sidebar { padding-top: max(10px, env(safe-area-inset-top)); border-right: 0; border-bottom: 1px solid rgba(177, 136, 63, 0.18); }
+  .adminLogo { margin: 0; }
+  .sidebar nav { margin-top: 0; padding-top: 0; border-top: 0; gap: 6px; }
+  .sidebar nav button { min-width: 0; padding: 0 14px; white-space: nowrap; font-size: 13px; }
+  .sidebar nav .activeNav::before { display: none; }
+  .adminHeader { height: 64px; }
+  .adminHeader { gap: 8px; }
+  .adminHeader > div { flex: 1 1 auto; min-width: 0; grid-template-columns: 34px; }
+  .adminHeader > div strong { display: none; }
+  .toolbar > span { align-self: flex-start; }
+  .headerAdd, .previewButton { flex: 0 0 auto; min-height: 42px; padding: 0 12px; line-height: 1.25; letter-spacing: 0.06em; }
+  .adminHeader > div::before { width: 34px; height: 34px; font-size: 16px; }
+  .statGrid { gap: 12px; }
+  .statGrid article, .statGrid article:last-child { min-height: 0; border: 1px solid var(--navy-10); }
+  .statGrid article > i { width: 34px; height: 34px; margin-bottom: 12px; }
+  .productTable, .orderList { overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
+  .productTable > article, .orderList > article { border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+  .orderList > article { overflow: hidden; }
+}
+
+@media (max-width: 470px) {
+  .statGrid article, .statGrid article:last-child, .statGrid article:nth-child(3) { border: 1px solid var(--navy-10); }
 }
