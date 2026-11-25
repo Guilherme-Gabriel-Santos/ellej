@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MarketingConsent } from "./MarketingConsent";
 import "./globals.css";
+import "./motion.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ellejew.com.br"),

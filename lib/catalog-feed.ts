@@ -1,4 +1,5 @@
 import { getD1 } from "./store";
+import { applyProductDiscount } from "./pricing";
 
 type Row = Record<string, unknown>;
 type Variant = { id: string; size: string; color: string; material: string; sku: string; priceCents: number; stock: number; active: boolean };
@@ -14,6 +15,8 @@ export type CatalogItem = {
   videoLink: string;
   availability: "in_stock" | "out_of_stock";
   price: string;
+  /** Preço com o desconto % do produto; vazio quando não há desconto. */
+  salePrice: string;
   brand: string;
   gtin: string;
   mpn: string;
@@ -40,7 +43,7 @@ function validGtin(value: unknown) {
 }
 
 export async function catalogItems(origin: string) {
-  const result = await getD1().prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, track_stock, price_cents, stock FROM products WHERE active = 1 AND visibility = 'visible' AND price_visible = 1 ORDER BY created_at, id").all();
+  const result = await getD1().prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, track_stock, price_cents, discount_percent, stock FROM products WHERE active = 1 AND visibility = 'visible' AND price_visible = 1 ORDER BY created_at, id").all();
   return (result.results as Row[]).flatMap((row): CatalogItem[] => {
     const catalog = parsed<Record<string, unknown>>(row.catalog_data, {});
     const variants = parsed<Variant[]>(row.variants, []).filter((item) => item.active);
@@ -49,6 +52,8 @@ export async function catalogItems(origin: string) {
     if (!imageLink) return [];
     const additionalImages = media.filter((item) => item.type === "image" && item.url !== row.image).map((item) => absolute(origin, item.url)).filter(Boolean).slice(0, 10);
     const videoLink = absolute(origin, media.find((item) => item.type === "video")?.url || String(row.video ?? ""));
+    const brl = (cents: number) => `${(cents / 100).toFixed(2)} BRL`;
+    const sale = (cents: number) => Number(row.discount_percent ?? 0) > 0 ? brl(applyProductDiscount(cents, row.discount_percent)) : "";
     const base = {
       groupId: String(row.id).slice(0, 50),
       description: String(row.description).slice(0, 5000),
@@ -68,7 +73,8 @@ export async function catalogItems(origin: string) {
       id: `${String(row.id)}-${variant.id}`.slice(0, 50),
       title: `${String(row.name)}${[variant.size, variant.color, variant.material].filter(Boolean).length ? ` - ${[variant.size, variant.color, variant.material].filter(Boolean).join(" / ")}` : ""}`.slice(0, 150),
       availability: !Number(row.track_stock) || Number(variant.stock) > 0 ? "in_stock" : "out_of_stock",
-      price: `${(Number(variant.priceCents || row.price_cents) / 100).toFixed(2)} BRL`,
+      price: brl(Number(variant.priceCents || row.price_cents)),
+      salePrice: sale(Number(variant.priceCents || row.price_cents)),
       gtin: "",
       mpn: variant.sku || base.mpn,
       color: variant.color || "",
@@ -80,7 +86,8 @@ export async function catalogItems(origin: string) {
       id: String(row.id).slice(0, 50),
       title: String(row.name).slice(0, 150),
       availability: !Number(row.track_stock) || Number(row.stock) > 0 ? "in_stock" : "out_of_stock",
-      price: `${(Number(row.price_cents) / 100).toFixed(2)} BRL`,
+      price: brl(Number(row.price_cents)),
+      salePrice: sale(Number(row.price_cents)),
       color: "",
       size: "",
       material: String(row.material),

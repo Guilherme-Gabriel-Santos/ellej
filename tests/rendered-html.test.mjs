@@ -553,7 +553,7 @@ test("fecha toda a vitrine até o lançamento sem bloquear o painel", async () =
   assert.match(productResponse.headers.get("x-robots-tag") ?? "", /noindex/);
   const productHtml = await productResponse.text();
   assert.match(productHtml, /data-split>Black</);
-  assert.match(productHtml, /O cadeado abre · Sábado · 28 de novembro · 00h/);
+  assert.match(productHtml, /A Black Friday abre em 28 de novembro, às 00h/);
 
   const storeResponse = await render("/api/store", futureLaunch);
   assert.equal(storeResponse.status, 503);
@@ -564,7 +564,7 @@ test("fecha toda a vitrine até o lançamento sem bloquear o painel", async () =
 
   const adminResponse = await render("/admin", futureLaunch);
   assert.equal(adminResponse.status, 200);
-  assert.doesNotMatch(await adminResponse.text(), /O cadeado abre/);
+  assert.doesNotMatch(await adminResponse.text(), /A Black Friday abre em/);
 
   const vipToken = "vip-test-token-with-more-than-32-characters";
   const vipEnv = {
@@ -612,5 +612,30 @@ test("libera uma pré-visualização curta somente com cookie assinado pelo admi
   assert.match(previewResponse.headers.get("x-robots-tag") ?? "", /noindex/);
 
   const forgedResponse = await render("/", futureLaunch, { cookie: `${previewCookie}forged` });
-  assert.match(await forgedResponse.text(), /O cadeado abre/);
+  assert.match(await forgedResponse.text(), /A Black Friday abre em/);
+});
+
+test("aplica o desconto % do produto igual na vitrine, no checkout e no Asaas", async () => {
+  const { applyProductDiscount, normalizeDiscountPercent } = await import("../lib/pricing.ts");
+  assert.equal(applyProductDiscount(29800, 20), 23840);
+  assert.equal(applyProductDiscount(19990, 15), 16992);
+  assert.equal(applyProductDiscount(29800, 0), 29800);
+  assert.equal(applyProductDiscount(1, 90), 1);
+  assert.equal(normalizeDiscountPercent(150), 90);
+  assert.equal(normalizeDiscountPercent(-5), 0);
+  assert.equal(normalizeDiscountPercent("12.7"), 12);
+  const [store, admin, panel, storefront] = await Promise.all([
+    readFile(new URL("../lib/store.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/admin-store.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/AdminPanel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/Storefront.tsx", import.meta.url), "utf8"),
+  ]);
+  // Checkout cobra variação + acréscimos com o mesmo desconto mostrado na vitrine.
+  assert.match(store, /applyProductDiscount\(Number\(variant\?\.priceCents \|\| row\.price_cents\), productDiscountPercent\(row\)\)/);
+  assert.match(store, /addedPriceCents: applyProductDiscount\(option\.addedPriceCents, discountPercent\)/);
+  assert.match(store, /const optionGroups = discountedOptionGroups\(row\.option_groups, productDiscountPercent\(row\)\)/);
+  assert.match(store, /compareAtCents: !priceVisible \? null : discountPercent \? basePriceCents/);
+  assert.match(admin, /discount_percent = \?/);
+  assert.match(panel, /Desconto no preço \(%\)/);
+  assert.match(storefront, /selectedProductCompareAt && <del>/);
 });

@@ -30,6 +30,7 @@ export const products = sqliteTable(
     freeShipping: integer("free_shipping", { mode: "boolean" }).notNull().default(false),
     pixDiscountEnabled: integer("pix_discount_enabled", { mode: "boolean" }).notNull().default(false),
     pixDiscountPercent: integer("pix_discount_percent").notNull().default(0),
+    discountPercent: integer("discount_percent").notNull().default(0),
     personalizationEnabled: integer("personalization_enabled", { mode: "boolean" }).notNull().default(false),
     personalizationMaxChars: integer("personalization_max_chars").notNull().default(20),
     badge: text("badge"),

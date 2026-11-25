@@ -89,7 +89,7 @@ function eventCopy(type: OrderNotificationType, order: OrderRow) {
     return "Seu pedido foi criado e está aguardando a confirmação do pagamento pelo Asaas. Assim que o pagamento for aprovado, enviaremos uma nova atualização.";
   }
   if (type === "payment_confirmed") {
-    return `Pagamento confirmado. Vamos separar e conferir cada peça antes do envio${order.superfrete_delivery_days ? `. O prazo estimado da transportadora é de ${order.superfrete_delivery_days} dias úteis após a postagem` : ""}.`;
+    return `Pagamento confirmado. Vamos separar e conferir cada peça, e o envio é feito em até 3 dias úteis${order.superfrete_delivery_days ? `. O prazo estimado da transportadora é de ${order.superfrete_delivery_days} dias úteis após a postagem` : ""}.`;
   }
   if (type === "order_shipped") {
     return order.superfrete_tracking_code

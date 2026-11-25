@@ -1,4 +1,5 @@
 import { ensureStoreSchema, getD1 } from "./store";
+import { MAX_PRODUCT_DISCOUNT_PERCENT } from "./pricing";
 import { writeAudit, type AdminSession } from "./admin-auth";
 import { normalizeCouponCode } from "./coupons";
 import { isOrderStatus, transitionOrderStatus } from "./order-status";
@@ -62,6 +63,7 @@ function normalizeProduct(row: Row) {
     freeShipping: Boolean(Number(row.free_shipping ?? 0)),
     pixDiscountEnabled: Boolean(Number(row.pix_discount_enabled ?? 0)),
     pixDiscountPercent: Number(row.pix_discount_percent ?? 0),
+    discountPercent: Number(row.discount_percent ?? 0),
     personalizationEnabled: Boolean(Number(row.personalization_enabled ?? 0)),
     personalizationMaxChars: Number(row.personalization_max_chars ?? 20),
     badge: row.badge ? String(row.badge) : "",
@@ -107,7 +109,7 @@ export async function readAdminDashboard() {
   await ensureStoreSchema();
   const d1 = getD1();
   const [productsResult, categoriesResult, productCategoriesResult, bannersResult, ordersResult, itemsResult, subscribersResult, allCategoryImageResult, couponsResult, couponProductsResult, reviewsResult] = await Promise.all([
-    d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, active, featured, sort_order, created_at FROM products ORDER BY sort_order, created_at, id").all(),
+    d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, active, featured, sort_order, created_at FROM products ORDER BY sort_order, created_at, id").all(),
     d1.prepare("SELECT c.id, c.name, c.slug, c.parent_id, c.image, c.active, c.sort_order, (SELECT COUNT(DISTINCT pc.product_id) FROM product_categories pc INNER JOIN categories assigned ON assigned.id = pc.category_id WHERE assigned.id = c.id OR assigned.parent_id = c.id) AS product_count FROM categories c ORDER BY c.sort_order, c.name").all(),
     d1.prepare("SELECT product_id, category_id FROM product_categories ORDER BY created_at, category_id").all(),
     d1.prepare("SELECT id, title, subtitle, image, link_url, link_label, focal_x, focal_y, active, sort_order FROM homepage_banners ORDER BY sort_order, created_at, id").all(),
@@ -393,7 +395,8 @@ function validateProduct(payload: ProductPayload) {
   const compareAtCents = payload.compareAtCents === null || payload.compareAtCents === "" || payload.compareAtCents === undefined
     ? null
     : integerValue(payload.compareAtCents, "O preço anterior", 1, 100_000_000);
-  if (compareAtCents !== null && compareAtCents <= priceCents) {
+  const discountPercent = integerValue(payload.discountPercent ?? 0, "O desconto do produto", 0, MAX_PRODUCT_DISCOUNT_PERCENT);
+  if (!discountPercent && compareAtCents !== null && compareAtCents <= priceCents) {
     throw new Error("O preço anterior precisa ser maior que o preço atual.");
   }
   const pixDiscountEnabled = payload.pixDiscountEnabled === true;
@@ -475,7 +478,9 @@ function validateProduct(payload: ProductPayload) {
     slug: slugify(textValue(payload.slug, "a URL", 80, false) || name),
     badge: textValue(payload.badge, "o selo", 50, false) || null,
     priceCents,
-    compareAtCents,
+    // Com desconto %, o "de" riscado é o próprio preço cheio; o preço anterior manual deixa de valer.
+    compareAtCents: discountPercent ? null : compareAtCents,
+    discountPercent,
     stock: variants.length ? variants.reduce((sum, item) => sum + item.stock, 0) : integerValue(payload.stock, "O estoque", 0, 100_000),
     trackStock: payload.trackStock !== false ? 1 : 0,
     priceVisible: payload.priceVisible !== false ? 1 : 0,
@@ -528,8 +533,8 @@ export async function createProduct(session: AdminSession, payload: ProductPaylo
   const d1 = getD1();
   const position = await d1.prepare("SELECT COALESCE(MAX(sort_order), 0) + 1 AS next FROM products").first<{ next: number }>();
   await d1.batch([
-    d1.prepare("INSERT INTO products (id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, active, featured, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(id, slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.multiOptionsEnabled, JSON.stringify(product.optionGroups), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.pixDiscountEnabled, product.pixDiscountPercent, product.personalizationEnabled, product.personalizationMaxChars, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured, Number(position?.next ?? 1)),
+    d1.prepare("INSERT INTO products (id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, active, featured, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(id, slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.multiOptionsEnabled, JSON.stringify(product.optionGroups), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.pixDiscountEnabled, product.pixDiscountPercent, product.discountPercent, product.personalizationEnabled, product.personalizationMaxChars, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured, Number(position?.next ?? 1)),
     ...categories.ids.map((categoryId) => d1.prepare("INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)").bind(id, categoryId)),
   ]);
   await writeAudit(session.userId, "product.created", "product", id, { name: product.name });
@@ -562,8 +567,8 @@ export async function updateProduct(session: AdminSession, payload: ProductPaylo
   const slug = await availableSlug(product.slug, id);
   const d1 = getD1();
   // Atualização condicional: se houve venda (estoque mudou) desde a leitura acima, nada é sobrescrito.
-  const updated = await d1.prepare("UPDATE products SET slug = ?, name = ?, category = ?, description = ?, material = ?, image = ?, video = ?, media = ?, catalog_data = ?, variants = ?, multi_options_enabled = ?, option_groups = ?, visibility = ?, track_stock = ?, price_visible = ?, free_shipping = ?, pix_discount_enabled = ?, pix_discount_percent = ?, personalization_enabled = ?, personalization_max_chars = ?, badge = ?, price_cents = ?, compare_at_cents = ?, stock = ?, active = ?, featured = ? WHERE id = ? AND stock = ? AND variants = ?")
-      .bind(slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.multiOptionsEnabled, JSON.stringify(product.optionGroups), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.pixDiscountEnabled, product.pixDiscountPercent, product.personalizationEnabled, product.personalizationMaxChars, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured, id, Number(existing.stock), existing.variants).run();
+  const updated = await d1.prepare("UPDATE products SET slug = ?, name = ?, category = ?, description = ?, material = ?, image = ?, video = ?, media = ?, catalog_data = ?, variants = ?, multi_options_enabled = ?, option_groups = ?, visibility = ?, track_stock = ?, price_visible = ?, free_shipping = ?, pix_discount_enabled = ?, pix_discount_percent = ?, discount_percent = ?, personalization_enabled = ?, personalization_max_chars = ?, badge = ?, price_cents = ?, compare_at_cents = ?, stock = ?, active = ?, featured = ? WHERE id = ? AND stock = ? AND variants = ?")
+      .bind(slug, product.name, categories.primaryName, product.description, product.material, product.image, product.video || null, JSON.stringify(product.media), JSON.stringify(product.catalogData), JSON.stringify(product.variants), product.multiOptionsEnabled, JSON.stringify(product.optionGroups), product.visibility, product.trackStock, product.priceVisible, product.freeShipping, product.pixDiscountEnabled, product.pixDiscountPercent, product.discountPercent, product.personalizationEnabled, product.personalizationMaxChars, product.badge, product.priceCents, product.compareAtCents, product.stock, product.active, product.featured, id, Number(existing.stock), existing.variants).run();
   if (Number(updated.meta.changes ?? 0) !== 1) throw new Error("O estoque deste produto mudou enquanto você editava (provavelmente uma venda). Reabra o produto e salve novamente.");
   await d1.batch([
     d1.prepare("DELETE FROM product_categories WHERE product_id = ?").bind(id),

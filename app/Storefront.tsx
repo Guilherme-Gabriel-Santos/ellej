@@ -31,12 +31,14 @@ type Product = {
   badge: string | null;
   priceCents: number;
   compareAtCents: number | null;
+  discountPercent?: number;
+  listPriceCents?: number;
   stock: number;
   featured: boolean;
 };
 
-type ProductVariant = { id: string; size: string; color: string; material: string; sku: string; priceCents: number; stock: number; active: boolean };
-type ProductOption = { id: string; label: string; addedPriceCents: number; active: boolean };
+type ProductVariant = { id: string; size: string; color: string; material: string; sku: string; priceCents: number; listPriceCents?: number; stock: number; active: boolean };
+type ProductOption = { id: string; label: string; addedPriceCents: number; listAddedPriceCents?: number; active: boolean };
 type ProductOptionGroup = { id: string; name: string; options: ProductOption[]; selectionMode?: "manual" | "personalizationLength" };
 type CartItem = Product & { quantity: number; variantId: string; variantLabel: string; personalizationText: string };
 type Category = { id: string; name: string; slug: string; parentId: string | null; image: string | null };
@@ -108,6 +110,31 @@ function optionForPersonalizationLength(group: ProductOptionGroup, value: string
     const range = option.label.match(/(\d+)\s*(?:-|–|—|a|até)\s*(\d+)/i);
     return Boolean(range && letterCount >= Number(range[1]) && letterCount <= Number(range[2]));
   }) ?? null;
+}
+
+function CountUp({ to, duration = 1800 }: { to: number; duration?: number }) {
+  const [value, setValue] = useState(to);
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
+    let frame = 0;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting) return;
+      observer.disconnect();
+      const start = performance.now();
+      const tick = (now: number) => {
+        const progress = Math.min(1, (now - start) / duration);
+        setValue(Math.round(to * (1 - Math.pow(1 - progress, 3))));
+        if (progress < 1) frame = window.requestAnimationFrame(tick);
+      };
+      setValue(0);
+      frame = window.requestAnimationFrame(tick);
+    }, { threshold: 0.6 });
+    observer.observe(node);
+    return () => { observer.disconnect(); window.cancelAnimationFrame(frame); };
+  }, [to, duration]);
+  return <span ref={ref} className="count-up">{value.toLocaleString("pt-BR")}</span>;
 }
 
 const money = (cents: number) =>
@@ -355,6 +382,15 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
   const engravingRequired = Boolean(selectedProduct?.multiOptionsEnabled && selectedProduct.personalizationEnabled);
   const selectedOptionVariantId = JSON.stringify(Object.fromEntries(selectedOptionGroups.filter((group) => effectiveOptionIds[group.id]).map((group) => [group.id, effectiveOptionIds[group.id]])));
   const selectedProductPrice = selectedProduct?.multiOptionsEnabled ? (selectedProduct.priceCents ?? 0) + selectedOptionAdditional : selectedVariant?.priceCents || selectedProduct?.priceCents || 0;
+  // Preço cheio (antes do desconto % do produto) da combinação escolhida, para mostrar riscado.
+  const selectedOptionListAdditional = selectedOptionGroups.reduce((sum, group) => {
+    const option = group.options.find((item) => item.id === effectiveOptionIds[group.id] && item.active);
+    return sum + (option?.listAddedPriceCents ?? option?.addedPriceCents ?? 0);
+  }, 0);
+  const selectedProductListPrice = !selectedProduct?.discountPercent ? 0 : selectedProduct.multiOptionsEnabled
+    ? (selectedProduct.listPriceCents ?? selectedProduct.priceCents) + selectedOptionListAdditional
+    : selectedVariant?.listPriceCents || selectedProduct.listPriceCents || 0;
+  const selectedProductCompareAt = selectedProduct?.discountPercent ? (selectedProductListPrice > selectedProductPrice ? selectedProductListPrice : null) : selectedProduct?.compareAtCents ?? null;
   const selectedProductPixPrice = selectedProduct && selectedProduct.pixDiscountEnabled ? Math.round(selectedProductPrice * (100 - (selectedProduct.pixDiscountPercent ?? 0)) / 100) : selectedProductPrice;
   const selectedProductInstallments = installmentPlan(selectedProductPrice);
   const selectedProductIsMoissanite = selectedProduct ? isMoissaniteProduct(selectedProduct) : false;
@@ -765,9 +801,47 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
     return () => observer.disconnect();
   }, [loading, category, search, store.products.length, store.categories.length]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const max = Math.max(1, root.scrollHeight - window.innerHeight);
+      root.style.setProperty("--scroll-progress", String(Math.min(1, window.scrollY / max)));
+      root.classList.toggle("header-scrolled", window.scrollY > 48);
+    };
+    const onScroll = () => { if (!frame) frame = window.requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      root.classList.remove("header-scrolled");
+    };
+  }, []);
+
+  function trackHeroPointer(event: React.MouseEvent<HTMLDivElement>) {
+    const box = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty("--mx", ((event.clientX - box.left) / box.width - 0.5).toFixed(3));
+    event.currentTarget.style.setProperty("--my", ((event.clientY - box.top) / box.height - 0.5).toFixed(3));
+  }
+
+  const heroTitleWords = ["A", "elegância", "que", "eterniza", "momentos"];
+  const announcements = ["Frete grátis acima de R$ 399", "Prata 925 legítima com garantia de 1 ano", "Até 10x no cartão", "Envio em até 3 dias úteis", "Troca fácil em até 7 dias"];
+
   return (
     <main>
+      {!blackFridayLanding && <div className="announce-bar" role="region" aria-label="Avisos da loja">
+        <div className="announce-track">
+          {[0, 1].map((copy) => <ul key={copy} aria-hidden={copy === 1 ? true : undefined}>
+            {announcements.map((item) => <li key={item}><i aria-hidden="true">✦</i>{item}</li>)}
+          </ul>)}
+        </div>
+      </div>}
       <header className="site-header">
+        <span className="scroll-progress" aria-hidden="true" />
         <a className="brand" href="#top" aria-label="Elle Jew — início">
           <img src="/brand/logo.webp" alt="Elle Jew" />
         </a>
@@ -819,7 +893,9 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
       </section> : <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow">Prata 925 Legítima • Garantia de 1 ano</p>
-          <h1>A elegância que eterniza momentos</h1>
+          <h1 aria-label={heroTitleWords.join(" ")}>
+            {heroTitleWords.map((word, index) => <span className="hero-word" key={word} aria-hidden="true" style={{ "--word-index": index } as React.CSSProperties}>{word === "eterniza" ? <em>{word}</em> : <span>{word}</span>}</span>)}
+          </h1>
           <p className="hero-lead">Joias em prata 925 com design de Alta Joalheria</p>
           <div className="hero-ctas">
             <a className="button button-primary" href="#colecao">Ver Coleção Completa</a>
@@ -827,10 +903,11 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
           </div>
           <div className="hero-proof">
             <div className="avatars" aria-hidden="true"><span>E</span><span>J</span><span>★</span></div>
-            <p><strong>Mais de 1.500 clientes satisfeitas</strong><br />em todo o Brasil</p>
+            <p><strong>Mais de <CountUp to={1500} /> clientes satisfeitas</strong><br />em todo o Brasil</p>
           </div>
         </div>
-        <div className="hero-visual" aria-roledescription="carrossel" aria-label="Fotos da coleção" onMouseEnter={() => setCarouselPaused(true)} onMouseLeave={() => setCarouselPaused(false)} onFocus={() => setCarouselPaused(true)} onBlur={() => setCarouselPaused(false)}>
+        <div className={`hero-visual ${carouselPaused ? "is-paused" : ""}`} aria-roledescription="carrossel" aria-label="Fotos da coleção" onMouseMove={trackHeroPointer} onMouseEnter={() => setCarouselPaused(true)} onMouseLeave={(event) => { setCarouselPaused(false); event.currentTarget.style.setProperty("--mx", "0"); event.currentTarget.style.setProperty("--my", "0"); }} onFocus={() => setCarouselPaused(true)} onBlur={() => setCarouselPaused(false)}>
+          <div className="hero-sparkles" aria-hidden="true">{Array.from({ length: 7 }, (_, index) => <i key={index} />)}</div>
           {loading ? <div className="hero-slide-loading" aria-hidden="true" /> : (store.banners.length ? store.banners : [{ id: "fallback", image: "/brand/hero.webp", title: "", subtitle: "", linkUrl: null, linkLabel: null, focalX: 50, focalY: 24 }]).map((banner, index, photos) => <img key={banner.id} className={`hero-slide ${index === bannerIndex % photos.length ? "active" : ""}`} src={banner.image} style={{ objectPosition: `${banner.focalX}% ${banner.focalY}%` }} alt={index === bannerIndex % photos.length ? "Modelo usando joias Elle Jew" : ""} aria-hidden={index !== bannerIndex % photos.length} loading={index === bannerIndex % photos.length ? "eager" : "lazy"} fetchPriority={index === bannerIndex % photos.length ? "high" : "auto"} decoding="async" />)}
           {!loading && <div className="hero-card">
             <span>Destaques da Semana</span>
@@ -843,10 +920,10 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
       </section>}
 
       {!blackFridayLanding && <section className="trust-strip" aria-label="Benefícios da loja">
-        <div data-reveal="up"><strong>Prata 925 Legítima</strong><span>Garantia de 1 ano</span></div>
-        <div data-reveal="up"><strong>Envio Rápido 24h</strong><span>Para produtos em estoque</span></div>
-        <div data-reveal="up"><strong>Pagamento Facilitado</strong><span>Pix ou cartão em até 10x</span></div>
-        <div data-reveal="up"><strong>Troca Fácil e Grátis</strong><span>Até 7 dias após receber</span></div>
+        <div data-reveal="up"><svg className="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l3 5-9 13L3 8l3-5Z" /><path d="M3 8h18M9 3l3 18 3-18" /></svg><strong>Prata 925 Legítima</strong><span>Garantia de 1 ano</span></div>
+        <div data-reveal="up"><svg className="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6h12v10H2zM14 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></svg><strong>Envio em até 3 dias úteis</strong><span>Após a confirmação do pagamento</span></div>
+        <div data-reveal="up"><svg className="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2" /><path d="M2.5 10h19M6.5 15h4" /></svg><strong>Pagamento Facilitado</strong><span>Pix ou cartão em até 10x</span></div>
+        <div data-reveal="up"><svg className="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v5h-5" /></svg><strong>Troca Fácil e Grátis</strong><span>Até 7 dias após receber</span></div>
       </section>}
 
       {!blackFridayLanding && <section className="category-showcase section" aria-labelledby="category-showcase-title">
@@ -958,6 +1035,11 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
                   <button className={`heart-button ${favorite ? "active" : ""}`} onClick={() => toggleFavorite(product)} disabled={busy === `favorite-${product.id}`} aria-label={favorite ? `Remover ${product.name} dos favoritos` : `Favoritar ${product.name}`}>{favorite ? "♥" : "♡"}</button>
                   <button className="product-image-button" onClick={() => openProduct(product)} aria-label={`Ver detalhes de ${product.name}`}>
                     <img src={product.image} alt={product.name} loading="lazy" decoding="async" />
+                    {(() => {
+                      const alternate = galleryOf(product).find((item) => item.type === "image" && item.url !== product.image);
+                      return alternate ? <img className="product-alt-image" src={alternate.url} alt="" aria-hidden="true" loading="lazy" decoding="async" /> : null;
+                    })()}
+                    <span className="product-quick-view" aria-hidden="true">Ver joia</span>
                     {galleryOf(product).some((item) => item.type === "video") && <span className="product-video-flag" aria-hidden="true">▶ vídeo</span>}
                   </button>
                 </div>
@@ -965,7 +1047,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
                   <div><span>{product.category}</span><button onClick={() => openProduct(product)}>Detalhes +</button></div>
                   <h3>{product.name}</h3>
                   <p className="product-price">
-                    {product.priceVisible === false ? <strong>Preço sob consulta</strong> : <>{product.compareAtCents && <del>{money(product.compareAtCents)}</del>}<strong>{product.multiOptionsEnabled && <span>A partir de </span>}<span>{productInstallments.count}x de</span> {money(productInstallments.installmentCents)}</strong></>}
+                    {product.priceVisible === false ? <strong>Preço sob consulta</strong> : <>{product.compareAtCents && <del>{money(product.compareAtCents)}</del>}{product.discountPercent ? <em className="discount-tag">-{product.discountPercent}%</em> : null}<strong>{product.multiOptionsEnabled && <span>A partir de </span>}<span>{productInstallments.count}x de</span> {money(productInstallments.installmentCents)}</strong></>}
                   </p>
             <p className="installment">{product.priceVisible === false ? "Fale com a Elle Jew pelo WhatsApp" : `${product.multiOptionsEnabled ? "A partir de " : "ou "}${money(product.priceCents)} à vista`}</p>
             {product.priceVisible !== false && product.pixDiscountEnabled && <p className="pix-discount-note">{money(Math.round(product.priceCents * (100 - (product.pixDiscountPercent ?? 0)) / 100))} no Pix • {product.pixDiscountPercent}% off</p>}
@@ -978,6 +1060,14 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
       </section>
 
       {!blackFridayLanding && <>
+      <div className="brand-marquee" aria-hidden="true">
+        {[["Prata 925", "Moissanite", "Banho de Ródio", "Alta Joalheria", "Feito para durar"], ["Você é a ocasião", "Pontos de luz", "Rivieras", "Presente perfeito", "Elle Jew"]].map((row, rowIndex) => (
+          <div className={`brand-marquee-row ${rowIndex ? "reverse" : ""}`} key={rowIndex}>
+            {[0, 1].map((copy) => <span key={copy}>{row.map((word, index) => <b key={word} className={index % 2 ? "outline" : ""}>{word}<i>✦</i></b>)}</span>)}
+          </div>
+        ))}
+      </div>
+
       <section className="editorial" id="editorial">
         <div className="editorial-image editorial-main" data-reveal="left"><img src="/brand/editorial-ellej-box.webp" alt="Modelo apresentando uma joia Elle Jew" loading="lazy" decoding="async" /></div>
         <div className="editorial-copy" data-reveal="up">
@@ -1031,6 +1121,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
         <div><h3>Comprar</h3><a href="#colecao">Colares</a><a href="#colecao">Conjuntos</a><a href="#colecao">Brincos</a><a href="#colecao">Lançamentos</a></div>
         <div><h3>Atendimento</h3><a href="https://wa.me/5516992939739" target="_blank" rel="noreferrer">WhatsApp</a><a href="mailto:contato@ellejew.com.br">E-mail</a><a href="/trocas-e-devolucoes">Trocas e devoluções</a><a href="/entrega">Política de entrega</a><a href="mailto:contato@ellejew.com.br?subject=Cuidados%20com%20minha%20joia">Cuidados com sua joia</a></div>
         <div><h3>Elle Jew</h3><a href="/conta">Minha conta</a><a href="#sobre">Nossa essência</a><a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noreferrer">Instagram</a><a href="/privacidade">Privacidade</a><a href="/termos">Termos</a><button className="privacy-settings" type="button" onClick={() => window.dispatchEvent(new Event("ellejew:privacy"))}>Preferências de privacidade</button></div>
+        <p className="footer-wordmark" aria-hidden="true">Elle Jew</p>
         <div className="footer-bottom"><span>© 2026 Elle Jew. Todos os direitos reservados.</span><span>Prata 925 • Feito para durar</span></div>
       </footer>
 
@@ -1119,7 +1210,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
               <h2 className={selectedProduct.multiOptionsEnabled ? "configurable-product-title" : undefined}>{selectedProduct.name}</h2>
               <p className="modal-description">{selectedProduct.description}</p>
               <p className="modal-material">◇ {selectedProduct.material}</p>
-              {selectedProduct.priceVisible === false ? <div className="modal-price"><strong>Preço sob consulta</strong><span>Nossa equipe responde rapidamente pelo WhatsApp.</span></div> : <div className="modal-price">{selectedProduct.compareAtCents && <del>{money(selectedProduct.compareAtCents)}</del>}<strong><small>{selectedProductInstallments.count}x de</small> {money(selectedProductInstallments.installmentCents)}</strong><span>ou {money(selectedProductPrice)} à vista • cartão</span>{selectedProduct.pixDiscountEnabled && <span className="pix-discount-note">{money(selectedProductPixPrice)} no Pix • desconto de {selectedProduct.pixDiscountPercent}%</span>}</div>}
+              {selectedProduct.priceVisible === false ? <div className="modal-price"><strong>Preço sob consulta</strong><span>Nossa equipe responde rapidamente pelo WhatsApp.</span></div> : <div className="modal-price">{selectedProductCompareAt && <del>{money(selectedProductCompareAt)}</del>}{selectedProduct.discountPercent ? <em className="discount-tag">-{selectedProduct.discountPercent}% off</em> : null}<strong><small>{selectedProductInstallments.count}x de</small> {money(selectedProductInstallments.installmentCents)}</strong><span>ou {money(selectedProductPrice)} à vista • cartão</span>{selectedProduct.pixDiscountEnabled && <span className="pix-discount-note">{money(selectedProductPixPrice)} no Pix • desconto de {selectedProduct.pixDiscountPercent}%</span>}</div>}
               {selectedProduct.multiOptionsEnabled ? visibleOptionGroups.map((group) => <fieldset className="variant-picker multi-option-picker" key={group.id}><legend>{group.name}</legend>{group.options.filter((option) => option.active).map((option) => <label key={option.id} className={selectedOptionIds[group.id] === option.id ? "selected" : ""}><input type="radio" name={`product-option-${group.id}`} value={option.id} checked={selectedOptionIds[group.id] === option.id} onChange={() => setSelectedOptionIds((current) => ({ ...current, [group.id]: option.id }))} /><span><strong>{option.label}</strong>{option.addedPriceCents > 0 && <small>+ {money(option.addedPriceCents)}</small>}</span></label>)}</fieldset>) : (selectedProduct.variants ?? []).some((item) => item.active) && <fieldset className="variant-picker"><legend>Escolha sua opção</legend>{(selectedProduct.variants ?? []).filter((item) => item.active).map((variant) => { const label = [variant.size, variant.color, variant.material].filter(Boolean).join(" • ") || "Opção"; return <label key={variant.id} className={selectedVariantId === variant.id ? "selected" : ""}><input aria-label={label} type="radio" name="product-variant" value={variant.id} checked={selectedVariantId === variant.id} disabled={selectedProduct.trackStock !== false && variant.stock < 1} onChange={() => setSelectedVariantId(variant.id)} /><span><strong>{label}</strong><small>{selectedProduct.trackStock !== false && variant.stock < 1 ? "Esgotado" : variant.priceCents ? money(variant.priceCents) : money(selectedProduct.priceCents)}</small></span></label>; })}</fieldset>}
               {selectedProduct.personalizationEnabled && (engravingRequired
                 ? <fieldset className="personalization-picker required-personalization"><legend>Nome <span aria-hidden="true">*</span></legend><label className="personalization-name"><textarea required rows={2} value={personalizationText} maxLength={selectedProduct.personalizationMaxChars ?? 20} autoComplete="off" placeholder="Digite aqui" onChange={(event) => setPersonalizationText(event.target.value)} /><small>{personalizationText.length}/{selectedProduct.personalizationMaxChars ?? 20} caracteres. Confira a grafia antes de adicionar.</small>{automaticPriceSummary.length > 0 && <small className="personalization-price-guide">Faixas de preço: {automaticPriceSummary.join(" • ")}. O valor é calculado pelo nome digitado.</small>}</label></fieldset>
@@ -1128,7 +1219,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
                 ? <a className="button button-primary full" href={`https://wa.me/5516992939739?text=${encodeURIComponent(`Oi, quero saber o preço de ${selectedProduct.name}.`)}`} target="_blank" rel="noreferrer">Consultar pelo WhatsApp</a>
                 : <button className="button button-primary full" onClick={() => { if ((engravingRequired || personalizationWanted) && !personalizationText.trim()) { setToast(engravingRequired ? "Informe o nome para personalizar a peça." : "Digite o nome que deseja gravar ou desmarque a personalização."); return; } void addToCart(selectedProduct, true, selectedVariantId, (engravingRequired || personalizationWanted) ? personalizationText : ""); }} disabled={busy === `cart-${selectedProduct.id}` || selectedProductStock < 1 || (selectedProduct.multiOptionsEnabled ? selectedOptionCount !== selectedOptionGroups.length : (selectedProduct.variants ?? []).some((item) => item.active) && !selectedVariantId) || (engravingRequired && !personalizationText.trim())}>{busy === `cart-${selectedProduct.id}` ? "Adicionando…" : automaticOptionMissing ? "Digite de 2 a 10 letras" : selectedProduct.multiOptionsEnabled && selectedOptionCount !== selectedOptionGroups.length ? "Escolha o banho" : engravingRequired && !personalizationText.trim() ? "Informe o nome" : (selectedProduct.variants ?? []).some((item) => item.active) && !selectedVariantId ? "Escolha uma opção" : selectedProductStock < 1 ? "Produto esgotado" : "Adicionar à sacola"}</button>}
               <button className="modal-favorite" onClick={() => toggleFavorite(selectedProduct)}>{store.favoriteIds.includes(selectedProduct.id) ? "♥ Salvo nos favoritos" : "♡ Salvar nos favoritos"}</button>
-              <div className="modal-benefits"><span>Envio em 24h</span><span>Troca fácil</span><span>Compra segura</span></div>
+              <div className="modal-benefits"><span>Envio em até 3 dias úteis</span><span>Troca fácil</span><span>Compra segura</span></div>
             </div>
           </section>
         </div>

@@ -3,6 +3,7 @@ import { isValidCpf, lookupCep } from "./brazil";
 import { applyCoupon } from "./coupons";
 import { reserveCouponUse, reserveOrderStock } from "./order-status";
 import { calculateSuperFrete, shippingPackageFromItems } from "./superfrete";
+import { applyProductDiscount, normalizeDiscountPercent } from "./pricing";
 
 type D1ResultRow = Record<string, unknown>;
 
@@ -311,6 +312,7 @@ async function ensureStoreSchemaInternal() {
     ["personalization_max_chars", "ALTER TABLE products ADD COLUMN personalization_max_chars INTEGER NOT NULL DEFAULT 20"],
     ["pix_discount_enabled", "ALTER TABLE products ADD COLUMN pix_discount_enabled INTEGER NOT NULL DEFAULT 0"],
     ["pix_discount_percent", "ALTER TABLE products ADD COLUMN pix_discount_percent INTEGER NOT NULL DEFAULT 0"],
+    ["discount_percent", "ALTER TABLE products ADD COLUMN discount_percent INTEGER NOT NULL DEFAULT 0"],
   ] as const;
   for (const [column, statement] of missingProductColumns) {
     if (!existingProductColumns.has(column)) await d1.prepare(statement).run();
@@ -431,13 +433,31 @@ export function ensureStoreSchema() {
   return storeSchemaPromise;
 }
 
+function productDiscountPercent(row: D1ResultRow) {
+  return normalizeDiscountPercent(row.discount_percent);
+}
+
+/** Cada acréscimo recebe o desconto separadamente: vitrine, sacola e checkout somam os mesmos centavos. */
+function discountedOptionGroups(value: unknown, discountPercent: number) {
+  return parseOptionGroups(value).map((group) => !Array.isArray(group?.options) ? group : ({
+    ...group,
+    options: group.options.map((option) => ({ ...option, addedPriceCents: applyProductDiscount(option.addedPriceCents, discountPercent), listAddedPriceCents: option.addedPriceCents })),
+  }));
+}
+
 function normalizeProduct(row: D1ResultRow, includeCatalogData = false) {
   let media: Array<{ type: "image" | "video"; url: string }> = [];
   try { media = JSON.parse(String(row.media ?? "[]")); } catch { media = []; }
   if (!media.length && row.image) media = [{ type: "image", url: String(row.image) }];
   if (row.video && !media.some((item) => item.url === String(row.video))) media.push({ type: "video", url: String(row.video) });
   const priceVisible = Boolean(Number(row.price_visible ?? 1));
-  const variants = parseVariants(row.variants).map((variant) => (priceVisible ? variant : { ...variant, priceCents: 0 }));
+  // Desconto % do painel: preço cheio vira o "de" riscado e todos os preços (variações e acréscimos) saem com desconto.
+  const discountPercent = priceVisible ? productDiscountPercent(row) : 0;
+  const variants = parseVariants(row.variants).map((variant) => (priceVisible
+    ? { ...variant, priceCents: applyProductDiscount(variant.priceCents, discountPercent), listPriceCents: variant.priceCents }
+    : { ...variant, priceCents: 0, listPriceCents: 0 }));
+  const optionGroups = discountedOptionGroups(row.option_groups, discountPercent);
+  const basePriceCents = Number(row.price_cents);
   const trackStock = Boolean(Number(row.track_stock ?? 1));
   return {
     id: String(row.id),
@@ -452,7 +472,7 @@ function normalizeProduct(row: D1ResultRow, includeCatalogData = false) {
     ...(includeCatalogData ? { catalogData: parseObject(row.catalog_data) } : {}),
     variants,
     multiOptionsEnabled: Boolean(Number(row.multi_options_enabled ?? 0)),
-    optionGroups: parseOptionGroups(row.option_groups),
+    optionGroups,
     visibility: String(row.visibility ?? "visible"),
     trackStock,
     priceVisible,
@@ -463,8 +483,10 @@ function normalizeProduct(row: D1ResultRow, includeCatalogData = false) {
     personalizationMaxChars: Number(row.personalization_max_chars ?? 20),
     badge: row.badge ? String(row.badge) : null,
     // Produto "sob consulta" não expõe preço na API.
-    priceCents: priceVisible ? Number(row.price_cents) : 0,
-    compareAtCents: !priceVisible || row.compare_at_cents === null ? null : Number(row.compare_at_cents),
+    discountPercent,
+    priceCents: priceVisible ? applyProductDiscount(basePriceCents, discountPercent) : 0,
+    listPriceCents: priceVisible ? basePriceCents : 0,
+    compareAtCents: !priceVisible ? null : discountPercent ? basePriceCents : row.compare_at_cents === null ? null : Number(row.compare_at_cents),
     stock: trackStock ? Number(row.stock) : 999_999,
     featured: Boolean(Number(row.featured)),
   };
@@ -474,8 +496,8 @@ export async function readStore(visitorId: string, requestedSlug = "") {
   const d1 = getD1();
   const normalizedSlug = requestedSlug.trim().slice(0, 160);
   const productsStatement = normalizedSlug
-    ? d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, featured FROM products WHERE active = 1 AND (visibility = 'visible' OR (visibility = 'unlisted' AND slug = ?)) ORDER BY sort_order, created_at, id").bind(normalizedSlug)
-    : d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, featured FROM products WHERE active = 1 AND visibility = 'visible' ORDER BY sort_order, created_at, id");
+    ? d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, featured FROM products WHERE active = 1 AND (visibility = 'visible' OR (visibility = 'unlisted' AND slug = ?)) ORDER BY sort_order, created_at, id").bind(normalizedSlug)
+    : d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, catalog_data, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, featured FROM products WHERE active = 1 AND visibility = 'visible' ORDER BY sort_order, created_at, id");
   const [productsResult, categoriesResult, productCategoriesResult, bannersResult, reviewsResult, favoriteResult, cartResult, allCategoryImageResult] = await Promise.all([
     productsStatement.all(),
     // Mesmas regras de /api/catalog: a categoria Black Friday não pode aparecer e sumir ao recarregar a sacola.
@@ -484,7 +506,7 @@ export async function readStore(visitorId: string, requestedSlug = "") {
     d1.prepare("SELECT id, title, subtitle, image, link_url, link_label, focal_x, focal_y FROM homepage_banners WHERE active = 1 ORDER BY sort_order, created_at, id").all(),
     d1.prepare("SELECT id, customer_name, location, rating, body, product_name FROM homepage_reviews WHERE active = 1 ORDER BY sort_order, created_at, id LIMIT 4").all(),
     d1.prepare("SELECT product_id FROM favorites WHERE visitor_id = ? ORDER BY created_at DESC").bind(visitorId).all(),
-    d1.prepare("SELECT p.id, p.slug, p.name, p.category, p.description, p.material, p.image, p.video, p.media, p.catalog_data, p.variants, p.multi_options_enabled, p.option_groups, p.visibility, p.track_stock, p.price_visible, p.free_shipping, p.pix_discount_enabled, p.pix_discount_percent, p.personalization_enabled, p.personalization_max_chars, p.badge, p.price_cents, p.compare_at_cents, p.stock, p.featured, c.variant_id, c.personalization_text, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1 ORDER BY c.updated_at DESC").bind(visitorId).all(),
+    d1.prepare("SELECT p.id, p.slug, p.name, p.category, p.description, p.material, p.image, p.video, p.media, p.catalog_data, p.variants, p.multi_options_enabled, p.option_groups, p.visibility, p.track_stock, p.price_visible, p.free_shipping, p.pix_discount_enabled, p.pix_discount_percent, p.discount_percent, p.personalization_enabled, p.personalization_max_chars, p.badge, p.price_cents, p.compare_at_cents, p.stock, p.featured, c.variant_id, c.personalization_text, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1 ORDER BY c.updated_at DESC").bind(visitorId).all(),
     d1.prepare("SELECT value FROM site_settings WHERE key = 'all_category_image'").first<{ value: string }>(),
   ]);
 
@@ -552,7 +574,7 @@ export async function readStoreVisitorState(visitorId: string) {
   const d1 = getD1();
   const [favoriteResult, cartResult] = await Promise.all([
     d1.prepare("SELECT product_id FROM favorites WHERE visitor_id = ? ORDER BY created_at DESC").bind(visitorId).all(),
-    d1.prepare("SELECT p.id, p.slug, p.name, p.category, p.description, p.material, p.image, p.video, p.media, p.catalog_data, p.variants, p.multi_options_enabled, p.option_groups, p.visibility, p.track_stock, p.price_visible, p.free_shipping, p.pix_discount_enabled, p.pix_discount_percent, p.personalization_enabled, p.personalization_max_chars, p.badge, p.price_cents, p.compare_at_cents, p.stock, p.featured, c.variant_id, c.personalization_text, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1 ORDER BY c.updated_at DESC").bind(visitorId).all(),
+    d1.prepare("SELECT p.id, p.slug, p.name, p.category, p.description, p.material, p.image, p.video, p.media, p.catalog_data, p.variants, p.multi_options_enabled, p.option_groups, p.visibility, p.track_stock, p.price_visible, p.free_shipping, p.pix_discount_enabled, p.pix_discount_percent, p.discount_percent, p.personalization_enabled, p.personalization_max_chars, p.badge, p.price_cents, p.compare_at_cents, p.stock, p.featured, c.variant_id, c.personalization_text, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1 ORDER BY c.updated_at DESC").bind(visitorId).all(),
   ]);
 
   return {
@@ -582,7 +604,7 @@ export async function readStoreVisitorState(visitorId: string) {
 export async function readPublicCatalog() {
   const d1 = getD1();
   const [productsResult, categoriesResult, productCategoriesResult, bannersResult, reviewsResult, allCategoryImageResult] = await Promise.all([
-    d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, featured FROM products WHERE active = 1 AND visibility = 'visible' ORDER BY sort_order, created_at, id").all(),
+    d1.prepare("SELECT id, slug, name, category, description, material, image, video, media, variants, multi_options_enabled, option_groups, visibility, track_stock, price_visible, free_shipping, pix_discount_enabled, pix_discount_percent, discount_percent, personalization_enabled, personalization_max_chars, badge, price_cents, compare_at_cents, stock, featured FROM products WHERE active = 1 AND visibility = 'visible' ORDER BY sort_order, created_at, id").all(),
     d1.prepare("SELECT c.id, c.name, c.slug, c.parent_id, c.image FROM categories c WHERE c.active = 1 AND (c.parent_id IS NULL OR EXISTS (SELECT 1 FROM categories parent WHERE parent.id = c.parent_id AND parent.active = 1)) ORDER BY c.sort_order, c.name").all(),
     d1.prepare("SELECT pc.product_id, pc.category_id FROM product_categories pc INNER JOIN categories c ON c.id = pc.category_id WHERE c.active = 1 AND (c.parent_id IS NULL OR EXISTS (SELECT 1 FROM categories parent WHERE parent.id = c.parent_id AND parent.active = 1)) ORDER BY c.sort_order, c.name").all(),
     d1.prepare("SELECT id, title, subtitle, image, link_url, link_label, focal_x, focal_y FROM homepage_banners WHERE active = 1 ORDER BY sort_order, created_at, id").all(),
@@ -727,7 +749,7 @@ type CheckoutCartItem = {
 };
 
 async function checkoutCartItems(visitorId: string): Promise<CheckoutCartItem[]> {
-  const cartResult = await getD1().prepare("SELECT p.id, p.name, p.price_cents, p.stock, p.variants, p.multi_options_enabled, p.option_groups, p.track_stock, p.catalog_data, p.free_shipping, p.pix_discount_enabled, p.pix_discount_percent, p.price_visible, p.personalization_enabled, p.personalization_max_chars, c.variant_id, c.personalization_text, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1").bind(visitorId).all();
+  const cartResult = await getD1().prepare("SELECT p.id, p.name, p.price_cents, p.stock, p.variants, p.multi_options_enabled, p.option_groups, p.track_stock, p.catalog_data, p.free_shipping, p.pix_discount_enabled, p.pix_discount_percent, p.discount_percent, p.price_visible, p.personalization_enabled, p.personalization_max_chars, c.variant_id, c.personalization_text, c.quantity FROM cart_items c INNER JOIN products p ON p.id = c.product_id WHERE c.visitor_id = ? AND p.active = 1").bind(visitorId).all();
   const items = (cartResult.results as D1ResultRow[]).map((row) => {
     const variants = parseVariants(row.variants);
     if (!Number(row.price_visible)) throw new Error(`${String(row.name)} agora está disponível somente sob consulta.`);
@@ -740,14 +762,16 @@ async function checkoutCartItems(visitorId: string): Promise<CheckoutCartItem[]>
     if (personalizationText.length > Number(row.personalization_max_chars ?? 20)) throw new Error(`A gravação de ${String(row.name)} ultrapassa o limite permitido.`);
     const variant = variantId ? variants.find((item) => item.id === variantId && item.active) : null;
     if (!Number(row.multi_options_enabled) && variantId && !variant) throw new Error(`As opções de ${String(row.name)} mudaram. Remova e adicione novamente.`);
-    const optionGroups = parseOptionGroups(row.option_groups);
+    const optionGroups = discountedOptionGroups(row.option_groups, productDiscountPercent(row));
     const multiOption = Number(row.multi_options_enabled) ? resolveMultiOptionSelection(variantId, optionGroups, personalizationText) : null;
     if (multiOption && personalizationEnabled) validatePersonalizationRange(optionGroups, multiOption.selections, personalizationText);
     if (!multiOption && variants.some((item) => item.active) && !variant) throw new Error(`A opção escolhida para ${String(row.name)} não está mais disponível.`);
     return {
       id: String(row.id),
       name: String(row.name),
-      priceCents: Number(row.price_cents) + (multiOption?.addedPriceCents ?? 0),
+      // Mesmo cálculo da vitrine: preço da variação (ou base) e acréscimos, cada um com o desconto % do produto.
+      priceCents: applyProductDiscount(Number(variant?.priceCents || row.price_cents), productDiscountPercent(row))
+        + (multiOption?.addedPriceCents ?? 0),
       stock: Number(row.track_stock) ? Number(variant?.stock ?? row.stock) : 99,
       quantity: Number(row.quantity),
       variantId,

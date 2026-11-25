@@ -53,21 +53,26 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
   const when = launchParts(launchAt);
   const intro = isVip
     ? "Seu acesso antecipado está garantido. Você entra antes de todo mundo."
-    : `Estamos preparando a maior Black Friday da Elle Jew.<br>Prata 925, Moissanites, joias inspiradas na alta joalheria com condições que só acontecem uma vez por ano.<br><strong class="intro-highlight">Todo o site com desconto!!</strong>`;
+    : `Estamos preparando a maior Black Friday da Elle Jew.<br>Prata 925, Moissanites, joias inspiradas na alta joalheria com condições que só acontecem uma vez por ano.`;
   const spark = `<svg class="spark" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c.6 4.2 3.8 7.4 8 8-4.2.6-7.4 3.8-8 8-.6-4.2-3.8-7.4-8-8 4.2-.6 7.4-3.8 8-8z"/></svg>`;
   const marqueeItem = ["Black Friday", "Elle Jew", when.dayMonth || "Em breve"].map((label) => `<span>${label}</span>${spark}`).join("");
   const chosen = (options.teasers ?? []).map((item) => ({ name: teaserLabel(item.name), image: safeImage(item.image) })).filter((item) => item.image).slice(0, 6);
   const teasers = chosen.length ? chosen : defaultTeasers;
-  const siteKey = /^[0-9A-Za-z_-]{10,100}$/.test(options.turnstileSiteKey ?? "") ? options.turnstileSiteKey! : "";
   const vipWhen = !isVip && options.vipLaunchAt ? launchParts(options.vipLaunchAt) : null;
   const vipOpenNow = vipWhen ? Date.parse(vipWhen.iso) <= Date.now() : false;
+  // O botão da senha só aparece a partir de 3 horas antes da abertura VIP.
+  const passwordShowAt = vipWhen ? Date.parse(vipWhen.iso) - 3 * 3_600_000 : 0;
+  const passwordVisible = vipWhen ? Date.now() >= passwordShowAt : false;
   const arrow = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.3 3.3a1 1 0 0 1 1.4 0l4 4a1 1 0 0 1 0 1.4l-4 4a1 1 0 1 1-1.4-1.4L11.6 9H2a1 1 0 1 1 0-2h9.6L9.3 4.7a1 1 0 0 1 0-1.4z"/></svg>`;
-  const vipBlock = vipWhen ? `
+  const groupCta = `<a class="cta" id="vip-group" href="${whatsappGroup}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5a8.4 8.4 0 0 0-7.3 12.6L1.5 18.5l4.5-1.2A8.4 8.4 0 1 0 10 1.5zm0 15.3a6.9 6.9 0 0 1-3.5-1l-.3-.1-2.6.7.7-2.5-.2-.3A6.9 6.9 0 1 1 10 16.8z"/></svg>Entrar no grupo VIP<span class="sr-only"> do WhatsApp (abre em nova aba)</span></a>`;
+  const vipTop = isVip ? "" : `
       <div class="vip-entry">
-        <p class="vip-line">Quer ter acesso antecipado? <a href="${whatsappGroup}" target="_blank" rel="noopener noreferrer">Entre no grupo VIP!<span class="sr-only"> (WhatsApp, abre em nova aba)</span></a></p>
-        <p class="vip-line vip-when">Para quem é VIP, o acesso é liberado em <time datetime="${vipWhen.iso}">${vipWhen.short}</time>.</p>
-        <button class="vip-open" type="button" id="vip-open" aria-expanded="false" aria-controls="vip"><svg viewBox="0 0 16 20" aria-hidden="true"><path d="M8 0a5 5 0 0 0-5 5v3H2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V5a5 5 0 0 0-5-5zm-3 5a3 3 0 1 1 6 0v3H5V5z"/></svg>Tenho a senha VIP</button>
-      </div>
+        <p class="vip-highlight">Entre no grupo VIP para ter acesso antecipado</p>
+        ${vipWhen ? `<p class="vip-when">Acesso VIP liberado em <time datetime="${vipWhen.iso}">${vipWhen.short}</time></p>` : ""}
+        ${groupCta}
+        ${vipWhen ? `<button class="vip-open" type="button" id="vip-open" aria-expanded="false" aria-controls="vip"${passwordVisible ? "" : ` hidden data-show-at="${passwordShowAt}"`}><svg viewBox="0 0 16 20" aria-hidden="true"><path d="M8 0a5 5 0 0 0-5 5v3H2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V5a5 5 0 0 0-5-5zm-3 5a3 3 0 1 1 6 0v3H5V5z"/></svg>Tenho a senha VIP</button>` : ""}
+      </div>`;
+  const vipBlock = isVip || !vipWhen ? "" : `
       <form class="notify vip-form" id="vip" data-target="${vipWhen.iso}" novalidate hidden>
         <h2 class="notify-title">Acesso antecipado VIP</h2>
         <label class="notify-label" for="vip-password">Digite a senha que enviamos no grupo VIP do WhatsApp. ${vipOpenNow ? "O acesso VIP já está liberado." : `Sua entrada abre ${vipWhen.short}.`}</label>
@@ -78,7 +83,7 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
         <p class="notify-status" id="vip-status" role="status" aria-live="polite"></p>
         <p class="notify-label vip-join">Ainda não está no grupo? <a href="${whatsappGroup}" target="_blank" rel="noopener noreferrer">Entrar no grupo VIP<span class="sr-only"> do WhatsApp (abre em nova aba)</span></a></p>
         <button class="notify-back" type="button" id="vip-back">Voltar</button>
-      </form>` : "";
+      </form>`;
   const body = `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -236,7 +241,6 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
       line-height: 1.75;
       animation: rise 1s 1s var(--ease) both;
     }
-    .intro-highlight { display: inline-block; margin-top: 6px; color: var(--gold-light); font-weight: 500; letter-spacing: .04em; }
     .countdown {
       margin-top: clamp(26px, 4.5vh, 50px);
       display: flex;
@@ -343,32 +347,26 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
     .marquee-track { align-items: center; }
     .marquee span { padding: 0 22px; font-size: 13px; font-weight: 500; letter-spacing: .3em; text-transform: uppercase; color: var(--ivory); }
     .spark { width: 10px; height: 10px; fill: var(--gold); flex: none; }
-    #notify-open { animation: rise 1s 1.45s var(--ease) both, glow 2.6s 2.5s ease-in-out infinite; border: 1px solid var(--gold); cursor: pointer; font-family: "Jost", sans-serif; }
+    #vip-group { animation: rise 1s 1.45s var(--ease) both, glow 2.6s 2.5s ease-in-out infinite; border: 1px solid var(--gold); cursor: pointer; font-family: "Jost", sans-serif; }
     .notify { width: 100%; max-width: 520px; margin: clamp(26px, 4vh, 40px) auto 0; text-align: left; animation: rise .7s var(--ease) both; }
     .notify[hidden] { display: none; }
     .notify-title { margin: 0 0 8px; text-align: center; font: 400 clamp(28px, 4vw, 40px)/1.1 "Cormorant Garamond", Georgia, serif; color: var(--gold-light); }
     .notify-label { display: block; margin-bottom: 16px; color: var(--muted); font-size: 15px; line-height: 1.5; text-align: center; }
-    .notify-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; max-width: 340px; margin: 6px auto 18px; padding: 5px; border: 1px solid rgba(201, 164, 95, .35); border-radius: 999px; background: rgba(8, 8, 7, .7); }
-    .notify-switch button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font: 500 13px "Jost", sans-serif; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .25s, color .25s; }
-    .notify-switch button svg { width: 16px; height: 16px; fill: currentColor; }
-    .notify-switch button:hover { color: var(--gold-light); }
-    .notify-switch button.active { background: linear-gradient(100deg, var(--gold), var(--gold-light)); color: var(--black); }
-    .notify-panel[hidden] { display: none; }
-    .notify-panel { animation: rise .4s var(--ease) both; }
-    .wa-cta { display: flex; width: 100%; margin-top: 0; animation: none; border: 1px solid var(--gold); }
-    .wa-cta svg { width: 18px; height: 18px; }
-    .notify.done .notify-switch { display: none; }
     .notify-back { display: block; margin: 14px auto 0; min-height: 44px; padding: 0 16px; border: 0; background: none; color: var(--muted); font: 500 12px "Jost", sans-serif; letter-spacing: .18em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
     .notify-back:hover { color: var(--gold-light); }
-    .turnstile-box { margin-top: 12px; }
-    .vip-entry { margin-top: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; animation: rise 1s 1.55s var(--ease) both; }
+    .vip-entry { margin: clamp(20px, 3vh, 30px) 0 clamp(8px, 2vh, 18px); display: flex; flex-direction: column; align-items: center; gap: 10px; animation: rise 1s 1.55s var(--ease) both; }
+    .vip-highlight { margin: 0; max-width: 30em; color: var(--gold-light); font: 500 clamp(15px, 2vw, 18px)/1.5 "Jost", sans-serif; letter-spacing: .16em; text-transform: uppercase; }
     .vip-line { margin: 0; color: var(--muted); font-size: 13px; letter-spacing: .08em; }
     .vip-line time { color: var(--gold-light); }
     .vip-line a { color: var(--gold-light); font-weight: 500; text-underline-offset: 3px; }
     .vip-line a:hover { color: var(--ivory); }
-    .vip-when { margin-top: -6px; font-size: 12px; }
+    .vip-when { margin: -4px 0 0; color: var(--muted); font-size: 13px; letter-spacing: .06em; }
+    .vip-when time { color: var(--ivory); white-space: nowrap; }
     .vip-open { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 22px; border: 1px solid rgba(201, 164, 95, .55); border-radius: 999px; background: rgba(8, 8, 7, .55); color: var(--gold-light); font: 500 12px "Jost", sans-serif; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; transition: background .25s, border-color .25s; }
     .vip-open svg { width: 12px; height: 15px; fill: currentColor; }
+    .vip-open[hidden] { display: none; }
+    #vip-group svg { width: 18px; height: 18px; }
+    .vip-entry .cta { margin-top: 6px; }
     .vip-open:hover { background: rgba(201, 164, 95, .14); border-color: var(--gold); }
     .vip-open:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
     .vip-form input[type="text"] { flex: 1; min-width: 0; min-height: 52px; padding: 0 16px; border: 1px solid rgba(201, 164, 95, .5); background: rgba(8, 8, 7, .85); color: var(--ivory); font: 500 16px "Jost", sans-serif; letter-spacing: .14em; border-radius: 0; }
@@ -380,33 +378,15 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
     .focus .vip-entry { display: none; }
     /* Modo foco: ao pedir o aviso, fica só o contador e o e-mail. */
     .stage > header, .lock, h1, .intro, .launch-date, .social, .teaser, .marquee { transition: opacity .35s var(--ease); }
-    .focus .lock, .focus h1, .focus .intro, .focus .launch-date, .focus .social, .focus .teaser, .focus .marquee, .focus #notify-open { display: none; }
+    .focus .lock, .focus h1, .focus .intro, .focus .launch-date, .focus .social, .focus .teaser, .focus .marquee { display: none; }
     .focus .hero { justify-content: center; }
     .focus .countdown { animation: rise .6s var(--ease) both; }
     .notify-row { display: flex; gap: 10px; }
-    .notify input[type="email"] {
-      flex: 1;
-      min-width: 0;
-      min-height: 52px;
-      padding: 0 16px;
-      border: 1px solid rgba(201, 164, 95, .5);
-      background: rgba(8, 8, 7, .85);
-      color: var(--ivory);
-      font: 400 16px "Jost", sans-serif;
-      border-radius: 0;
-    }
-    .notify input[type="email"]::placeholder { color: rgba(255, 250, 241, .45); }
-    .notify input[type="email"]:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; border-color: var(--gold); }
     .notify input[aria-invalid="true"] { border-color: #f2a39a; }
     .notify .cta { animation: none; margin-top: 0; flex: none; cursor: pointer; border-radius: 0; font-family: "Jost", sans-serif; }
     .notify .cta:disabled { opacity: .6; cursor: wait; }
-    .notify-consent { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; color: var(--muted); font-size: 13px; line-height: 1.5; cursor: pointer; }
-    .notify-consent input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--gold); }
-    .notify-consent a { color: var(--gold-light); }
     .notify-status { min-height: 1.5em; margin: 10px 0 0; font-size: 14px; text-align: center; color: var(--gold-light); }
     .notify-status.error { color: #f2a39a; }
-    .notify.done .notify-row, .notify.done .notify-consent, .notify.done .notify-label, .notify.done .turnstile-box { display: none; }
-    .notify.done .notify-status { font-size: 16px; color: var(--ivory); }
     .cta svg { width: 16px; height: 16px; flex: none; fill: currentColor; transition: transform .25s var(--ease); }
     .cta:hover svg { transform: translateX(4px); }
     a:focus-visible, button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 4px; }
@@ -513,6 +493,7 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
         <span class="line" data-split>Friday</span>
       </h1>
       <p class="intro">${intro}</p>
+${vipTop}
       <p class="sr-only" id="countdown-text" role="timer" aria-live="off" aria-atomic="true">A Black Friday abre em ${when.short}.</p>
       <div class="countdown" aria-hidden="true">
         <div class="unit"><div class="digits"><strong id="days">00</strong></div><i class="bar"><b id="days-bar"></b></i><span>Dias</span></div>
@@ -523,31 +504,8 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
         <div class="sep"><i></i><i></i></div>
         <div class="unit"><div class="digits"><strong id="seconds">00</strong></div><i class="bar"><b id="seconds-bar"></b></i><span>Segundos</span></div>
       </div>
-      <p class="launch-date"><time datetime="${when.iso}">O cadeado abre · ${when.label}</time></p>
-      <button class="cta" type="button" id="notify-open" aria-expanded="false" aria-controls="notify">Quero ser avisada<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.3 3.3a1 1 0 0 1 1.4 0l4 4a1 1 0 0 1 0 1.4l-4 4a1 1 0 1 1-1.4-1.4L11.6 9H2a1 1 0 1 1 0-2h9.6L9.3 4.7a1 1 0 0 1 0-1.4z"/></svg></button>
-      <form class="notify" id="notify" novalidate hidden>
-        <h2 class="notify-title">A gente te avisa na hora</h2>
-        <div class="notify-switch" role="group" aria-label="Como você quer ser avisada">
-          <button type="button" class="active" data-channel="email" aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h13A1.5 1.5 0 0 1 18 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 15.5v-11zm1.8.3 6.2 4.9 6.2-4.9H3.8zM16.5 6.4l-6 4.7a.8.8 0 0 1-1 0l-6-4.7v9.1h13V6.4z"/></svg>E-mail</button>
-          <button type="button" data-channel="whatsapp" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5a8.4 8.4 0 0 0-7.3 12.6L1.5 18.5l4.5-1.2A8.4 8.4 0 1 0 10 1.5zm0 15.3a6.9 6.9 0 0 1-3.5-1l-.3-.1-2.6.7.7-2.5-.2-.3A6.9 6.9 0 1 1 10 16.8zm3.8-5.2c-.2-.1-1.2-.6-1.4-.7-.2-.1-.3-.1-.5.1l-.6.8c-.1.1-.2.2-.4.1a5.7 5.7 0 0 1-2.8-2.5c-.2-.4.2-.4.6-1.2.1-.1 0-.3 0-.4l-.6-1.5c-.2-.4-.3-.3-.5-.3h-.4a.8.8 0 0 0-.6.3 2.4 2.4 0 0 0-.7 1.8 4.2 4.2 0 0 0 .9 2.2 9.5 9.5 0 0 0 3.6 3.2c1.3.6 1.9.6 2.5.5.4-.1 1.2-.5 1.4-1 .2-.5.2-.9.1-1l-.6-.4z"/></svg>WhatsApp</button>
-        </div>
-        <div class="notify-panel" id="panel-email">
-        <label class="notify-label" for="notify-email">Deixe seu e-mail e receba o link assim que a loja abrir.</label>
-        <div class="notify-row">
-          <input id="notify-email" name="email" type="email" inputmode="email" autocomplete="email" required placeholder="seu@email.com" aria-describedby="notify-status">
-          <button class="cta" type="submit" id="notify-submit">Me avisar<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.3 3.3a1 1 0 0 1 1.4 0l4 4a1 1 0 0 1 0 1.4l-4 4a1 1 0 1 1-1.4-1.4L11.6 9H2a1 1 0 1 1 0-2h9.6L9.3 4.7a1 1 0 0 1 0-1.4z"/></svg></button>
-        </div>
-        <label class="notify-consent"><input type="checkbox" id="notify-consent" required> Aceito receber e-mails da Elle Jew sobre a Black Friday. <a href="/privacidade">Privacidade</a></label>
-        ${siteKey ? `<div class="turnstile-box" id="turnstile-box" data-sitekey="${siteKey}"></div>` : ""}
-        <p class="notify-status" id="notify-status" role="status" aria-live="polite"></p>
-        </div>
-        <div class="notify-panel" id="panel-whatsapp" hidden>
-          <p class="notify-label">Entre no grupo VIP da Elle Jew. Avisamos lá no minuto em que a loja abrir, com o link das peças.</p>
-          <a class="cta wa-cta" href="${whatsappGroup}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5a8.4 8.4 0 0 0-7.3 12.6L1.5 18.5l4.5-1.2A8.4 8.4 0 1 0 10 1.5zm0 15.3a6.9 6.9 0 0 1-3.5-1l-.3-.1-2.6.7.7-2.5-.2-.3A6.9 6.9 0 1 1 10 16.8z"/></svg>Entrar no grupo VIP<span class="sr-only"> do WhatsApp (abre em nova aba)</span></a>
-        </div>
-        <button class="notify-back" type="button" id="notify-back">Voltar</button>
-      </form>${vipBlock}
-      <p class="social">Prefere WhatsApp? <a href="${whatsappGroup}" target="_blank" rel="noopener noreferrer">Entre no grupo VIP<span class="sr-only"> (abre em nova aba)</span></a> · <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noopener noreferrer">@ellejew_<span class="sr-only"> no Instagram (abre em nova aba)</span></a></p>
+${vipBlock}
+      <p class="social">Spoilers no Instagram · <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noopener noreferrer">@ellejew_<span class="sr-only"> no Instagram (abre em nova aba)</span></a></p>
       <section class="teaser" aria-labelledby="teaser-title">
         <h2 id="teaser-title">Uma prévia do que vem por aí</h2>
         <ul>
@@ -557,7 +515,6 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
     </section>
     <div class="marquee" aria-hidden="true"><div class="marquee-track">${marqueeItem.repeat(6)}</div></div>
   </main>
-  ${siteKey ? `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>` : ""}
   <noscript><p style="position:fixed;left:24px;bottom:64px;z-index:20">Black Friday Elle Jew: abre em ${when.short}.</p></noscript>
   <script>
     (() => {
@@ -610,56 +567,6 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
       update();
       window.setInterval(update, 1000);
 
-      const form = document.getElementById("notify");
-      const openButton = document.getElementById("notify-open");
-      const backButton = document.getElementById("notify-back");
-      const turnstileBox = document.getElementById("turnstile-box");
-      let turnstileToken = "";
-      let turnstileWidget = null;
-      const renderTurnstile = () => {
-        if (!turnstileBox || turnstileWidget !== null) return;
-        if (!window.turnstile) { window.setTimeout(renderTurnstile, 300); return; }
-        turnstileWidget = window.turnstile.render(turnstileBox, {
-          sitekey: turnstileBox.dataset.sitekey,
-          action: "launch_waitlist",
-          theme: "dark",
-          size: "flexible",
-          appearance: "interaction-only",
-          callback: (token) => { turnstileToken = token; },
-          "expired-callback": () => { turnstileToken = ""; },
-          "error-callback": () => { turnstileToken = ""; },
-        });
-      };
-      const openNotify = () => {
-        document.body.classList.add("focus");
-        form.hidden = false;
-        openButton.setAttribute("aria-expanded", "true");
-        renderTurnstile();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        window.setTimeout(() => document.getElementById("notify-email").focus({ preventScroll: true }), 50);
-      };
-      const closeNotify = () => {
-        document.body.classList.remove("focus");
-        form.hidden = true;
-        openButton.setAttribute("aria-expanded", "false");
-        openButton.focus();
-      };
-      const switchButtons = [...form.querySelectorAll("[data-channel]")];
-      switchButtons.forEach((button) => button.addEventListener("click", () => {
-        const channel = button.dataset.channel;
-        switchButtons.forEach((item) => {
-          const active = item === button;
-          item.classList.toggle("active", active);
-          item.setAttribute("aria-pressed", String(active));
-        });
-        document.getElementById("panel-email").hidden = channel !== "email";
-        document.getElementById("panel-whatsapp").hidden = channel !== "whatsapp";
-        if (channel === "email") document.getElementById("notify-email").focus({ preventScroll: true });
-      }));
-      openButton.addEventListener("click", openNotify);
-      backButton.addEventListener("click", closeNotify);
-      document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !form.hidden) closeNotify(); });
-
       const vipForm = document.getElementById("vip");
       if (vipForm) {
         const vipOpen = document.getElementById("vip-open");
@@ -693,6 +600,14 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
         });
         document.getElementById("vip-back").addEventListener("click", closeVip);
         if (document.body.dataset.openVip) vipOpen.click();
+        const showAt = Number(vipOpen.dataset.showAt || 0);
+        if (vipOpen.hidden && showAt) {
+          const reveal = window.setInterval(() => {
+            if (Date.now() < showAt) return;
+            vipOpen.hidden = false;
+            window.clearInterval(reveal);
+          }, 15000);
+        }
         document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !vipForm.hidden) closeVip(); });
         vipForm.addEventListener("submit", async (event) => {
           event.preventDefault();
@@ -718,43 +633,6 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
           }
         });
       }
-      const emailInput = document.getElementById("notify-email");
-      const consent = document.getElementById("notify-consent");
-      const status = document.getElementById("notify-status");
-      const submit = document.getElementById("notify-submit");
-      const showStatus = (message, isError) => {
-        status.textContent = message;
-        status.classList.toggle("error", Boolean(isError));
-      };
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const email = emailInput.value.trim();
-        const valid = email.length <= 254 && /^[^@ ]+@[^@ ]+[.][^@ .]{2,}$/.test(email);
-        emailInput.setAttribute("aria-invalid", String(!valid));
-        if (!valid) { showStatus("Digite um e-mail válido, como nome@email.com.", true); emailInput.focus(); return; }
-        if (!consent.checked) { showStatus("Marque a autorização para receber o e-mail.", true); consent.focus(); return; }
-        if (turnstileBox && !turnstileToken) { showStatus("Aguarde a verificação de segurança e tente de novo.", true); renderTurnstile(); return; }
-        submit.disabled = true;
-        showStatus("Enviando…", false);
-        try {
-          const response = await fetch("/api/launch-waitlist", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, consent: true, turnstileToken }),
-          });
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(data.error || "Não foi possível concluir agora. Tente novamente.");
-          form.classList.add("done");
-          backButton.textContent = "Voltar para a contagem";
-          showStatus(data.message || "Pronto! Você será avisada por e-mail.", false);
-        } catch (error) {
-          showStatus(error.message, true);
-          if (window.turnstile && turnstileWidget !== null) { window.turnstile.reset(turnstileWidget); turnstileToken = ""; }
-        } finally {
-          submit.disabled = false;
-        }
-      });
-
       // WCAG 2.2.2: animações contínuas podem ser pausadas (preferência salva no navegador).
       const toggle = document.getElementById("motion-toggle");
       const toggleLabel = document.getElementById("motion-label");

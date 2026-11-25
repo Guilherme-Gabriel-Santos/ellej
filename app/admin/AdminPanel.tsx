@@ -4,6 +4,7 @@ import { FormEvent, startTransition, useEffect, useMemo, useRef, useState } from
 import { browserSupportsWebAuthn, startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import Link from "next/link";
 import styles from "./admin.module.css";
+import { applyProductDiscount, MAX_PRODUCT_DISCOUNT_PERCENT, normalizeDiscountPercent } from "../../lib/pricing";
 
 type Product = {
   id: string;
@@ -26,6 +27,7 @@ type Product = {
   freeShipping: boolean;
   pixDiscountEnabled: boolean;
   pixDiscountPercent: number;
+  discountPercent?: number;
   personalizationEnabled: boolean;
   personalizationMaxChars: number;
   badge: string;
@@ -196,6 +198,7 @@ type ProductDraft = {
   freeShipping: boolean;
   pixDiscountEnabled: boolean;
   pixDiscountPercent: number;
+  discountPercent?: number;
   personalizationEnabled: boolean;
   personalizationMaxChars: number;
   price: string;
@@ -262,6 +265,7 @@ const emptyProduct: ProductDraft = {
   freeShipping: false,
   pixDiscountEnabled: false,
   pixDiscountPercent: 0,
+  discountPercent: 0,
   personalizationEnabled: false,
   personalizationMaxChars: 20,
   price: "",
@@ -733,6 +737,7 @@ export function AdminPanel() {
       freeShipping: product.freeShipping ?? false,
       pixDiscountEnabled: product.pixDiscountEnabled ?? false,
       pixDiscountPercent: product.pixDiscountPercent ?? 0,
+      discountPercent: product.discountPercent ?? 0,
       personalizationEnabled: product.personalizationEnabled ?? false,
       personalizationMaxChars: product.personalizationMaxChars ?? 20,
       price: (product.priceCents / 100).toFixed(2),
@@ -809,7 +814,8 @@ export function AdminPanel() {
       const product = {
         ...draft,
         priceCents: cents(draft.price),
-        compareAtCents: draft.compareAt ? cents(draft.compareAt) : null,
+        compareAtCents: draft.compareAt && !draft.discountPercent ? cents(draft.compareAt) : null,
+        discountPercent: draft.discountPercent ?? 0,
         stock: Number(draft.stock),
       };
       const stockSnapshot = draft.id && stockSnapshotRef.current?.id === draft.id ? stockSnapshotRef.current : undefined;
@@ -1524,7 +1530,7 @@ export function AdminPanel() {
                 <article key={product.id}>
                   <div className={styles.productOrder}><span>{index + 1}</span><button aria-label={`Mover ${product.name} para cima`} disabled={Boolean(productSearch.trim()) || index === 0 || busy === "reorderProducts"} onClick={() => moveProduct(index, -1)}>↑</button><button aria-label={`Mover ${product.name} para baixo`} disabled={Boolean(productSearch.trim()) || index === filteredProducts.length - 1 || busy === "reorderProducts"} onClick={() => moveProduct(index, 1)}>↓</button></div>
                   <div className={styles.tableProduct}><img src={product.image} alt="" /><span><strong>{product.name}</strong><small>{product.category} • {product.material}</small></span></div>
-                  <div><strong>{money(product.priceCents)}</strong>{product.compareAtCents && <small>de {money(product.compareAtCents)}</small>}{product.pixDiscountEnabled && <small>{product.pixDiscountPercent}% de desconto no Pix</small>}</div>
+                  <div>{product.discountPercent ? <><strong>{money(applyProductDiscount(product.priceCents, product.discountPercent))}</strong><small>de {money(product.priceCents)} • {product.discountPercent}% off</small></> : <><strong>{money(product.priceCents)}</strong>{product.compareAtCents && <small>de {money(product.compareAtCents)}</small>}</>}{product.pixDiscountEnabled && <small>{product.pixDiscountPercent}% de desconto no Pix</small>}</div>
                   <div><strong>{product.trackStock ? product.stock : "∞"}</strong><small>{!product.trackStock ? "Estoque infinito" : product.stock <= 3 ? "Estoque baixo" : "Em estoque"}</small></div>
                   <div><span className={`${styles.statusPill} ${product.visibility !== "visible" ? styles.inactivePill : ""}`}>{product.visibility === "visible" ? "Publicado" : product.visibility === "unlisted" ? "Só por link" : "Oculto"}</span></div>
                   <div className={styles.rowActions}><button onClick={() => editProduct(product)}>Editar</button><button disabled={busy === `product-${product.id}`} onClick={() => toggleProduct(product)}>{product.active ? "Arquivar" : "Publicar"}</button></div>
@@ -1856,11 +1862,12 @@ export function AdminPanel() {
                 <p className={styles.eyebrow}>Etapa 3 de 5</p><h1>Preço e estoque</h1><p>Defina o valor de venda e como o estoque deve ser controlado.</p>
                 <section className={styles.productSectionCard}><h2>Preços</h2><div className={styles.formGrid}>
                   <label>Preço de venda (R$)<input type="number" min="0.01" step="0.01" inputMode="decimal" value={draft.price} onChange={(event) => setDraft({ ...draft, price: event.target.value })} placeholder="298,00" /></label>
-                  <label>Preço promocional anterior<input type="number" min="0.01" step="0.01" inputMode="decimal" value={draft.compareAt} onChange={(event) => setDraft({ ...draft, compareAt: event.target.value })} placeholder="350,00" /></label>
+                  <label>Desconto no preço (%)<input type="number" min="0" max={MAX_PRODUCT_DISCOUNT_PERCENT} step="1" inputMode="numeric" value={draft.discountPercent || ""} onChange={(event) => setDraft({ ...draft, discountPercent: normalizeDiscountPercent(event.target.value) })} placeholder="0" /><small>{draft.discountPercent && cents(draft.price) > 0 ? <>Na loja: <s>{money(cents(draft.price))}</s> por <strong>{money(applyProductDiscount(cents(draft.price), draft.discountPercent))}</strong>. Vale também para variações e opções.</> : "Deixe vazio para vender pelo preço normal."}</small></label>
+                  <label>Preço promocional anterior<input type="number" min="0.01" step="0.01" inputMode="decimal" value={draft.discountPercent ? "" : draft.compareAt} disabled={Boolean(draft.discountPercent)} onChange={(event) => setDraft({ ...draft, compareAt: event.target.value })} placeholder={draft.discountPercent ? "Calculado pelo desconto" : "350,00"} /></label>
                   <label>Custo da peça (R$)<input type="number" min="0" step="0.01" inputMode="decimal" value={(draft.catalogData.costCents / 100).toString()} onChange={(event) => updateCatalog("costCents", cents(event.target.value))} /></label>
-                  <div className={styles.calculatedField}><span>Margem estimada</span><strong>{cents(draft.price) > 0 ? `${Math.round(((cents(draft.price) - draft.catalogData.costCents) / cents(draft.price)) * 100)}%` : "0%"}</strong><small>Uso interno, não aparece na loja.</small></div>
+                  <div className={styles.calculatedField}><span>Margem estimada</span><strong>{(() => { const sale = applyProductDiscount(cents(draft.price), draft.discountPercent ?? 0); return sale > 0 ? `${Math.round(((sale - draft.catalogData.costCents) / sale) * 100)}%` : "0%"; })()}</strong><small>Uso interno, não aparece na loja.</small></div>
                   <label className={`${styles.switchLabel} ${styles.fullField}`}><input aria-label="Ativar desconto no Pix" type="checkbox" checked={draft.pixDiscountEnabled} onChange={(event) => setDraft({ ...draft, pixDiscountEnabled: event.target.checked, pixDiscountPercent: event.target.checked && draft.pixDiscountPercent === 0 ? 5 : draft.pixDiscountPercent })} /><span><strong>Oferecer desconto no Pix</strong><small>O preço com desconto será aplicado somente se a cliente escolher Pix no checkout.</small></span></label>
-                  {draft.pixDiscountEnabled && <label>Desconto no Pix (%)<input type="number" min="1" max="90" step="1" inputMode="numeric" value={draft.pixDiscountPercent || ""} onChange={(event) => setDraft({ ...draft, pixDiscountPercent: Math.max(0, Math.min(90, Math.trunc(Number(event.target.value) || 0))) })} /><small>Prévia no Pix: {money(Math.round(cents(draft.price) * (100 - draft.pixDiscountPercent) / 100))}. O preço normal continua no cartão.</small></label>}
+                  {draft.pixDiscountEnabled && <label>Desconto no Pix (%)<input type="number" min="1" max="90" step="1" inputMode="numeric" value={draft.pixDiscountPercent || ""} onChange={(event) => setDraft({ ...draft, pixDiscountPercent: Math.max(0, Math.min(90, Math.trunc(Number(event.target.value) || 0))) })} /><small>Prévia no Pix: {money(Math.round(applyProductDiscount(cents(draft.price), draft.discountPercent ?? 0) * (100 - draft.pixDiscountPercent) / 100))}. O preço normal continua no cartão.</small></label>}
                   <label className={`${styles.switchLabel} ${styles.fullField}`}><input aria-label="Exibir o preço na loja" type="checkbox" checked={draft.priceVisible} onChange={(event) => setDraft({ ...draft, priceVisible: event.target.checked })} /><span><strong>Exibir o preço na loja</strong><small>Se desligar, a cliente será direcionada ao WhatsApp.</small></span></label>
                 </div></section>
                 <section className={styles.productSectionCard}><h2>Estoque e códigos</h2><div className={styles.formGrid}>
