@@ -4279,7 +4279,8 @@ img {
 }
 
 .scroll-reveal-ready [data-reveal="heading"] {
-  --reveal-clip: inset(0 0 24% 0);
+  /* Folga negativa nas laterais: os floreios da letra cursiva passam da caixa do título. */
+  --reveal-clip: inset(-30% -12% 24% -12%);
   --reveal-scale: 1;
   --reveal-start-y: 82px;
 }
@@ -4315,6 +4316,11 @@ img {
   opacity: 1;
   transform: translate3d(0, var(--reveal-rest-y), 0) scale(1);
   will-change: auto;
+}
+
+.scroll-reveal-ready [data-reveal="heading"].is-visible,
+.scroll-reveal-ready [data-reveal]:has(> h2).is-visible {
+  clip-path: inset(-30% -12% -30% -12%);
 }
 
 .scroll-reveal-ready [data-reveal="heading"] h2::after {
@@ -4437,6 +4443,15 @@ img {
   .scroll-reveal-ready [data-reveal].is-visible {
     clip-path: inset(0) !important;
     opacity: 1 !important;
+  }
+
+  .scroll-reveal-ready [data-reveal="heading"] {
+    clip-path: inset(-30% -12% 12% -12%) !important;
+  }
+
+  .scroll-reveal-ready [data-reveal="heading"].is-visible,
+  .scroll-reveal-ready [data-reveal]:has(> h2).is-visible {
+    clip-path: inset(-30% -12% -30% -12%) !important;
   }
 
   .scroll-reveal-ready [data-reveal="heading"] h2::after {

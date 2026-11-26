@@ -1061,11 +1061,9 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
 
       {!blackFridayLanding && <>
       <div className="brand-marquee" aria-hidden="true">
-        {[["Prata 925", "Moissanite", "Banho de Ródio", "Alta Joalheria", "Feito para durar"], ["Você é a ocasião", "Pontos de luz", "Rivieras", "Presente perfeito", "Elle Jew"]].map((row, rowIndex) => (
-          <div className={`brand-marquee-row ${rowIndex ? "reverse" : ""}`} key={rowIndex}>
-            {[0, 1].map((copy) => <span key={copy}>{row.map((word, index) => <b key={word} className={index % 2 ? "outline" : ""}>{word}<i>✦</i></b>)}</span>)}
-          </div>
-        ))}
+        <div className="brand-marquee-row">
+          {[0, 1].map((copy) => <span key={copy}>{["Prata 925", "Moissanite", "Banho de ródio", "Alta joalheria", "Você é a ocasião", "Pontos de luz", "Rivieras", "Presente perfeito", "Feito para durar"].map((word) => <b key={word}>{word}<i><svg viewBox="0 0 16 16"><path d="M8 0c.6 4.2 3.8 7.4 8 8-4.2.6-7.4 3.8-8 8-.6-4.2-3.8-7.4-8-8 4.2-.6 7.4-3.8 8-8z" /></svg></i></b>)}</span>)}
+        </div>
       </div>
 
       <section className="editorial" id="editorial">
