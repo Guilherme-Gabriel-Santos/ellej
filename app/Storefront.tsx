@@ -2,7 +2,11 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { installmentPlan } from "../lib/pricing";
+import { MAX_CARD_INSTALLMENTS, installmentPlan } from "../lib/pricing";
+
+// Destaque da campanha Black Friday mostrado na página inicial.
+const BLACK_FRIDAY_HEADLINE_PERCENT = 60;
+const installmentsCopy = `Até ${MAX_CARD_INSTALLMENTS}x sem juros`;
 import { marketingConsentGranted, trackMetaEvent } from "./marketing";
 
 type Product = {
@@ -137,6 +141,13 @@ function CountUp({ to, duration = 1800 }: { to: number; duration?: number }) {
   return <span ref={ref} className="count-up">{value.toLocaleString("pt-BR")}</span>;
 }
 
+// Versões reduzidas (WebP) das fotos do painel; a original continua intacta e é usada como reserva.
+const mediaVariant = (url: string | null | undefined, width: 480 | 960) =>
+  url && /^\/api\/media\?key=[a-f0-9-]+\.(jpg|png|webp)$/.test(url) ? `${url}&w=${width}` : url ?? "";
+const mediaSrcSet = (url: string | null | undefined) =>
+  url && mediaVariant(url, 480) !== url ? `${mediaVariant(url, 480)} 480w, ${mediaVariant(url, 960)} 960w` : undefined;
+const productCardSizes = "(max-width: 720px) 50vw, (max-width: 1100px) 33vw, 320px";
+
 const money = (cents: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(cents / 100);
 
@@ -153,8 +164,9 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
   const blackFridayCategoryIds = new Set(blackFridayCategory
     ? [blackFridayCategory.id, ...store.categories.filter((item) => item.parentId === blackFridayCategory.id).map((item) => item.id)]
     : []);
-  const blackFridayProducts = store.products.filter((product) => product.categoryIds.some((id) => blackFridayCategoryIds.has(id)));
-  const blackFridayProduct = blackFridayProducts[0];
+  const discountedProducts = store.products.filter((product) => (product.discountPercent ?? 0) > 0);
+  const blackFridayCategoryProducts = store.products.filter((product) => product.categoryIds.some((id) => blackFridayCategoryIds.has(id)));
+  const blackFridayProducts = blackFridayCategoryProducts.length || !blackFridayHome ? blackFridayCategoryProducts : (discountedProducts.length ? discountedProducts : store.products).slice(0, 8);
   const [loading, setLoading] = useState(!initialStore);
   const [busy, setBusy] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<Drawer>(null);
@@ -181,6 +193,15 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
   const [appliedCoupon, setAppliedCoupon] = useState<CouponPreview | null>(null);
   const [couponStatus, setCouponStatus] = useState("");
   const [bannerIndex, setBannerIndex] = useState(0);
+  // Só baixa a foto do banner atual e as vizinhas; as outras carregam quando o carrossel chega nelas.
+  const [mountedBanners, setMountedBanners] = useState<number[]>([0, 1]);
+  useEffect(() => {
+    const total = store.banners.length;
+    if (!total) return;
+    const current = bannerIndex % total;
+    const wanted = [current, (current + 1) % total, (current - 1 + total) % total];
+    setMountedBanners((previous) => wanted.every((index) => previous.includes(index)) ? previous : [...new Set([...previous, ...wanted])]);
+  }, [bannerIndex, store.banners.length]);
   const [carouselPaused, setCarouselPaused] = useState(false);
   const [blackFridayProductIndex, setBlackFridayProductIndex] = useState(0);
   const [previousBlackFridayProductIndex, setPreviousBlackFridayProductIndex] = useState<number | null>(null);
@@ -211,12 +232,14 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
       if (loadPublicCatalogOnly) {
         const [catalogResponse, stateResponse] = await Promise.all([
           fetch("/api/catalog", { cache: "default" }),
-          fetch("/api/store?state=1", { cache: "no-store" }),
+          fetch("/api/store?state=1", { cache: "no-store" }).catch(() => null),
         ]);
-        const [catalog, state] = await Promise.all([catalogResponse.json(), stateResponse.json()]);
+        const catalog = await catalogResponse.json();
         if (!catalogResponse.ok) throw new Error(catalog.error);
-        if (!stateResponse.ok) throw new Error(state.error);
-        return { ...catalog, ...state };
+        // Se a sacola/favoritos falharem, a vitrine continua mostrando todas as joias.
+        const state = stateResponse?.ok ? await stateResponse.json().catch(() => null) : null;
+        if (!state) setToast("A vitrine está visível, mas não foi possível sincronizar seus dados agora.");
+        return { ...catalog, ...(state ?? {}) };
       }
       const storeUrl = loadVisitorStateOnly
         ? "/api/store?state=1"
@@ -829,11 +852,16 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
   }
 
   const heroTitleWords = ["A", "elegância", "que", "eterniza", "momentos"];
-  const announcements = ["Frete grátis acima de R$ 399", "Prata 925 legítima com garantia de 1 ano", "Até 10x no cartão", "Envio em até 3 dias úteis", "Troca fácil em até 7 dias"];
+  const offerHeadline = `Até ${BLACK_FRIDAY_HEADLINE_PERCENT}% off em joias selecionadas`;
+  const currentBlackFridayProduct = blackFridayProducts.length ? blackFridayProducts[blackFridayProductIndex % blackFridayProducts.length] : undefined;
+  const announcements = blackFridayHome
+    ? ["Black Friday Elle Jew", offerHeadline, installmentsCopy, "Frete grátis acima de R$ 399", "Envio em até 3 dias úteis"]
+    : ["Frete grátis acima de R$ 399", "Prata 925 legítima com garantia de 1 ano", installmentsCopy, "Envio em até 3 dias úteis", "Troca fácil em até 7 dias"];
+  const ribbonWords = ["Black Friday", `Até ${BLACK_FRIDAY_HEADLINE_PERCENT}% off`, "Prata 925", "Por tempo limitado", installmentsCopy, "Elle Jew"];
 
   return (
-    <main>
-      {!blackFridayLanding && <div className="announce-bar" role="region" aria-label="Avisos da loja">
+    <main className={blackFridayHome ? "bf-on" : undefined}>
+      {!blackFridayLanding && <div className={`announce-bar${blackFridayHome ? " is-black-friday" : ""}`} role="region" aria-label="Avisos da loja">
         <div className="announce-track">
           {[0, 1].map((copy) => <ul key={copy} aria-hidden={copy === 1 ? true : undefined}>
             {announcements.map((item) => <li key={item}><i aria-hidden="true">✦</i>{item}</li>)}
@@ -867,11 +895,12 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
 
       {blackFridayLanding || blackFridayHome ? <section className={`black-friday-hero ${blackFridayHome ? "black-friday-home-hero" : ""}`} id="top" aria-labelledby="black-friday-title">
         <div className="black-friday-copy">
-          <p className="eyebrow dark">{blackFridayHome ? "Curadoria especial • Black Friday" : "Black Friday • Curadoria Elle Jew"}</p>
+          <p className="eyebrow dark">{blackFridayHome ? "Elle Jew • Black Friday 2026" : "Black Friday • Curadoria Elle Jew"}</p>
           <h1 id="black-friday-title"><span>Black</span><em>Friday</em></h1>
-          <p className="black-friday-lead">{blackFridayHome ? "Joias selecionadas em prata 925, com condições especiais por tempo limitado." : "Uma seleção especial para encontrar sua próxima joia Elle Jew."}</p>
-          <a className="button button-primary" href={blackFridayHome ? "/black-friday" : "#colecao"}>{blackFridayHome ? "CONHECER A SELEÇÃO" : "VER AS JOIAS"} <span aria-hidden="true">→</span></a>
-          <small>Prata 925 <i>•</i> Joias selecionadas <i>•</i> Elle Jew</small>
+          {blackFridayHome && <p className="black-friday-offer"><span>até</span><strong>{BLACK_FRIDAY_HEADLINE_PERCENT}%</strong><span>off</span></p>}
+          {!blackFridayHome && <p className="black-friday-lead">Uma seleção especial para encontrar sua próxima joia Elle Jew.</p>}
+          <a className="button button-primary" href="#colecao">{blackFridayHome ? "VER AS OFERTAS" : "VER AS JOIAS"} <span aria-hidden="true">→</span></a>
+          <small>{installmentsCopy} <i>•</i> Troca fácil em 7 dias <i>•</i> Envio em até 3 dias úteis</small>
         </div>
         <div className="black-friday-art" onMouseEnter={() => setBlackFridayCarouselPaused(true)} onMouseLeave={() => setBlackFridayCarouselPaused(false)} onFocus={() => setBlackFridayCarouselPaused(true)} onBlur={() => setBlackFridayCarouselPaused(false)}>
           <div className="black-friday-image-frame">
@@ -879,10 +908,10 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
               const isCurrent = index === blackFridayProductIndex % blackFridayProducts.length;
               const isLeaving = index === previousBlackFridayProductIndex;
               const isMounted = isCurrent || isLeaving;
-              return <img key={product.id} className={`black-friday-product-slide${isCurrent ? " active" : isLeaving ? " leaving" : ""}`} src={isMounted ? product.image : undefined} alt={isCurrent ? `${product.name} na seleção Black Friday` : ""} aria-hidden={!isCurrent} fetchPriority={isCurrent ? "high" : "auto"} loading={isMounted ? "eager" : "lazy"} decoding="async" />;
+              return <img key={product.id} className={`black-friday-product-slide${isCurrent ? " active" : isLeaving ? " leaving" : ""}`} src={isMounted ? mediaVariant(product.image, 960) : undefined} alt={isCurrent ? `${product.name} na seleção Black Friday` : ""} aria-hidden={!isCurrent} fetchPriority={isCurrent ? "high" : "auto"} loading={isMounted ? "eager" : "lazy"} decoding="async" />;
             }) : <img src={blackFridayCategory ? categoryImage(blackFridayCategory) : "/brand/editorial-ellej-rings.webp"} alt="Joia selecionada Elle Jew para a Black Friday" fetchPriority="high" />}
             <span className="black-friday-seal">BLACK<br />FRIDAY</span>
-            <p>{blackFridayProduct?.name || "Uma joia para guardar"}</p>
+            <p>{currentBlackFridayProduct?.name || "Uma joia para guardar"}</p>
             {blackFridayProducts.length > 1 && <div className="black-friday-carousel-controls" aria-label="Navegação das joias Black Friday">
               <button type="button" onClick={() => selectBlackFridayProduct(blackFridayProductIndex - 1)} aria-label="Joia anterior">‹</button>
               <span aria-live="polite">{String((blackFridayProductIndex % blackFridayProducts.length) + 1).padStart(2, "0")} / {String(blackFridayProducts.length).padStart(2, "0")}</span>
@@ -890,7 +919,13 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
             </div>}
           </div>
         </div>
-      </section> : <section className="hero" id="top">
+      </section> : null}
+      {blackFridayHome && <div className="bf-ribbon" aria-hidden="true">
+        <div className="bf-ribbon-row">
+          {[0, 1].map((copy) => <span key={copy}>{ribbonWords.map((word) => <b key={word}>{word}<i>✦</i></b>)}</span>)}
+        </div>
+      </div>}
+      {blackFridayLanding || blackFridayHome ? null : <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow">Prata 925 Legítima • Garantia de 1 ano</p>
           <h1 aria-label={heroTitleWords.join(" ")}>
@@ -908,7 +943,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
         </div>
         <div className={`hero-visual ${carouselPaused ? "is-paused" : ""}`} aria-roledescription="carrossel" aria-label="Fotos da coleção" onMouseMove={trackHeroPointer} onMouseEnter={() => setCarouselPaused(true)} onMouseLeave={(event) => { setCarouselPaused(false); event.currentTarget.style.setProperty("--mx", "0"); event.currentTarget.style.setProperty("--my", "0"); }} onFocus={() => setCarouselPaused(true)} onBlur={() => setCarouselPaused(false)}>
           <div className="hero-sparkles" aria-hidden="true">{Array.from({ length: 7 }, (_, index) => <i key={index} />)}</div>
-          {loading ? <div className="hero-slide-loading" aria-hidden="true" /> : (store.banners.length ? store.banners : [{ id: "fallback", image: "/brand/hero.webp", title: "", subtitle: "", linkUrl: null, linkLabel: null, focalX: 50, focalY: 24 }]).map((banner, index, photos) => <img key={banner.id} className={`hero-slide ${index === bannerIndex % photos.length ? "active" : ""}`} src={banner.image} style={{ objectPosition: `${banner.focalX}% ${banner.focalY}%` }} alt={index === bannerIndex % photos.length ? "Modelo usando joias Elle Jew" : ""} aria-hidden={index !== bannerIndex % photos.length} loading={index === bannerIndex % photos.length ? "eager" : "lazy"} fetchPriority={index === bannerIndex % photos.length ? "high" : "auto"} decoding="async" />)}
+          {loading ? <div className="hero-slide-loading" aria-hidden="true" /> : (store.banners.length ? store.banners : [{ id: "fallback", image: "/brand/hero.webp", title: "", subtitle: "", linkUrl: null, linkLabel: null, focalX: 50, focalY: 24 }]).map((banner, index, photos) => <img key={banner.id} className={`hero-slide ${index === bannerIndex % photos.length ? "active" : ""}`} src={photos.length === 1 || mountedBanners.includes(index) ? banner.image : undefined} style={{ objectPosition: `${banner.focalX}% ${banner.focalY}%` }} alt={index === bannerIndex % photos.length ? "Modelo usando joias Elle Jew" : ""} aria-hidden={index !== bannerIndex % photos.length} loading={index === bannerIndex % photos.length ? "eager" : "lazy"} fetchPriority={index === bannerIndex % photos.length ? "high" : "auto"} decoding="async" />)}
           {!loading && <div className="hero-card">
             <span>Destaques da Semana</span>
             <strong>Rivieras e Pontos de Luz</strong>
@@ -922,7 +957,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
       {!blackFridayLanding && <section className="trust-strip" aria-label="Benefícios da loja">
         <div data-reveal="up"><svg className="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l3 5-9 13L3 8l3-5Z" /><path d="M3 8h18M9 3l3 18 3-18" /></svg><strong>Prata 925 Legítima</strong><span>Garantia de 1 ano</span></div>
         <div data-reveal="up"><svg className="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6h12v10H2zM14 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></svg><strong>Envio em até 3 dias úteis</strong><span>Após a confirmação do pagamento</span></div>
-        <div data-reveal="up"><svg className="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2" /><path d="M2.5 10h19M6.5 15h4" /></svg><strong>Pagamento Facilitado</strong><span>Pix ou cartão em até 10x</span></div>
+        <div data-reveal="up"><svg className="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2" /><path d="M2.5 10h19M6.5 15h4" /></svg><strong>Pagamento Facilitado</strong><span>Pix ou cartão em até {MAX_CARD_INSTALLMENTS}x sem juros</span></div>
         <div data-reveal="up"><svg className="trust-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v5h-5" /></svg><strong>Troca Fácil e Grátis</strong><span>Até 7 dias após receber</span></div>
       </section>}
 
@@ -938,7 +973,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
           {loading && <p role="status">Carregando categorias…</p>}
           {showcaseCategories.map((item) => (
             <button className="category-card" data-reveal="card" key={item.id} onClick={() => chooseCategory(item.id)}>
-              <img src={categoryImage(item)} alt={`Categoria ${item.name}`} loading="lazy" decoding="async" />
+              <img src={mediaVariant(categoryImage(item), 960)} alt={`Categoria ${item.name}`} loading="lazy" decoding="async" />
               <span><small>Curadoria Elle Jew</small><strong>{item.name}</strong><em>Ver {item.name.toLocaleLowerCase("pt-BR")}</em></span>
             </button>
           ))}
@@ -1034,10 +1069,10 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
                   {productIsMoissanite && <span className="moissanite-mark product-moissanite-mark" role="img" aria-label="Moissanite"><i aria-hidden="true" /><b aria-hidden="true">Moissanite</b></span>}
                   <button className={`heart-button ${favorite ? "active" : ""}`} onClick={() => toggleFavorite(product)} disabled={busy === `favorite-${product.id}`} aria-label={favorite ? `Remover ${product.name} dos favoritos` : `Favoritar ${product.name}`}>{favorite ? "♥" : "♡"}</button>
                   <button className="product-image-button" onClick={() => openProduct(product)} aria-label={`Ver detalhes de ${product.name}`}>
-                    <img src={product.image} alt={product.name} loading="lazy" decoding="async" />
+                    <img src={mediaVariant(product.image, 480)} srcSet={mediaSrcSet(product.image)} sizes={productCardSizes} alt={product.name} loading="lazy" decoding="async" />
                     {(() => {
                       const alternate = galleryOf(product).find((item) => item.type === "image" && item.url !== product.image);
-                      return alternate ? <img className="product-alt-image" src={alternate.url} alt="" aria-hidden="true" loading="lazy" decoding="async" /> : null;
+                      return alternate ? <img className="product-alt-image" src={mediaVariant(alternate.url, 480)} srcSet={mediaSrcSet(alternate.url)} sizes={productCardSizes} alt="" aria-hidden="true" loading="lazy" decoding="async" /> : null;
                     })()}
                     <span className="product-quick-view" aria-hidden="true">Ver joia</span>
                     {galleryOf(product).some((item) => item.type === "video") && <span className="product-video-flag" aria-hidden="true">▶ vídeo</span>}
@@ -1047,7 +1082,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
                   <div><span>{product.category}</span><button onClick={() => openProduct(product)}>Detalhes +</button></div>
                   <h3>{product.name}</h3>
                   <p className="product-price">
-                    {product.priceVisible === false ? <strong>Preço sob consulta</strong> : <>{product.compareAtCents && <del>{money(product.compareAtCents)}</del>}{product.discountPercent ? <em className="discount-tag">-{product.discountPercent}%</em> : null}<strong>{product.multiOptionsEnabled && <span>A partir de </span>}<span>{productInstallments.count}x de</span> {money(productInstallments.installmentCents)}</strong></>}
+                    {product.priceVisible === false ? <strong>Preço sob consulta</strong> : <>{product.compareAtCents && <del>{money(product.compareAtCents)}</del>}{product.discountPercent ? <em className="discount-tag">-{product.discountPercent}%</em> : null}<strong>{product.multiOptionsEnabled && <span>A partir de </span>}<span>{productInstallments.count}x de</span> {money(productInstallments.installmentCents)}{productInstallments.count > 1 && <small className="no-interest"> sem juros</small>}</strong></>}
                   </p>
             <p className="installment">{product.priceVisible === false ? "Fale com a Elle Jew pelo WhatsApp" : `${product.multiOptionsEnabled ? "A partir de " : "ou "}${money(product.priceCents)} à vista`}</p>
             {product.priceVisible !== false && product.pixDiscountEnabled && <p className="pix-discount-note">{money(Math.round(product.priceCents * (100 - (product.pixDiscountPercent ?? 0)) / 100))} no Pix • {product.pixDiscountPercent}% off</p>}
@@ -1141,7 +1176,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
                 <div className="drawer-progress"><div><span style={{ width: `${freeShipping ? 100 : Math.min(100, (subtotal / 39900) * 100)}%` }} /></div><p>{subtotal >= 39900 || freeShipping ? "Você desbloqueou frete grátis." : `Faltam ${money(39900 - subtotal)} para o frete grátis.`}</p></div>
                 <div className="drawer-list">
                   {store.cart.map((item) => (
-                    <article className="drawer-item" key={`${item.id}-${item.variantId}-${item.personalizationText}`}><img src={item.image} alt={item.name} /><div><span>{item.category}</span><h3>{item.name}</h3>{item.variantLabel && <small className="cart-variant">{item.variantLabel}</small>}{item.personalizationText && <small className="cart-variant">Gravação: {item.personalizationText}</small>}<strong>{money(item.priceCents)}</strong><div className="quantity"><button onClick={() => setCartQuantity(item, item.quantity - 1)} aria-label={`Diminuir quantidade de ${item.name}`}>−</button><span>{item.quantity}</span><button onClick={() => setCartQuantity(item, item.quantity + 1)} disabled={item.quantity >= item.stock} aria-label={`Aumentar quantidade de ${item.name}`}>+</button></div></div><button className="remove" onClick={() => setCartQuantity(item, 0)} aria-label={`Remover ${item.name}`}>×</button></article>
+                    <article className="drawer-item" key={`${item.id}-${item.variantId}-${item.personalizationText}`}><img src={mediaVariant(item.image, 480)} alt={item.name} /><div><span>{item.category}</span><h3>{item.name}</h3>{item.variantLabel && <small className="cart-variant">{item.variantLabel}</small>}{item.personalizationText && <small className="cart-variant">Gravação: {item.personalizationText}</small>}<strong>{money(item.priceCents)}</strong><div className="quantity"><button onClick={() => setCartQuantity(item, item.quantity - 1)} aria-label={`Diminuir quantidade de ${item.name}`}>−</button><span>{item.quantity}</span><button onClick={() => setCartQuantity(item, item.quantity + 1)} disabled={item.quantity >= item.stock} aria-label={`Aumentar quantidade de ${item.name}`}>+</button></div></div><button className="remove" onClick={() => setCartQuantity(item, 0)} aria-label={`Remover ${item.name}`}>×</button></article>
                   ))}
                   {store.cart.length > 0 && (
                     <form className="cart-shipping-calculator" onSubmit={calculateCartShipping}>
@@ -1157,7 +1192,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
               </>
             ) : (
               <div className="drawer-list favorites-list">
-                {favoriteProducts.map((product) => <article className="drawer-item" key={product.id}><img src={product.image} alt={product.name} /><div><span>{product.category}</span><h3>{product.name}</h3><strong>{money(product.priceCents)}</strong><button className="mini-add" onClick={() => addToCart(product)}>Adicionar à sacola</button></div><button className="remove" onClick={() => toggleFavorite(product)} aria-label={`Remover ${product.name}`}>×</button></article>)}
+                {favoriteProducts.map((product) => <article className="drawer-item" key={product.id}><img src={mediaVariant(product.image, 480)} alt={product.name} /><div><span>{product.category}</span><h3>{product.name}</h3><strong>{money(product.priceCents)}</strong><button className="mini-add" onClick={() => addToCart(product)}>Adicionar à sacola</button></div><button className="remove" onClick={() => toggleFavorite(product)} aria-label={`Remover ${product.name}`}>×</button></article>)}
                 {!favoriteProducts.length && <div className="empty-drawer"><span>♡</span><h3>Guarde o que fez seus olhos brilharem.</h3><p>Toque no coração de uma peça para encontrá-la aqui.</p><button onClick={() => setDrawer(null)}>Descobrir a coleção</button></div>}
               </div>
             )}
@@ -1196,7 +1231,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
                       >
                         {item.type === "video"
                           ? <><video src={item.url} muted playsInline preload="metadata" /><i aria-hidden="true">▶</i></>
-                          : <img src={item.url} alt="" />}
+                          : <img src={mediaVariant(item.url, 480)} alt="" />}
                       </button>
                     ))}
                   </div>
@@ -1208,7 +1243,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
               <h2 className={selectedProduct.multiOptionsEnabled ? "configurable-product-title" : undefined}>{selectedProduct.name}</h2>
               <p className="modal-description">{selectedProduct.description}</p>
               <p className="modal-material">◇ {selectedProduct.material}</p>
-              {selectedProduct.priceVisible === false ? <div className="modal-price"><strong>Preço sob consulta</strong><span>Nossa equipe responde rapidamente pelo WhatsApp.</span></div> : <div className="modal-price">{selectedProductCompareAt && <del>{money(selectedProductCompareAt)}</del>}{selectedProduct.discountPercent ? <em className="discount-tag">-{selectedProduct.discountPercent}% off</em> : null}<strong><small>{selectedProductInstallments.count}x de</small> {money(selectedProductInstallments.installmentCents)}</strong><span>ou {money(selectedProductPrice)} à vista • cartão</span>{selectedProduct.pixDiscountEnabled && <span className="pix-discount-note">{money(selectedProductPixPrice)} no Pix • desconto de {selectedProduct.pixDiscountPercent}%</span>}</div>}
+              {selectedProduct.priceVisible === false ? <div className="modal-price"><strong>Preço sob consulta</strong><span>Nossa equipe responde rapidamente pelo WhatsApp.</span></div> : <div className="modal-price">{selectedProductCompareAt && <del>{money(selectedProductCompareAt)}</del>}{selectedProduct.discountPercent ? <em className="discount-tag">-{selectedProduct.discountPercent}% off</em> : null}<strong><small>{selectedProductInstallments.count}x{selectedProductInstallments.count > 1 ? " sem juros" : ""} de</small> {money(selectedProductInstallments.installmentCents)}</strong><span>ou {money(selectedProductPrice)} à vista • cartão</span>{selectedProduct.pixDiscountEnabled && <span className="pix-discount-note">{money(selectedProductPixPrice)} no Pix • desconto de {selectedProduct.pixDiscountPercent}%</span>}</div>}
               {selectedProduct.multiOptionsEnabled ? visibleOptionGroups.map((group) => <fieldset className="variant-picker multi-option-picker" key={group.id}><legend>{group.name}</legend>{group.options.filter((option) => option.active).map((option) => <label key={option.id} className={selectedOptionIds[group.id] === option.id ? "selected" : ""}><input type="radio" name={`product-option-${group.id}`} value={option.id} checked={selectedOptionIds[group.id] === option.id} onChange={() => setSelectedOptionIds((current) => ({ ...current, [group.id]: option.id }))} /><span><strong>{option.label}</strong>{option.addedPriceCents > 0 && <small>+ {money(option.addedPriceCents)}</small>}</span></label>)}</fieldset>) : (selectedProduct.variants ?? []).some((item) => item.active) && <fieldset className="variant-picker"><legend>Escolha sua opção</legend>{(selectedProduct.variants ?? []).filter((item) => item.active).map((variant) => { const label = [variant.size, variant.color, variant.material].filter(Boolean).join(" • ") || "Opção"; return <label key={variant.id} className={selectedVariantId === variant.id ? "selected" : ""}><input aria-label={label} type="radio" name="product-variant" value={variant.id} checked={selectedVariantId === variant.id} disabled={selectedProduct.trackStock !== false && variant.stock < 1} onChange={() => setSelectedVariantId(variant.id)} /><span><strong>{label}</strong><small>{selectedProduct.trackStock !== false && variant.stock < 1 ? "Esgotado" : variant.priceCents ? money(variant.priceCents) : money(selectedProduct.priceCents)}</small></span></label>; })}</fieldset>}
               {selectedProduct.personalizationEnabled && (engravingRequired
                 ? <fieldset className="personalization-picker required-personalization"><legend>Nome <span aria-hidden="true">*</span></legend><label className="personalization-name"><textarea required rows={2} value={personalizationText} maxLength={selectedProduct.personalizationMaxChars ?? 20} autoComplete="off" placeholder="Digite aqui" onChange={(event) => setPersonalizationText(event.target.value)} /><small>{personalizationText.length}/{selectedProduct.personalizationMaxChars ?? 20} caracteres. Confira a grafia antes de adicionar.</small>{automaticPriceSummary.length > 0 && <small className="personalization-price-guide">Faixas de preço: {automaticPriceSummary.join(" • ")}. O valor é calculado pelo nome digitado.</small>}</label></fieldset>
@@ -1254,7 +1289,7 @@ export function Storefront({ initialProductSlug = "", initialStore, initialCateg
                 const draftKey = `${item.id}:${item.variantId}:${item.personalizationText}`;
                 const engraving = personalizationDrafts[draftKey] ?? item.personalizationText;
                 const unitPrice = checkout.paymentMethod === "pix" && item.pixDiscountEnabled ? Math.round(item.priceCents * (100 - (item.pixDiscountPercent ?? 0)) / 100) : item.priceCents;
-                return <div key={draftKey}><div><img src={item.image} alt="" /><span>{item.quantity}</span></div><p><strong>{item.name}</strong><small>{item.variantLabel || item.material}</small>{item.personalizationEnabled && <label className="checkout-personalization">Deseja personalizar? Informe o nome abaixo.<input type="text" value={engraving} maxLength={item.personalizationMaxChars ?? 20} autoComplete="off" placeholder="Deixe em branco se não quiser gravar" onChange={(event) => setPersonalizationDrafts((current) => ({ ...current, [draftKey]: event.target.value }))} onBlur={() => { if (engraving.trim() !== item.personalizationText) void setCartQuantity(item, item.quantity, false, item.variantId, engraving, item.personalizationText); }} /><small>Até {item.personalizationMaxChars ?? 20} caracteres. Confira a grafia.</small></label>}{item.personalizationText && <small>Gravação: {item.personalizationText}</small>}</p><b>{money(unitPrice * item.quantity)}</b></div>;
+                return <div key={draftKey}><div><img src={mediaVariant(item.image, 480)} alt="" /><span>{item.quantity}</span></div><p><strong>{item.name}</strong><small>{item.variantLabel || item.material}</small>{item.personalizationEnabled && <label className="checkout-personalization">Deseja personalizar? Informe o nome abaixo.<input type="text" value={engraving} maxLength={item.personalizationMaxChars ?? 20} autoComplete="off" placeholder="Deixe em branco se não quiser gravar" onChange={(event) => setPersonalizationDrafts((current) => ({ ...current, [draftKey]: event.target.value }))} onBlur={() => { if (engraving.trim() !== item.personalizationText) void setCartQuantity(item, item.quantity, false, item.variantId, engraving, item.personalizationText); }} /><small>Até {item.personalizationMaxChars ?? 20} caracteres. Confira a grafia.</small></label>}{item.personalizationText && <small>Gravação: {item.personalizationText}</small>}</p><b>{money(unitPrice * item.quantity)}</b></div>;
               })}</div><div className="summary-lines"><p><span>Subtotal</span><strong>{money(subtotal)}</strong></p>{pixDiscount > 0 && <p className="discount-line"><span>Desconto no Pix</span><strong>− {money(pixDiscount)}</strong></p>}<p><span>Entrega</span><strong>{selectedShipping ? shipping ? money(shipping) : "Grátis" : "A calcular"}</strong></p>{couponDiscount > 0 && <p className="discount-line"><span>Cupom {appliedCoupon?.code}</span><strong>− {money(couponDiscount)}</strong></p>}{shippingDiscount > 0 && <p className="discount-line"><span>Frete grátis • {appliedCoupon?.code}</span><strong>− {money(shippingDiscount)}</strong></p>}<div><span>Total</span><strong>{money(total)}</strong></div><small>{checkout.paymentMethod === "pix" ? "Pagamento via Pix pelo Asaas" : "Cartão de crédito pelo Asaas"}</small></div><div className="summary-trust"><span>Compra protegida</span><span>Troca em 7 dias</span><span>Dados seguros</span></div></aside>
             </div>
           ) : (

@@ -14,7 +14,8 @@
     "db:generate": "node --require ./scripts/node-userinfo-shim.cjs ./node_modules/drizzle-kit/bin.cjs generate",
     "auth:secrets": "node ./scripts/generate-auth-secrets.mjs",
     "cf:migrate": "wrangler d1 migrations apply elle-jew-db --remote --config wrangler.cloudflare.jsonc",
-    "cf:deploy": "npm run build && wrangler deploy --config wrangler.cloudflare.jsonc --secrets-file .env.production"
+    "cf:deploy": "npm run build && wrangler deploy --config wrangler.cloudflare.jsonc --secrets-file .env.production",
+    "media:variants": "node ./scripts/generate-media-variants.mjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",
@@ -40,6 +41,7 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "16.4.0",
     "react-server-dom-webpack": "19.2.8",
+    "sharp": "^0.34.5",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.59.3",

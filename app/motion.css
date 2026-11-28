@@ -625,3 +625,128 @@
   .product-media::after { display: none; }
   .scroll-reveal-ready .trust-strip [data-reveal] .trust-icon { stroke-dashoffset: 0; }
 }
+
+/* ===== Tema Black Friday da página inicial ===== */
+.announce-bar.is-black-friday {
+  background: linear-gradient(90deg, #b1883f, #e9cf94 50%, #b1883f);
+  color: #101820;
+  border-bottom: 0;
+}
+.announce-bar.is-black-friday li { font-weight: 700; }
+.announce-bar.is-black-friday li i { color: #101820; }
+
+.bf-on .black-friday-home-hero {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(60% 70% at 78% 45%, rgba(201, 164, 95, 0.24), transparent 70%),
+    radial-gradient(40% 50% at 8% 100%, rgba(201, 164, 95, 0.14), transparent 70%),
+    linear-gradient(115deg, #0a1015 0%, #141f28 55%, #1b2832 100%);
+  color: #f6efe2;
+}
+.bf-on .black-friday-home-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(233, 207, 148, 0.55) 1px, transparent 1.4px);
+  background-size: 46px 46px;
+  opacity: 0.16;
+  -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%);
+  mask-image: linear-gradient(180deg, #000, transparent 85%);
+}
+.bf-on .black-friday-copy .eyebrow { color: #e9cf94; letter-spacing: 0.28em; }
+.bf-on .black-friday-copy h1 span { color: #f6efe2; }
+.bf-on .black-friday-copy h1 em {
+  padding: 0 0.12em 0.1em 0.04em;
+  margin-left: -0.04em;
+  background: linear-gradient(100deg, #9c7536 0%, #e9cf94 30%, #fff4d6 45%, #c9a45f 60%, #9c7536 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: bf-shine 5s ease-in-out infinite;
+}
+@keyframes bf-shine {
+  0%, 100% { background-position: 100% 0; }
+  50% { background-position: 0 0; }
+}
+.black-friday-offer {
+  margin: 22px 0 30px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  color: #e9cf94;
+  font-family: var(--font-serif);
+  line-height: 1;
+}
+.black-friday-offer span { font-size: clamp(20px, 2vw, 28px); font-style: italic; }
+.black-friday-offer strong {
+  font-size: clamp(64px, 7vw, 104px);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  color: #fff4d6;
+  text-shadow: 0 0 34px rgba(233, 207, 148, 0.35);
+}
+.bf-on .black-friday-lead { color: rgba(246, 239, 226, 0.78); }
+.bf-on .black-friday-copy .button {
+  background: linear-gradient(90deg, #c9a45f, #e9cf94);
+  border-color: transparent;
+  color: #101820;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(201, 164, 95, 0.28);
+}
+.bf-on .black-friday-copy .button:hover { background: #fff4d6; color: #101820; }
+.bf-on .black-friday-copy .button:focus-visible { outline: 2px solid #fff4d6; outline-offset: 3px; }
+.bf-on .black-friday-copy > small { color: rgba(246, 239, 226, 0.62); font-size: 10.5px; }
+.bf-on .black-friday-copy > small i { color: #e9cf94; }
+.bf-on .black-friday-art {
+  background: linear-gradient(140deg, rgba(233, 207, 148, 0.5), rgba(201, 164, 95, 0.08) 45%, rgba(233, 207, 148, 0.4));
+  box-shadow: 0 30px 80px rgba(5, 9, 12, 0.55), 0 0 60px rgba(201, 164, 95, 0.18);
+}
+.bf-on .black-friday-image-frame { border-color: rgba(201, 164, 95, 0.7); background: #fbf8f1; }
+.bf-on .black-friday-seal {
+  background: #101820;
+  border-color: #c9a45f;
+  color: #e9cf94;
+  font-size: 10px;
+}
+
+.bf-ribbon {
+  overflow: hidden;
+  background: linear-gradient(90deg, #9c7536, #e9cf94 50%, #9c7536);
+  color: #101820;
+  border-block: 1px solid #101820;
+}
+.bf-ribbon-row { display: flex; width: max-content; padding: 13px 0; animation: marquee-x 34s linear infinite; }
+.bf-ribbon-row > span { display: flex; align-items: center; }
+.bf-ribbon b {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+.bf-ribbon b i { margin: 0 26px; font-style: normal; font-size: 11px; }
+
+.bf-on .discount-tag {
+  background: #101820;
+  color: #e9cf94;
+  border: 1px solid #c9a45f;
+}
+
+@media (max-width: 720px) {
+  .black-friday-offer { margin: 16px 0 26px; }
+  .black-friday-offer strong { font-size: clamp(60px, 18vw, 84px); }
+  .bf-on .black-friday-copy > small { font-size: 9.5px; line-height: 1.7; }
+  .bf-ribbon-row { padding: 11px 0; animation-duration: 26s; }
+  .bf-ribbon b { font-size: 11px; letter-spacing: 0.24em; }
+  .bf-ribbon b i { margin: 0 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-ribbon .bf-ribbon-row { animation-duration: 60s !important; animation-iteration-count: infinite !important; }
+}

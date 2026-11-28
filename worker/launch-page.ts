@@ -11,6 +11,15 @@ const defaultTeasers: LaunchTeaser[] = [
   { image: "/brand/colar-ponto-luz.webp", name: "Ponto de luz" },
 ];
 
+/** Tempo que falta em formato curto, ex.: "3h 05min" ou "12 min". */
+function timeLeftLabel(ms: number) {
+  const minutes = Math.max(1, Math.ceil(ms / 60_000));
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${rest} min`;
+  return rest ? `${hours}h ${String(rest).padStart(2, "0")}min` : `${hours}h`;
+}
+
 function escapeHtml(value: unknown) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]!);
 }
@@ -68,7 +77,7 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
   const vipTop = isVip ? "" : `
       <div class="vip-entry">
         <p class="vip-highlight">Entre no grupo VIP para ter acesso antecipado</p>
-        ${vipWhen ? `<p class="vip-when">Acesso VIP liberado em <time datetime="${vipWhen.iso}">${vipWhen.short}</time></p>` : ""}
+        ${vipWhen ? (vipOpenNow ? `<p class="vip-when">Acesso VIP já liberado</p>` : `<p class="vip-when" id="vip-when">Acesso VIP liberado em <time id="vip-left" datetime="${vipWhen.iso}">${timeLeftLabel(Date.parse(vipWhen.iso) - Date.now())}</time></p>`) : ""}
         ${groupCta}
         ${vipWhen ? `<button class="vip-open" type="button" id="vip-open" aria-expanded="false" aria-controls="vip"${passwordVisible ? "" : ` hidden data-show-at="${passwordShowAt}"`}><svg viewBox="0 0 16 20" aria-hidden="true"><path d="M8 0a5 5 0 0 0-5 5v3H2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V5a5 5 0 0 0-5-5zm-3 5a3 3 0 1 1 6 0v3H5V5z"/></svg>Tenho a senha VIP</button>` : ""}
       </div>`;
@@ -354,7 +363,7 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
     .notify-label { display: block; margin-bottom: 16px; color: var(--muted); font-size: 15px; line-height: 1.5; text-align: center; }
     .notify-back { display: block; margin: 14px auto 0; min-height: 44px; padding: 0 16px; border: 0; background: none; color: var(--muted); font: 500 12px "Jost", sans-serif; letter-spacing: .18em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
     .notify-back:hover { color: var(--gold-light); }
-    .vip-entry { margin: clamp(20px, 3vh, 30px) 0 clamp(8px, 2vh, 18px); display: flex; flex-direction: column; align-items: center; gap: 10px; animation: rise 1s 1.55s var(--ease) both; }
+    .vip-entry { margin: clamp(44px, 7vh, 72px) 0 clamp(8px, 2vh, 18px); display: flex; flex-direction: column; align-items: center; gap: 10px; animation: rise 1s 1.55s var(--ease) both; }
     .vip-highlight { margin: 0; max-width: 30em; color: var(--gold-light); font: 500 clamp(15px, 2vw, 18px)/1.5 "Jost", sans-serif; letter-spacing: .16em; text-transform: uppercase; }
     .vip-line { margin: 0; color: var(--muted); font-size: 13px; letter-spacing: .08em; }
     .vip-line time { color: var(--gold-light); }
@@ -493,7 +502,6 @@ export function renderLaunchPage(launchAt: string, requestMethod: string, audien
         <span class="line" data-split>Friday</span>
       </h1>
       <p class="intro">${intro}</p>
-${vipTop}
       <p class="sr-only" id="countdown-text" role="timer" aria-live="off" aria-atomic="true">A Black Friday abre em ${when.short}.</p>
       <div class="countdown" aria-hidden="true">
         <div class="unit"><div class="digits"><strong id="days">00</strong></div><i class="bar"><b id="days-bar"></b></i><span>Dias</span></div>
@@ -504,6 +512,7 @@ ${vipTop}
         <div class="sep"><i></i><i></i></div>
         <div class="unit"><div class="digits"><strong id="seconds">00</strong></div><i class="bar"><b id="seconds-bar"></b></i><span>Segundos</span></div>
       </div>
+${vipTop}
 ${vipBlock}
       <p class="social">Spoilers no Instagram · <a href="https://www.instagram.com/ellejew_/" target="_blank" rel="noopener noreferrer">@ellejew_<span class="sr-only"> no Instagram (abre em nova aba)</span></a></p>
       <section class="teaser" aria-labelledby="teaser-title">
@@ -566,6 +575,23 @@ ${vipBlock}
       };
       update();
       window.setInterval(update, 1000);
+
+      const vipLeft = document.getElementById("vip-left");
+      if (vipLeft) {
+        const vipAt = Date.parse(vipLeft.getAttribute("datetime") || "");
+        const updateVipLeft = () => {
+          const ms = vipAt - Date.now();
+          if (!(ms > 0)) { document.getElementById("vip-when").textContent = "Acesso VIP já liberado"; return false; }
+          const minutes = Math.max(1, Math.ceil(ms / 60000));
+          const hours = Math.floor(minutes / 60);
+          const rest = minutes % 60;
+          vipLeft.textContent = !hours ? rest + " min" : rest ? hours + "h " + pad(rest) + "min" : hours + "h";
+          return true;
+        };
+        if (updateVipLeft()) {
+          const vipTimer = window.setInterval(() => { if (!updateVipLeft()) window.clearInterval(vipTimer); }, 15000);
+        }
+      }
 
       const vipForm = document.getElementById("vip");
       if (vipForm) {

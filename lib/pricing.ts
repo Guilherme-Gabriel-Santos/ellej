@@ -1,4 +1,4 @@
-export const MAX_CARD_INSTALLMENTS = 10;
+export const MAX_CARD_INSTALLMENTS = 6;
 export const MIN_CARD_INSTALLMENT_CENTS = 500;
 
 export function installmentPlan(totalCents: number) {

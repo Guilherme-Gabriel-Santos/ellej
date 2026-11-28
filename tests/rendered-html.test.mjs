@@ -422,13 +422,13 @@ test("troca Buscar por ícones e preserva a sacola durante o login", async () =>
   assert.match(styles, /\.header-icon-action/);
 });
 
-test("destaca parcelas de até dez vezes sem esconder o valor total", async () => {
+test("destaca parcelas de até seis vezes sem juros sem esconder o valor total", async () => {
   const [storefront, pricing, asaas] = await Promise.all([
     readFile(new URL("../app/Storefront.tsx", import.meta.url), "utf8"),
     readFile(new URL("../lib/pricing.ts", import.meta.url), "utf8"),
     readFile(new URL("../lib/asaas.ts", import.meta.url), "utf8"),
   ]);
-  assert.match(pricing, /MAX_CARD_INSTALLMENTS = 10/);
+  assert.match(pricing, /MAX_CARD_INSTALLMENTS = 6/);
   assert.match(pricing, /Math\.ceil\(safeTotal \/ count\)/);
   assert.match(asaas, /installmentPlan\(Number\(order\.total_cents\)\)\.count/);
   assert.match(storefront, /productInstallments\.count}x de/);

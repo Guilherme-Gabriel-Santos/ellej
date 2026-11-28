@@ -2,10 +2,34 @@ import { env } from "cloudflare:workers";
 
 const allowedKey = /^[a-f0-9-]{36}\.(jpg|png|webp|mp4|webm|mov)$/;
 
+// Larguras das versões reduzidas (WebP) geradas por scripts/generate-media-variants.mjs.
+// A foto original nunca é alterada: se a versão reduzida não existir, serve a original.
+const variantWidths = new Set([480, 960]);
+
+function mediaVariantKey(key: string, width: number) {
+  return `variants/${key.replace(/\.[a-z0-9]+$/, "")}-w${width}.webp`;
+}
+
 export async function GET(request: Request) {
-  const key = new URL(request.url).searchParams.get("key") ?? "";
+  const params = new URL(request.url).searchParams;
+  const key = params.get("key") ?? "";
   if (!allowedKey.test(key) || !env.MEDIA) {
     return new Response("Arquivo não encontrado.", { status: 404 });
+  }
+
+  const width = Number(params.get("w") || 0);
+  if (variantWidths.has(width) && /\.(jpg|png|webp)$/.test(key)) {
+    const variant = await env.MEDIA.get(mediaVariantKey(key, width));
+    if (variant) {
+      const headers = new Headers({
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Type": "image/webp",
+        ETag: variant.httpEtag,
+        "X-Content-Type-Options": "nosniff",
+        "Content-Length": String(variant.size),
+      });
+      return new Response(variant.body, { headers });
+    }
   }
 
   const rangeHeader = request.headers.get("range");

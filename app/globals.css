@@ -1509,6 +1509,14 @@ img {
   letter-spacing: 0.04em;
 }
 
+.product-price strong .no-interest {
+  color: #82652f;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
 .installment {
   margin: 5px 0 0;
   color: var(--black-65);
